@@ -1,19 +1,24 @@
+import type { ReactNode } from "react";
+
+import Header from "../components/Header";
+import Sidebar from "../components/Sidebar";
+
 type MainLayoutProps = {
-  children: React.ReactNode;
+  children: ReactNode;
 };
 
 function MainLayout({ children }: MainLayoutProps) {
   return (
-    <div>
-      <header>
-        <h2>PronounceLab</h2>
-      </header>
+    <div className="flex min-h-screen bg-slate-100">
+      <Sidebar />
 
-      <main>{children}</main>
+      <div className="flex flex-1 flex-col">
+        <Header />
 
-      <footer>
-        <small>© 2026 PronounceLab</small>
-      </footer>
+        <main className="flex-1 p-8">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }
