@@ -2,20 +2,16 @@ import { useNavigate, useParams } from "react-router-dom";
 
 import MainLayout from "../../shared/layouts/MainLayout";
 import Card from "../../shared/components/ui/Card";
-import { courses } from "../../shared/data/courses";
-import { units } from "../../shared/data/units";
+import { getCourseById } from "../../shared/services/courseService";
+import { getUnitsByCourse } from "../../shared/services/unitService";
 
 function UnitsPage() {
   const { courseId } = useParams();
   const navigate = useNavigate();
 
-  const course = courses.find(
-    (course) => course.id === Number(courseId)
-  );
+  const course = getCourseById(Number(courseId));
 
-  const courseUnits = units.filter(
-    (unit) => unit.courseId === Number(courseId)
-  );
+  const courseUnits = getUnitsByCourse(Number(courseId));
 
   return (
     <MainLayout>
