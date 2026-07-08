@@ -7,12 +7,12 @@ type CardProps = {
 
 function Card({ title, children }: CardProps) {
   return (
-    <div className="rounded-xl bg-white p-6 shadow-md border border-slate-200">
-      <h3 className="mb-4 text-lg font-semibold text-slate-800">
-        {title}
-      </h3>
+    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <h3 className="text-lg font-semibold">{title}</h3>
 
-      {children}
+      <div className="mt-2 text-slate-600">
+        {children}
+      </div>
     </div>
   );
 }

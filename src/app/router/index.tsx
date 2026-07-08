@@ -1,7 +1,10 @@
 import { createBrowserRouter } from "react-router-dom";
 
-import DashboardPage from "../../features/dashboard/DashboardPage.tsx";
-import LoginPage from "../../features/auth/LoginPage.tsx";
+import DashboardPage from "../../features/dashboard/DashboardPage";
+import LoginPage from "../../features/auth/LoginPage";
+import CoursesPage from "../../features/courses/CoursesPage";
+import UnitsPage from "../../features/units/UnitsPage";
+import LessonsPage from "../../features/lessons/LessonsPage";
 
 export const router = createBrowserRouter([
   {
@@ -12,4 +15,16 @@ export const router = createBrowserRouter([
     path: "/login",
     element: <LoginPage />,
   },
+  {
+    path: "/courses",
+    element: <CoursesPage />,
+  },
+  {
+    path: "/courses/:courseId",
+    element: <UnitsPage />,
+  },
+  {
+  path: "/units/:unitId",
+  element: <LessonsPage />,
+},
 ]);

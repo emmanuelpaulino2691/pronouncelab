@@ -1,5 +1,6 @@
 import Card from "../../../shared/components/ui/Card";
 import ProgressBar from "../../../shared/components/ui/ProgressBar";
+import { useNavigate } from "react-router-dom";
 
 type Props = {
   courseTitle: string;
@@ -12,8 +13,11 @@ function ContinueLearningCard({
   unitTitle,
   progress,
 }: Props) {
-    function handleContinue() {
-  alert("Opening your last lesson...");
+
+  const navigate = useNavigate();
+
+function handleContinue() {
+  navigate("/courses");
 }
   return (
     <Card title="Continue Learning">
