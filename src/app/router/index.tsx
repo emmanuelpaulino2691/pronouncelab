@@ -6,7 +6,7 @@ import CoursesPage from "../../features/courses/CoursesPage";
 import UnitsPage from "../../features/units/UnitsPage";
 import LessonsPage from "../../features/lessons/LessonsPage";
 import LessonPage from "../../features/lesson/LessonPage";
-import TheoryPage from "../../features/activities/TheoryPage";
+import TheoryPage from "../../features/activities/theory/TheoryPage";
 
 export const router = createBrowserRouter([
   {
