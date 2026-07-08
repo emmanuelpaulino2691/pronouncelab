@@ -5,6 +5,8 @@ import LoginPage from "../../features/auth/LoginPage";
 import CoursesPage from "../../features/courses/CoursesPage";
 import UnitsPage from "../../features/units/UnitsPage";
 import LessonsPage from "../../features/lessons/LessonsPage";
+import LessonPage from "../../features/lesson/LessonPage";
+import TheoryPage from "../../features/activities/TheoryPage";
 
 export const router = createBrowserRouter([
   {
@@ -26,5 +28,13 @@ export const router = createBrowserRouter([
   {
   path: "/units/:unitId",
   element: <LessonsPage />,
+},
+{
+  path: "/lessons/:lessonId",
+  element: <LessonPage />,
+},
+{
+  path: "/theory/:lessonId",
+  element: <TheoryPage />,
 },
 ]);
