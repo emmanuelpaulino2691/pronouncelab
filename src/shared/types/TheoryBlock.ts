@@ -10,4 +10,10 @@ export type TheoryBlock =
   | {
       type: "tip";
       text: string;
-    };
+    }
+  | {
+      type: "image";
+      src: string;
+      alt: string;
+    }
+    ;

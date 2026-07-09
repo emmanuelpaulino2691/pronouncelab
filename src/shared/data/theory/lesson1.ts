@@ -17,4 +17,8 @@ export const lesson1: TheoryBlock[] = [
     type: "tip",
     text: "Don't try to memorize everything at once. Focus on one sound at a time.",
   },
+  {
+  type: "audio",
+  src: "/audio/sample.mp3",
+},
 ];
