@@ -8,6 +8,29 @@ export const lesson1: LessonData = {
   description:
     "Learn the basic English sounds and why they are important.",
 
+    activities: [
+  {
+    id: 1,
+    title: "Introduction",
+    type: "theory",
+  },
+  {
+    id: 2,
+    title: "Listen and Repeat",
+    type: "listening",
+  },
+  {
+    id: 3,
+    title: "Pronunciation Practice",
+    type: "pronunciation",
+  },
+  {
+    id: 4,
+    title: "Quiz",
+    type: "quiz",
+  },
+],
+
   theory: [
     {
       type: "heading",
@@ -29,5 +52,10 @@ export const lesson1: LessonData = {
       type: "audio",
       src: "/audio/sample.mp3",
     },
+    {
+  type: "example",
+  title: "Example",
+  text: "ship /ʃɪp/ → sheep /ʃiːp/",
+},
   ],
 };

@@ -26,15 +26,15 @@ export const router = createBrowserRouter([
     element: <UnitsPage />,
   },
   {
-  path: "/units/:unitId",
-  element: <LessonsPage />,
-},
-{
-  path: "/lessons/:lessonId",
-  element: <LessonPage />,
-},
-{
-  path: "/theory/:lessonId",
-  element: <TheoryPage />,
-},
+    path: "/units/:unitId",
+    element: <LessonsPage />,
+  },
+  {
+    path: "/lessons/:lessonId",
+    element: <LessonPage />,
+  },
+  {
+    path: "/theory/:lessonId",
+    element: <TheoryPage />,
+  },
 ]);
