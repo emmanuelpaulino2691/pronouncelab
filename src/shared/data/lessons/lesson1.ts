@@ -58,4 +58,23 @@ export const lesson1: LessonData = {
   text: "ship /ʃɪp/ → sheep /ʃiːp/",
 },
   ],
+
+listening: [
+  {
+    id: 1,
+    title: "Listen and Repeat",
+    audio: "/audio/sample.mp3",
+    instructions: "Listen carefully and repeat the sounds.",
+    transcript: "ship → sheep",
+
+    questions: [
+      {
+        id: 1,
+        question: "Which word contains the long /iː/ sound?",
+        options: ["ship", "sheep", "both", "neither"],
+        correctAnswer: 1,
+      },
+    ],
+  },
+],
 };

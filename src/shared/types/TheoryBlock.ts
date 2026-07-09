@@ -1,6 +1,7 @@
 export type TheoryBlock =
   | {
       type: "heading";
+      level?: 1 | 2 | 3;
       text: string;
     }
   | {
@@ -16,4 +17,12 @@ export type TheoryBlock =
       src: string;
       alt: string;
     }
-    ;
+  | {
+      type: "audio";
+      src: string;
+    }
+  | {
+      type: "example";
+      title: string;
+      text: string;
+    };
