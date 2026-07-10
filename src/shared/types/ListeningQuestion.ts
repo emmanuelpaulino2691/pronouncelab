@@ -1,6 +1,3 @@
-export type ListeningQuestion = {
-  id: number;
-  question: string;
-  options: string[];
-  correctAnswer: number;
-};
+import type { MultipleChoiceQuestion } from "./MultipleChoiceQuestion";
+
+export type ListeningQuestion = MultipleChoiceQuestion;

@@ -20,15 +20,20 @@ export const lesson1: LessonData = {
     type: "listening",
   },
   {
-    id: 3,
-    title: "Pronunciation Practice",
-    type: "pronunciation",
-  },
-  {
-    id: 4,
-    title: "Quiz",
-    type: "quiz",
-  },
+  id: 3,
+  title: "Pronunciation Practice",
+  type: "pronunciation",
+},
+{
+  id: 4,
+  title: "Practice",
+  type: "practice",
+},
+{
+  id: 5,
+  title: "Quiz",
+  type: "quiz",
+},
 ],
 
   theory: [
