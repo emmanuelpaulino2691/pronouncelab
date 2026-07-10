@@ -6,8 +6,10 @@ import CoursesPage from "../../features/courses/CoursesPage";
 import UnitsPage from "../../features/units/UnitsPage";
 import LessonsPage from "../../features/lessons/LessonsPage";
 import LessonPage from "../../features/lesson/LessonPage";
+
 import TheoryPage from "../../features/activities/theory/TheoryPage";
 import ListeningPage from "../../features/activities/listening/ListeningPage";
+import PracticePage from "../../features/activities/practice/PracticePage";
 
 export const router = createBrowserRouter([
   {
@@ -39,7 +41,11 @@ export const router = createBrowserRouter([
     element: <TheoryPage />,
   },
   {
-  path: "/listening/:lessonId",
-  element: <ListeningPage />,
-},
+    path: "/listening/:lessonId",
+    element: <ListeningPage />,
+  },
+  {
+    path: "/practice/:lessonId",
+    element: <PracticePage />,
+  },
 ]);

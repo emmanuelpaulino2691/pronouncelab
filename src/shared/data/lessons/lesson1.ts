@@ -82,4 +82,26 @@ listening: [
     ],
   },
 ],
+practice: [
+  {
+    id: 1,
+    title: "Practice the Sounds",
+    instructions: "Choose the correct answer for each question.",
+
+    questions: [
+      {
+        id: 1,
+        question: "Which word contains the short /ɪ/ sound?",
+        options: ["ship", "sheep", "both", "neither"],
+        correctAnswer: 0,
+      },
+      {
+        id: 2,
+        question: "Which word contains the long /iː/ sound?",
+        options: ["ship", "sheep", "both", "neither"],
+        correctAnswer: 1,
+      },
+    ],
+  },
+],
 };
