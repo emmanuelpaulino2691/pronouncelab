@@ -82,6 +82,14 @@ listening: [
     ],
   },
 ],
+pronunciation: [
+  {
+    id: 1,
+    title: "Pronounce the Words",
+    audio: "/audio/sample.mp3",
+    text: "ship → sheep",
+  },
+],
 practice: [
   {
     id: 1,
@@ -101,6 +109,17 @@ practice: [
         options: ["ship", "sheep", "both", "neither"],
         correctAnswer: 1,
       },
+    ],
+  },
+],
+quiz: [
+  {
+    id: 1,
+    title: "Lesson Quiz",
+    questions: [
+      "Which word contains the short /ɪ/ sound?",
+      "Which word contains the long /iː/ sound?",
+      "Why is pronunciation important?",
     ],
   },
 ],

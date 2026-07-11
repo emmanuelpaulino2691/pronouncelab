@@ -1,18 +1,11 @@
 import ActivityLayout from "../../../shared/components/activity/ActivityLayout";
-import TheoryRenderer from "../../../shared/components/theory/TheoryRenderer";
+
+import TheoryActivity from "../shared/TheoryActivity";
 
 function TheoryPage() {
   return (
     <ActivityLayout>
-      {(lesson) => (
-        <>
-          <h1 className="text-3xl font-bold">
-            {lesson.title}
-          </h1>
-
-          <TheoryRenderer blocks={lesson.theory} />
-        </>
-      )}
+      {(lesson) => <TheoryActivity lesson={lesson} />}
     </ActivityLayout>
   );
 }

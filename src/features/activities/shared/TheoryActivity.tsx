@@ -7,13 +7,7 @@ type Props = {
 };
 
 function TheoryActivity({ lesson }: Props) {
-  return (
-    <>
-      <h1 className="text-3xl font-bold">{lesson.title}</h1>
-
-      <TheoryRenderer blocks={lesson.theory} />
-    </>
-  );
+  return <TheoryRenderer blocks={lesson.theory} />;
 }
 
 export default TheoryActivity;
