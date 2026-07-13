@@ -1,10 +1,4 @@
-type Course = {
-  id: number;
-  title: string;
-  level: string;
-  units: number;
-  emoji: string;
-};
+import type { Course } from "../types/Course";
 
 export const courses: Course[] = [
   {

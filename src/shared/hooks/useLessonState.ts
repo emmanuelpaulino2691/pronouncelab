@@ -1,11 +1,22 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
+import { loadLessonState, saveLessonState } from "../utils/lessonStorage";
 
 import type { LessonState } from "../types/LessonState";
 
-export function useLessonState() {
-  const [state, setState] = useState<LessonState>({
-    currentActivity: 0,
+export function useLessonState(lessonId: number) {
+  const [state, setState] = useState<LessonState>(() => {
+    return (
+      loadLessonState(lessonId) ?? {
+        currentActivity: 0,
+        completedActivities: [],
+      }
+    );
   });
+
+  useEffect(() => {
+    saveLessonState(lessonId, state);
+  }, [lessonId, state]);
 
   const nextActivity = () => {
     setState((previous) => ({
@@ -17,13 +28,31 @@ export function useLessonState() {
   const previousActivity = () => {
     setState((previous) => ({
       ...previous,
-      currentActivity: Math.max(0, previous.currentActivity - 1),
+      currentActivity: Math.max(
+        0,
+        previous.currentActivity - 1
+      ),
     }));
   };
+
+  const completeActivity = (activityIndex: number) => {
+  setState((previous) => ({
+    ...previous,
+    completedActivities: previous.completedActivities.includes(
+      activityIndex
+    )
+      ? previous.completedActivities
+      : [
+          ...previous.completedActivities,
+          activityIndex,
+        ].sort((a, b) => a - b),
+  }));
+};
 
   return {
     state,
     nextActivity,
     previousActivity,
+    completeActivity,
   };
 }

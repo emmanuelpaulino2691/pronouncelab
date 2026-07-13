@@ -1,5 +1,8 @@
+import { useEffect } from "react";
+
 import ActivityRenderer from "../activities/shared/ActivityRenderer";
 import { useLessonState } from "../../shared/hooks/useLessonState";
+import { useUserProgress } from "../../shared/hooks/useUserProgress";
 
 import LessonNavigator from "./LessonNavigator";
 
@@ -11,17 +14,31 @@ type Props = {
 
 function LessonPlayer({ lesson }: Props) {
   const {
+    startLesson,
+    completeLesson,
+  } = useUserProgress();
+
+  const {
     state,
     nextActivity,
     previousActivity,
-  } = useLessonState();
+    completeActivity,
+  } = useLessonState(lesson.id);
 
-  const activity = lesson.activities[state.currentActivity];
+  useEffect(() => {
+    startLesson(lesson.id);
+  }, [
+    lesson.id,
+    startLesson,
+  ]);
+
+  const activity =
+    lesson.activities[state.currentActivity];
 
   return (
-    <div className="space-y-8">
+    <div>
       <header>
-        <h1 className="text-3xl font-bold">
+        <h1 className="text-xl font-bold">
           {lesson.title}
         </h1>
 
@@ -38,9 +55,22 @@ function LessonPlayer({ lesson }: Props) {
       <LessonNavigator
         current={state.currentActivity}
         total={lesson.activities.length}
+        completed={state.completedActivities}
         onPrevious={previousActivity}
-        onNext={nextActivity}
+        onNext={() => {
+          completeActivity(state.currentActivity);
+          nextActivity();
+        }}
       />
+
+      {state.currentActivity === lesson.activities.length - 1 && (
+        <button
+          onClick={() => completeLesson(lesson.id)}
+          className="mt-4 rounded bg-green-600 px-4 py-2 text-white"
+        >
+          Complete Lesson
+        </button>
+      )}
     </div>
   );
 }

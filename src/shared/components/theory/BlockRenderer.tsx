@@ -16,7 +16,6 @@ function BlockRenderer({ block }: Props) {
   case "heading":
     return (
       <HeadingBlock
-        level={block.level}
         text={block.text}
       />
     );
