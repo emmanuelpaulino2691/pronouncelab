@@ -33,3 +33,7 @@ export function getLessonSummary(lessonId: number) {
     (lesson) => lesson.id === lessonId
   );
 }
+
+export function getLesson(lessonId: number) {
+  return courseRegistry.lessonData[lessonId];
+}

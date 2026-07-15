@@ -1,7 +1,7 @@
 import { useParams } from "react-router-dom";
 
 import MainLayout from "../../shared/layouts/MainLayout";
-import { getLesson } from "../../shared/services/lessonService";
+import { getLesson } from "../../shared/services/courseEngineService";
 
 import LessonPlayer from "./LessonPlayer";
 

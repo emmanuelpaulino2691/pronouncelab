@@ -7,6 +7,7 @@ import { getLessonsByUnit } from "../../shared/services/courseEngineService";
 
 function LessonsPage() {
   const { unitId } = useParams();
+
   const navigate = useNavigate();
 
   const lessons = getLessonsByUnit(Number(unitId));

@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 
-import { getLesson } from "../services/lessonService";
+import { getLesson } from "../services/courseEngineService";
 import { loadLessonState } from "../utils/lessonStorage";
 import { loadUserProgress } from "../utils/progressStorage";
 
@@ -12,9 +12,7 @@ export function useGlobalProgress() {
       const lesson = getLesson(lessonId);
       const state = loadLessonState(lessonId);
 
-      const totalActivities =
-        lesson?.activities.length ?? 0;
-
+      const totalActivities = lesson?.activities.length ?? 0;
       const completedActivities =
         state?.completedActivities.length ?? 0;
 
@@ -22,8 +20,7 @@ export function useGlobalProgress() {
         totalActivities === 0
           ? 0
           : Math.round(
-              (completedActivities / totalActivities) *
-                100
+              (completedActivities / totalActivities) * 100
             );
 
       return {
@@ -36,14 +33,12 @@ export function useGlobalProgress() {
   }, [progress]);
 
   const totalActivities = lessonProgress.reduce(
-    (total, lesson) =>
-      total + lesson.totalActivities,
+    (total, lesson) => total + lesson.totalActivities,
     0
   );
 
   const completedActivities = lessonProgress.reduce(
-    (total, lesson) =>
-      total + lesson.completedActivities,
+    (total, lesson) => total + lesson.completedActivities,
     0
   );
 
@@ -55,18 +50,10 @@ export function useGlobalProgress() {
         );
 
   return {
-    lessonsStarted:
-      progress.lessonsStarted.length,
-
-    lessonsCompleted:
-      progress.lessonsCompleted.length,
-
-    totalActivities,
-
+    lessonsStarted: progress.lessonsStarted.length,
+    lessonsCompleted: progress.lessonsCompleted.length,
     completedActivities,
-
     completionRate,
-
     lessonProgress,
   };
 }
