@@ -1,22 +1,11 @@
 import { pronunciationCourse } from "./courses/pronunciationCourse";
-
 import { pronunciationUnits } from "./units/pronunciationUnits";
-
 import { pronunciationLessons } from "./lessons-v2/pronunciationLessons";
 
-
 export const courseRegistry = {
+  courses: [pronunciationCourse],
 
-  courses: [
-    pronunciationCourse,
-  ],
+  units: pronunciationUnits,
 
-
-  units:
-    pronunciationUnits,
-
-
-  lessons:
-    pronunciationLessons,
-
+  lessons: pronunciationLessons,
 };
