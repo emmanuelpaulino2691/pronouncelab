@@ -21,7 +21,7 @@ function StatsSection({
 
       <StatCard
         title="Badges"
-        value={`🏆 ${badges}`}
+        value={`🆕 ${badges}`}
         color="text-yellow-500"
       />
 
