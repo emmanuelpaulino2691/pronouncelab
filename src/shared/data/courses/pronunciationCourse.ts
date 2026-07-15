@@ -6,15 +6,11 @@ export const pronunciationCourse: CourseData = {
   title: "English Pronunciation Mastery",
 
   description:
-    "Master English sounds, pronunciation patterns, and speaking clarity.",
+    "Master English pronunciation from A1 to C1.",
 
   level: "A1-C1",
 
   emoji: "🎤",
 
-  units: [
-    1,
-    2,
-    3,
-  ],
+  units: [1, 2, 3],
 };
