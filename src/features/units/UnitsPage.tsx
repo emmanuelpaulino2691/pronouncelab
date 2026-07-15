@@ -2,16 +2,21 @@ import { useNavigate, useParams } from "react-router-dom";
 
 import MainLayout from "../../shared/layouts/MainLayout";
 import Card from "../../shared/components/ui/Card";
-import { getCourseById } from "../../shared/services/courseService";
-import { getUnitsByCourse } from "../../shared/services/unitService";
+
+import {
+  getCourse,
+  getUnitsByCourse,
+} from "../../shared/services/courseEngineService";
 
 function UnitsPage() {
   const { courseId } = useParams();
   const navigate = useNavigate();
 
-  const course = getCourseById(Number(courseId));
+  const id = Number(courseId);
 
-  const courseUnits = getUnitsByCourse(Number(courseId));
+  const course = getCourse(id);
+
+  const courseUnits = getUnitsByCourse(id);
 
   return (
     <MainLayout>
@@ -25,17 +30,22 @@ function UnitsPage() {
 
       <div className="mt-6 space-y-4">
         {courseUnits.map((unit) => (
-  <Card key={unit.id} title={unit.title}>
-    <p>{unit.description}</p>
+          <Card
+            key={unit.id}
+            title={unit.title}
+          >
+            <p>{unit.description}</p>
 
-    <button
-      onClick={() => navigate(`/units/${unit.id}`)}
-      className="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-white transition hover:bg-blue-700"
-    >
-      Open Unit
-    </button>
-  </Card>
-))}
+            <button
+              onClick={() =>
+                navigate(`/units/${unit.id}`)
+              }
+              className="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-white transition hover:bg-blue-700"
+            >
+              Open Unit
+            </button>
+          </Card>
+        ))}
       </div>
     </MainLayout>
   );
