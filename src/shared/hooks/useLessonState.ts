@@ -1,11 +1,20 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 
-import { loadLessonState, saveLessonState } from "../utils/lessonStorage";
+import {
+  loadLessonState,
+  saveLessonState,
+} from "../utils/lessonStorage";
 
-import type { LessonState } from "../types/LessonState";
+import {
+  loadUserProgress,
+  saveUserProgress,
+} from "../utils/progressStorage";
 
-export function useLessonState(lessonId: number) {
-  const [state, setState] = useState<LessonState>(() => {
+export function useLessonState(
+  lessonId: number,
+  totalActivities: number
+) {
+  const [state, setState] = useState(() => {
     return (
       loadLessonState(lessonId) ?? {
         currentActivity: 0,
@@ -21,7 +30,10 @@ export function useLessonState(lessonId: number) {
   const nextActivity = () => {
     setState((previous) => ({
       ...previous,
-      currentActivity: previous.currentActivity + 1,
+      currentActivity: Math.min(
+        previous.currentActivity + 1,
+        totalActivities - 1
+      ),
     }));
   };
 
@@ -29,30 +41,87 @@ export function useLessonState(lessonId: number) {
     setState((previous) => ({
       ...previous,
       currentActivity: Math.max(
-        0,
-        previous.currentActivity - 1
+        previous.currentActivity - 1,
+        0
       ),
     }));
   };
 
-  const completeActivity = (activityIndex: number) => {
-  setState((previous) => ({
-    ...previous,
-    completedActivities: previous.completedActivities.includes(
-      activityIndex
-    )
-      ? previous.completedActivities
-      : [
-          ...previous.completedActivities,
-          activityIndex,
-        ].sort((a, b) => a - b),
-  }));
-};
+  const completeActivity = (
+    activityIndex: number
+  ) => {
+
+    setState((previous) => ({
+      ...previous,
+      completedActivities:
+        previous.completedActivities.includes(
+          activityIndex
+        )
+          ? previous.completedActivities
+          : [
+              ...previous.completedActivities,
+              activityIndex,
+            ].sort((a, b) => a - b),
+    }));
+
+    const progress =
+      loadUserProgress();
+
+    const existing =
+      progress.activitiesCompleted.find(
+        (item) =>
+          item.lessonId === lessonId
+      );
+
+    const updatedActivities =
+      existing
+        ? progress.activitiesCompleted.map(
+            (item) =>
+              item.lessonId === lessonId
+                ? {
+                    ...item,
+                    activities:
+                      item.activities.includes(
+                        activityIndex
+                      )
+                        ? item.activities
+                        : [
+                            ...item.activities,
+                            activityIndex,
+                          ].sort((a, b) => a - b),
+                  }
+                : item
+          )
+        : [
+            ...progress.activitiesCompleted,
+            {
+              lessonId,
+              activities: [
+                activityIndex,
+              ],
+            },
+          ];
+
+    saveUserProgress({
+      ...progress,
+      activitiesCompleted:
+        updatedActivities,
+    });
+  };
+
+  const isFirstActivity =
+    state.currentActivity === 0;
+
+  const isLastActivity =
+    state.currentActivity ===
+    totalActivities - 1;
 
   return {
     state,
     nextActivity,
     previousActivity,
     completeActivity,
+    isFirstActivity,
+    isLastActivity,
   };
 }

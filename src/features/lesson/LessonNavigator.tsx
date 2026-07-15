@@ -7,17 +7,12 @@ type Props = {
 };
 
 function LessonNavigator({
-current,
-total,
-completed = [],
-onPrevious,
-onNext,
-}: Props) {
-
-console.log("Navigator:", {
   current,
-  completed,
-});
+  total,
+  completed = [],
+  onPrevious,
+  onNext,
+}: Props) {
   return (
     <div className="space-y-4">
 
@@ -26,12 +21,12 @@ console.log("Navigator:", {
           <div
             key={index}
             className={`h-3 w-3 rounded-full ${
-  completed.includes(index)
-    ? "bg-green-500"
-    : index === current
-    ? "bg-blue-500"
-    : "bg-slate-300"
-}`}
+              completed.includes(index)
+                ? "bg-green-500"
+                : index === current
+                ? "bg-blue-500"
+                : "bg-slate-300"
+            }`}
           />
         ))}
       </div>
@@ -58,7 +53,7 @@ console.log("Navigator:", {
 
         <button
           onClick={onNext}
-          disabled={false}
+          disabled={current === total - 1}
           className="rounded bg-blue-600 px-4 py-2 text-white disabled:opacity-50"
         >
           Next

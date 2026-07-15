@@ -9,9 +9,9 @@ type Props = {
 function PracticeActivity({ lesson }: Props) {
   return (
     <div className="space-y-4">
-      {(lesson.practice ?? []).map((practice) => (
+      {(lesson.practice ?? []).map((practice, index) => (
         <PracticeCard
-          key={practice.id}
+          key={index}
           practice={practice}
         />
       ))}

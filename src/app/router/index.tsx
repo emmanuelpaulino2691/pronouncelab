@@ -7,10 +7,6 @@ import UnitsPage from "../../features/units/UnitsPage";
 import LessonsPage from "../../features/lessons/LessonsPage";
 import LessonPage from "../../features/lesson/LessonPage";
 
-import TheoryPage from "../../features/activities/theory/TheoryPage";
-import ListeningPage from "../../features/activities/listening/ListeningPage";
-import PracticePage from "../../features/activities/practice/PracticePage";
-
 export const router = createBrowserRouter([
   {
     path: "/",
@@ -35,17 +31,5 @@ export const router = createBrowserRouter([
   {
     path: "/lessons/:lessonId",
     element: <LessonPage />,
-  },
-  {
-    path: "/theory/:lessonId",
-    element: <TheoryPage />,
-  },
-  {
-    path: "/listening/:lessonId",
-    element: <ListeningPage />,
-  },
-  {
-    path: "/practice/:lessonId",
-    element: <PracticePage />,
   },
 ]);

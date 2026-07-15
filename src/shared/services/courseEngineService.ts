@@ -37,3 +37,68 @@ export function getLessonSummary(lessonId: number) {
 export function getLesson(lessonId: number) {
   return courseRegistry.lessonData[lessonId];
 }
+
+export function getUnitProgress(
+  unitId: number,
+  completedLessons: number[]
+) {
+  const lessons =
+    getLessonsByUnit(unitId);
+
+  if (lessons.length === 0) {
+    return 0;
+  }
+
+  const completed =
+    lessons.filter((lesson) =>
+      completedLessons.includes(
+        lesson.id
+      )
+    ).length;
+
+  return Math.round(
+    (completed / lessons.length) * 100
+  );
+}
+
+export function getCourseProgress(
+  courseId: number,
+  completedLessons: number[]
+) {
+  const units =
+    getUnitsByCourse(courseId);
+
+  if (units.length === 0) {
+    return 0;
+  }
+
+  const totalLessons =
+    units.reduce(
+      (total, unit) =>
+        total +
+        getLessonsByUnit(unit.id).length,
+      0
+    );
+
+  if (totalLessons === 0) {
+    return 0;
+  }
+
+  const completed =
+    completedLessons.filter(
+      (lessonId) =>
+        courseRegistry.lessons.some(
+          (lesson) =>
+            lesson.id === lessonId &&
+            lesson.unitId &&
+            units.some(
+              (unit) =>
+                unit.id === lesson.unitId
+            )
+        )
+    ).length;
+
+  return Math.round(
+    (completed / totalLessons) * 100
+  );
+}

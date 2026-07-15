@@ -9,9 +9,9 @@ type Props = {
 function ListeningActivity({ lesson }: Props) {
   return (
     <div className="space-y-4">
-      {(lesson.listening ?? []).map((item) => (
+      {(lesson.listening ?? []).map((item, index) => (
         <ListeningCard
-          key={item.id}
+          key={index}
           listening={item}
         />
       ))}

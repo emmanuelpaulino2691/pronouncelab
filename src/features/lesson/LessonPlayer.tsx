@@ -16,6 +16,7 @@ function LessonPlayer({ lesson }: Props) {
   const {
     startLesson,
     completeLesson,
+    completeActivity: saveActivityProgress,
   } = useUserProgress();
 
   const {
@@ -23,22 +24,25 @@ function LessonPlayer({ lesson }: Props) {
     nextActivity,
     previousActivity,
     completeActivity,
-  } = useLessonState(lesson.id);
+    isLastActivity,
+  } = useLessonState(
+    lesson.id,
+    lesson.activities.length
+  );
 
   useEffect(() => {
     startLesson(lesson.id);
-  }, [
-    lesson.id,
-    startLesson,
-  ]);
+  }, [lesson.id, startLesson]);
+
+  const currentActivity = state.currentActivity;
 
   const activity =
-    lesson.activities[state.currentActivity];
+    lesson.activities[currentActivity];
 
   return (
-    <div>
+    <div className="space-y-6">
       <header>
-        <h1 className="text-xl font-bold">
+        <h1 className="text-3xl font-bold">
           {lesson.title}
         </h1>
 
@@ -53,17 +57,21 @@ function LessonPlayer({ lesson }: Props) {
       />
 
       <LessonNavigator
-        current={state.currentActivity}
+        current={currentActivity}
         total={lesson.activities.length}
         completed={state.completedActivities}
         onPrevious={previousActivity}
         onNext={() => {
-          completeActivity(state.currentActivity);
+          completeActivity(currentActivity);
+          saveActivityProgress(
+            lesson.id,
+            currentActivity
+          );
           nextActivity();
         }}
       />
 
-      {state.currentActivity === lesson.activities.length - 1 && (
+      {isLastActivity && (
         <button
           onClick={() => completeLesson(lesson.id)}
           className="mt-4 rounded bg-green-600 px-4 py-2 text-white"
@@ -76,3 +84,5 @@ function LessonPlayer({ lesson }: Props) {
 }
 
 export default LessonPlayer;
+
+

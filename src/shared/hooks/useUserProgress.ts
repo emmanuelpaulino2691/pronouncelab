@@ -13,7 +13,9 @@ export function useUserProgress() {
   const startLesson = useCallback(
     (lessonId: number) => {
       setProgress((previous) => {
-        if (previous.lessonsStarted.includes(lessonId)) {
+        if (
+          previous.lessonsStarted.includes(lessonId)
+        ) {
           return previous;
         }
 
@@ -58,9 +60,68 @@ export function useUserProgress() {
     []
   );
 
+  const completeActivity = useCallback(
+    (
+      lessonId: number,
+      activityIndex: number
+    ) => {
+      setProgress((previous) => {
+        const existing =
+          previous.activitiesCompleted.find(
+            (item) =>
+              item.lessonId === lessonId
+          );
+
+        if (
+          existing?.activities.includes(
+            activityIndex
+          )
+        ) {
+          return previous;
+        }
+
+        const updatedActivities =
+          existing
+            ? previous.activitiesCompleted.map(
+                (item) =>
+                  item.lessonId === lessonId
+                    ? {
+                        ...item,
+                        activities: [
+                          ...item.activities,
+                          activityIndex,
+                        ],
+                      }
+                    : item
+              )
+            : [
+                ...previous.activitiesCompleted,
+                {
+                  lessonId,
+                  activities: [
+                    activityIndex,
+                  ],
+                },
+              ];
+
+        const updated = {
+          ...previous,
+          activitiesCompleted:
+            updatedActivities,
+        };
+
+        saveUserProgress(updated);
+
+        return updated;
+      });
+    },
+    []
+  );
+
   return {
     progress,
     startLesson,
     completeLesson,
+    completeActivity,
   };
 }

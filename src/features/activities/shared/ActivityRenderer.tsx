@@ -1,4 +1,3 @@
-import ActivitySection from "./ActivitySection";
 import { activityRegistry } from "./activityRegistry";
 
 import type { LessonActivity } from "../../../shared/types/LessonActivity";
@@ -9,14 +8,25 @@ type Props = {
   lesson: LessonData;
 };
 
-function ActivityRenderer({ activity, lesson }: Props) {
-  const Activity =
+function ActivityRenderer({
+  activity,
+  lesson,
+}: Props) {
+  const ActivityComponent =
     activityRegistry[activity.type];
 
+  if (!ActivityComponent) {
+    return (
+      <div>
+        Activity not supported
+      </div>
+    );
+  }
+
   return (
-    <ActivitySection title={activity.title}>
-      <Activity lesson={lesson} />
-    </ActivitySection>
+    <ActivityComponent
+      lesson={lesson}
+    />
   );
 }
 

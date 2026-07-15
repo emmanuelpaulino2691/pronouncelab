@@ -2,23 +2,28 @@ import type { UserProgress } from "../types/UserProgress";
 
 const KEY = "pronouncelab:user-progress";
 
+const defaultProgress: UserProgress = {
+  lessonsStarted: [],
+  lessonsCompleted: [],
+  activitiesCompleted: [],
+};
+
 export function loadUserProgress(): UserProgress {
   const value = localStorage.getItem(KEY);
 
   if (!value) {
-    return {
-      lessonsStarted: [],
-      lessonsCompleted: [],
-    };
+    return defaultProgress;
   }
 
   try {
-    return JSON.parse(value);
-  } catch {
+    const parsed = JSON.parse(value);
+
     return {
-      lessonsStarted: [],
-      lessonsCompleted: [],
+      ...defaultProgress,
+      ...parsed,
     };
+  } catch {
+    return defaultProgress;
   }
 }
 

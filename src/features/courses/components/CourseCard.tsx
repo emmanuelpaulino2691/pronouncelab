@@ -1,4 +1,5 @@
 import Card from "../../../shared/components/ui/Card";
+import ProgressBar from "../../../shared/components/ui/ProgressBar";
 import { useNavigate } from "react-router-dom";
 
 type Props = {
@@ -7,6 +8,7 @@ type Props = {
   level: string;
   units: number;
   emoji: string;
+  progress: number;
 };
 
 function CourseCard({
@@ -15,16 +17,19 @@ function CourseCard({
   level,
   units,
   emoji,
+  progress,
 }: Props) {
 
   const navigate = useNavigate();
 
   function handleOpenCourse() {
-  navigate(`/courses/${id}`);
-}
+    navigate(`/courses/${id}`);
+  }
+
   return (
     <Card title={`${emoji} ${title}`}>
-      <p className="text-slate-600">
+
+      <p>
         {level}
       </p>
 
@@ -32,12 +37,21 @@ function CourseCard({
         {units} Units
       </p>
 
+      <div className="mt-4">
+        <ProgressBar value={progress} />
+      </div>
+
+      <p className="mt-2 text-sm text-slate-500">
+        {progress}% completed
+      </p>
+
       <button
-  onClick={handleOpenCourse}
-  className="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 transition"
->
+        onClick={handleOpenCourse}
+        className="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 transition"
+      >
         Open Course
       </button>
+
     </Card>
   );
 }

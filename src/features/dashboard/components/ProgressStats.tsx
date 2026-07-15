@@ -6,6 +6,7 @@ function ProgressStats() {
     lessonsStarted,
     lessonsCompleted,
     completionRate,
+    completedActivities,
   } = useGlobalProgress();
 
   return (
@@ -23,9 +24,15 @@ function ProgressStats() {
       />
 
       <StatCard
-        title="Completion"
-        value={`${completionRate}%`}
+        title="Activities Completed"
+        value={String(completedActivities)}
         color="text-purple-600"
+      />
+
+      <StatCard
+        title="Completion Rate"
+        value={`${completionRate}%`}
+        color="text-orange-600"
       />
     </>
   );

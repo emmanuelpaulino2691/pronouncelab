@@ -1,14 +1,23 @@
 import MainLayout from "../../shared/layouts/MainLayout";
 import CourseCard from "./components/CourseCard";
 
-import { getCourses } from "../../shared/services/courseEngineService";
+import {
+  getCourses,
+  getCourseProgress,
+} from "../../shared/services/courseEngineService";
+
+import { loadUserProgress } from "../../shared/utils/progressStorage";
 
 function CoursesPage() {
   const courses = getCourses();
 
+  const progress =
+    loadUserProgress();
+
   return (
     <MainLayout>
-      <h1 className="text-3xl font-bold text-slate-800">
+
+      <h1 className="text-3xl font-bold">
         Courses
       </h1>
 
@@ -17,7 +26,9 @@ function CoursesPage() {
       </p>
 
       <div className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+
         {courses.map((course) => (
+
           <CourseCard
             key={course.id}
             id={course.id}
@@ -25,9 +36,18 @@ function CoursesPage() {
             level={course.level}
             units={course.units.length}
             emoji={course.emoji}
+            progress={
+              getCourseProgress(
+                course.id,
+                progress.lessonsCompleted
+              )
+            }
           />
+
         ))}
+
       </div>
+
     </MainLayout>
   );
 }

@@ -1,38 +1,85 @@
-import MainLayout from "../../shared/layouts/MainLayout";
+﻿import MainLayout from "../../shared/layouts/MainLayout";
 
 import ContinueLearningCard from "./components/ContinueLearningCard";
 import ProgressStats from "./components/ProgressStats";
 import CourseProgressCard from "./components/CourseProgressCard";
 import RecentUnitsSection from "./components/RecentUnitsSection";
 
-import { dashboardData } from "../../shared/data/dashboard";
+import { useGlobalProgress } from "../../shared/hooks/useGlobalProgress";
+import { getLessonSummary } from "../../shared/services/courseEngineService";
+import { getUnit } from "../../shared/services/courseEngineService";
 
 function DashboardPage() {
+  const {
+    lessonProgress,
+    continueLessonId,
+  } = useGlobalProgress();
+
+  const lastLesson =
+    lessonProgress[
+      lessonProgress.length - 1
+    ];
+
+  const lesson =
+    lastLesson
+      ? getLessonSummary(
+          lastLesson.lessonId
+        )
+      : undefined;
+
+  const unit =
+    lesson
+      ? getUnit(lesson.unitId)
+      : undefined;
+
+  const recentUnits = unit
+    ? [
+        {
+          id: unit.id,
+          title: unit.title,
+          completed:
+            lastLesson?.percent === 100,
+        },
+      ]
+    : [];
+
   return (
     <MainLayout>
-      <div className="space-y-6">
-        <h1 className="text-3xl font-bold">
-          Welcome back, {dashboardData.studentName} 👋
-        </h1>
+      <h1 className="text-3xl font-bold">
+        Welcome back ??
+      </h1>
 
-        <div className="grid gap-6 lg:grid-cols-3">
-          <ContinueLearningCard
-            courseTitle={dashboardData.currentCourse.title}
-            unitTitle={dashboardData.currentCourse.unit}
-            progress={dashboardData.currentCourse.progress}
-          />
+      <div className="grid gap-6 lg:grid-cols-3 mt-6">
 
-          <CourseProgressCard />
+        <ContinueLearningCard
+          courseTitle={
+            "Pronunciation Course"
+          }
+          unitTitle={
+            unit?.title ??
+            "Start learning"
+          }
+          progress={
+        lastLesson?.percent ?? 0
+      }
+      lessonId={continueLessonId}
+        />
 
-          <ProgressStats />
-        </div>
+        <CourseProgressCard />
 
+        <ProgressStats />
+
+      </div>
+
+      <div className="mt-8">
         <RecentUnitsSection
-          units={dashboardData.recentUnits}
+          units={recentUnits}
         />
       </div>
+
     </MainLayout>
   );
 }
 
 export default DashboardPage;
+
