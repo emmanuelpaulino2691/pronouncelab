@@ -1,4 +1,4 @@
-import type { LessonData } from "../../types/LessonData";
+﻿import type { LessonData } from "../../types/LessonData";
 
 export const lesson1: LessonData = {
   id: 1,
@@ -8,33 +8,13 @@ export const lesson1: LessonData = {
   description:
     "Learn the basic English sounds and why they are important.",
 
-    activities: [
-  {
-    id: 1,
-    title: "Introduction",
-    type: "theory",
-  },
-  {
-    id: 2,
-    title: "Listen and Repeat",
-    type: "listening",
-  },
-  {
-  id: 3,
-  title: "Pronunciation Practice",
-  type: "pronunciation",
-},
-{
-  id: 4,
-  title: "Practice",
-  type: "practice",
-},
-{
-  id: 5,
-  title: "Quiz",
-  type: "quiz",
-},
-],
+  activities: [
+    { id: 1, title: "Introduction", type: "theory" },
+    { id: 2, title: "Listen and Repeat", type: "listening" },
+    { id: 3, title: "Pronunciation Practice", type: "pronunciation" },
+    { id: 4, title: "Practice", type: "practice" },
+    { id: 5, title: "Quiz", type: "quiz" },
+  ],
 
   theory: [
     {
@@ -47,80 +27,61 @@ export const lesson1: LessonData = {
     },
     {
       type: "paragraph",
-      text: "Some sounds may not exist in your native language, so learning to hear and produce them correctly takes practice.",
+      text: "Some English sounds may not exist in your native language, so practice is important.",
     },
     {
       type: "tip",
-      text: "Don't try to memorize everything at once. Focus on one sound at a time.",
+      text: "Focus on one sound at a time.",
     },
-    {
-      type: "audio",
-      src: "/audio/sample.mp3",
-    },
-    {
-  type: "example",
-  title: "Example",
-  text: "ship /ʃɪp/ → sheep /ʃiːp/",
-},
   ],
 
-listening: [
-  {
-    id: 1,
-    title: "Listen and Repeat",
-    audio: "/audio/sample.mp3",
-    instructions: "Listen carefully and repeat the sounds.",
-    transcript: "ship → sheep",
+  listening: [
+    {
+      id: 1,
+      title: "Listen and Repeat",
+      audio: "/audio/sample.mp3",
+    },
+  ],
 
-    questions: [
-      {
-        id: 1,
-        question: "Which word contains the long /iː/ sound?",
-        options: ["ship", "sheep", "both", "neither"],
-        correctAnswer: 1,
-      },
-    ],
-  },
-],
-pronunciation: [
-  {
-    id: 1,
-    title: "Pronounce the Words",
-    audio: "/audio/sample.mp3",
-    text: "ship → sheep",
-  },
-],
-practice: [
-  {
-    id: 1,
-    title: "Practice the Sounds",
-    instructions: "Choose the correct answer for each question.",
+  pronunciation: [
+    {
+      id: 1,
+      title: "Pronounce the Words",
+      audio: "/audio/sample.mp3",
+      text: "ship → sheep",
+    },
+  ],
 
-    questions: [
-      {
-        id: 1,
-        question: "Which word contains the short /ɪ/ sound?",
-        options: ["ship", "sheep", "both", "neither"],
-        correctAnswer: 0,
-      },
-      {
-        id: 2,
-        question: "Which word contains the long /iː/ sound?",
-        options: ["ship", "sheep", "both", "neither"],
-        correctAnswer: 1,
-      },
-    ],
-  },
-],
-quiz: [
-  {
-    id: 1,
-    title: "Lesson Quiz",
-    questions: [
-      "Which word contains the short /ɪ/ sound?",
-      "Which word contains the long /iː/ sound?",
-      "Why is pronunciation important?",
-    ],
-  },
-],
+  practice: [
+    {
+      id: 1,
+      title: "Practice the Sounds",
+      instructions: "Choose the correct answer.",
+
+      questions: [
+        {
+          id: 1,
+          question: "Which word has the short /ɪ/ sound?",
+          options: [
+            "ship",
+            "sheep",
+            "seat",
+            "see",
+          ],
+          correctAnswer: 0,
+        },
+      ],
+    },
+  ],
+
+  quiz: [
+    {
+      id: 1,
+      title: "Lesson Quiz",
+      questions: [
+        "Identify the short /ɪ/ sound.",
+        "Identify the long /iː/ sound.",
+      ],
+    },
+  ],
 };

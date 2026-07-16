@@ -1,4 +1,5 @@
-import Card from "../../../shared/components/ui/Card";
+﻿import Card from "../../../shared/components/ui/Card";
+import ProgressBar from "../../../shared/components/ui/ProgressBar";
 import { useGlobalProgress } from "../../../shared/hooks/useGlobalProgress";
 
 function CourseProgressCard() {
@@ -10,7 +11,9 @@ function CourseProgressCard() {
 
   return (
     <Card title="Course Progress">
+
       <div className="space-y-4">
+
         <div className="flex justify-between text-sm">
           <span>Lessons Started</span>
           <span className="font-semibold">
@@ -33,16 +36,12 @@ function CourseProgressCard() {
             </span>
           </div>
 
-          <div className="h-3 w-full rounded-full bg-slate-200">
-            <div
-              className="h-3 rounded-full bg-blue-600 transition-all duration-500"
-              style={{
-                width: `${completionRate}%`,
-              }}
-            />
-          </div>
+          <ProgressBar value={completionRate} />
+
         </div>
+
       </div>
+
     </Card>
   );
 }
