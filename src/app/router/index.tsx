@@ -1,5 +1,11 @@
-import { createBrowserRouter } from "react-router-dom";
+import {
+  Navigate,
+  createBrowserRouter,
+} from "react-router-dom";
 
+import AdminCoursesPage from "../../features/admin/courses/AdminCoursesPage";
+import AdminLayout from "../../features/admin/layouts/AdminLayout";
+import AdminRoute from "../../features/admin/routing/AdminRoute";
 import DashboardPage from "../../features/dashboard/DashboardPage";
 import LoginPage from "../../features/auth/LoginPage";
 import CoursesPage from "../../features/courses/CoursesPage";
@@ -15,6 +21,30 @@ export const router = createBrowserRouter([
   {
     path: "/login",
     element: <LoginPage />,
+  },
+  {
+    path: "/admin",
+    element: <AdminRoute />,
+    children: [
+      {
+        element: <AdminLayout />,
+        children: [
+          {
+            index: true,
+            element: (
+              <Navigate
+                to="courses"
+                replace
+              />
+            ),
+          },
+          {
+            path: "courses",
+            element: <AdminCoursesPage />,
+          },
+        ],
+      },
+    ],
   },
   {
     path: "/courses",
