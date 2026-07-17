@@ -14,15 +14,14 @@ import {
 
 function DashboardPage() {
 
-  const { lessonProgress } =
+  const { continueLessonProgress } =
     useGlobalProgress();
 
-  const lastLesson =
-    lessonProgress.at(-1);
-
   const lesson =
-    lastLesson
-      ? getLessonSummary(lastLesson.lessonId)
+    continueLessonProgress
+      ? getLessonSummary(
+          continueLessonProgress.lessonId
+        )
       : undefined;
 
   const unit =
@@ -36,7 +35,8 @@ function DashboardPage() {
           id: unit.id,
           title: unit.title,
           completed:
-            lastLesson?.percent === 100,
+            continueLessonProgress?.percent ===
+            100,
         }]
       : [];
 
@@ -56,8 +56,13 @@ function DashboardPage() {
             unit?.title ??
             "Start learning"
           }
+          lessonTitle={lesson?.title}
           progress={
-            lastLesson?.percent ?? 0
+            continueLessonProgress?.percent ??
+            0
+          }
+          lessonId={
+            continueLessonProgress?.lessonId
           }
         />
 

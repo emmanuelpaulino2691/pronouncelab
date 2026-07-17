@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 type Props = {
   courseTitle: string;
   unitTitle: string;
+  lessonTitle?: string;
   progress: number;
   lessonId?: number;
 };
@@ -12,6 +13,7 @@ type Props = {
 function ContinueLearningCard({
   courseTitle,
   unitTitle,
+  lessonTitle,
   progress,
   lessonId,
 }: Props) {
@@ -19,7 +21,7 @@ function ContinueLearningCard({
   const navigate = useNavigate();
 
   function handleContinue() {
-    if (lessonId) {
+    if (lessonId !== undefined) {
       navigate(`/lessons/${lessonId}`);
       return;
     }
@@ -33,6 +35,12 @@ function ContinueLearningCard({
       <p className="mt-1 text-sm text-slate-500">
         {unitTitle}
       </p>
+
+      {lessonTitle && (
+        <p className="mt-1 text-sm text-slate-600">
+          {lessonTitle}
+        </p>
+      )}
 
       <ProgressBar value={progress} />
 

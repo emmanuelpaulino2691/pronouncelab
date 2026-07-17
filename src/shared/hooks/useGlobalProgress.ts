@@ -1,24 +1,43 @@
 ﻿import { useMemo } from "react";
 
-import { getLesson } from "../services/courseEngineService";
+import {
+  getLesson,
+  getLessonSummary,
+  getUnit,
+} from "../services/courseEngineService";
 import { loadUserProgress } from "../utils/progressStorage";
 
 export function useGlobalProgress() {
   const progress = loadUserProgress();
 
   const lessonProgress = useMemo(() => {
-    return progress.lessonsStarted.map(
+    return progress.lessonsStarted.flatMap(
       (lessonId) => {
         const lesson = getLesson(lessonId);
+        const lessonSummary =
+          getLessonSummary(lessonId);
+        const unit =
+          lessonSummary
+            ? getUnit(lessonSummary.unitId)
+            : undefined;
+
+        if (!lesson || !lessonSummary || !unit) {
+          return [];
+        }
 
         const completedActivities =
           progress.activitiesCompleted.find(
             (item) =>
               item.lessonId === lessonId
-          )?.activities.length ?? 0;
+          )?.activities.filter(
+            (activityIndex) =>
+              activityIndex >= 0 &&
+              activityIndex <
+                lesson.activities.length
+          ).length ?? 0;
 
         const totalActivities =
-          lesson?.activities.length ?? 0;
+          lesson.activities.length;
 
         const percent =
           totalActivities === 0
@@ -29,12 +48,12 @@ export function useGlobalProgress() {
                   100
               );
 
-        return {
+        return [{
           lessonId,
           totalActivities,
           completedActivities,
           percent,
-        };
+        }];
       }
     );
   }, [progress]);
@@ -62,12 +81,14 @@ export function useGlobalProgress() {
             100
         );
 
-  const continueLessonId =
-    lessonProgress.find(
+  const continueLessonProgress =
+    [...lessonProgress].reverse().find(
       (lesson) =>
-        lesson.percent < 100
-    )?.lessonId ??
-    lessonProgress[0]?.lessonId;
+        !progress.lessonsCompleted.includes(
+          lesson.lessonId
+        )
+    ) ??
+    lessonProgress.at(-1);
 
   return {
     lessonsStarted:
@@ -82,6 +103,9 @@ export function useGlobalProgress() {
 
     lessonProgress,
 
-    continueLessonId,
+    continueLessonId:
+      continueLessonProgress?.lessonId,
+
+    continueLessonProgress,
   };
 }
