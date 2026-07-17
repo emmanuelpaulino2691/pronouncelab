@@ -4,6 +4,7 @@ import {
   useMemo,
   useState,
 } from "react";
+import { Link } from "react-router-dom";
 
 import CourseForm from "./CourseForm";
 import {
@@ -320,9 +321,16 @@ function AdminCoursesPage() {
                         </span>
                       </td>
                       <td className="px-6 py-5">
-                        {isDraft &&
-                        canEditDrafts ? (
-                          <div className="flex justify-end gap-2">
+                        <div className="flex justify-end gap-2">
+                          <Link
+                            to={`/admin/courses/${course.id}`}
+                            className="rounded-lg border border-blue-200 px-3 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+                          >
+                            Manage
+                          </Link>
+                          {isDraft &&
+                          canEditDrafts && (
+                            <>
                             <button
                               type="button"
                               onClick={() =>
@@ -353,12 +361,9 @@ function AdminCoursesPage() {
                                 ? "Deleting…"
                                 : "Delete"}
                             </button>
-                          </div>
-                        ) : (
-                          <p className="text-right text-sm text-slate-400">
-                            View only
-                          </p>
-                        )}
+                            </>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );

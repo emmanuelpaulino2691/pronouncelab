@@ -99,6 +99,29 @@ export async function listAdminCourses() {
   );
 }
 
+export async function getAdminCourse(
+  courseId: number
+) {
+  const client = requireSupabase();
+  const { data, error } = await client
+    .from("courses")
+    .select(courseColumns)
+    .eq("id", courseId)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  if (!data) {
+    throw new Error("Course not found.");
+  }
+
+  return toAdminCourse(
+    data as unknown as CourseRow
+  );
+}
+
 export async function createAdminCourse(
   input: CourseInput
 ) {

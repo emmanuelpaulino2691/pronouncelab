@@ -4,8 +4,10 @@ import {
 } from "react-router-dom";
 
 import AdminCoursesPage from "../../features/admin/courses/AdminCoursesPage";
+import AdminUnitLessonsPage from "../../features/admin/lessons/AdminUnitLessonsPage";
 import AdminLayout from "../../features/admin/layouts/AdminLayout";
 import AdminRoute from "../../features/admin/routing/AdminRoute";
+import AdminCourseUnitsPage from "../../features/admin/units/AdminCourseUnitsPage";
 import DashboardPage from "../../features/dashboard/DashboardPage";
 import LoginPage from "../../features/auth/LoginPage";
 import CoursesPage from "../../features/courses/CoursesPage";
@@ -41,6 +43,14 @@ export const router = createBrowserRouter([
           {
             path: "courses",
             element: <AdminCoursesPage />,
+          },
+          {
+            path: "courses/:courseId",
+            element: <AdminCourseUnitsPage />,
+          },
+          {
+            path: "courses/:courseId/units/:unitId",
+            element: <AdminUnitLessonsPage />,
           },
         ],
       },
