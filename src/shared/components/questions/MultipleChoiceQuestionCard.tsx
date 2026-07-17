@@ -6,6 +6,10 @@ type Props = {
   question: string;
   options: string[];
   correctAnswer: number;
+  explanation?: string;
+  selectedOption?: number | null;
+  submitted?: boolean;
+  onSelect?: (optionIndex: number) => void;
   onAnswered?: (isCorrect: boolean) => void;
 };
 
@@ -14,6 +18,10 @@ function MultipleChoiceQuestionCard({
   question,
   options,
   correctAnswer,
+  explanation,
+  selectedOption,
+  submitted,
+  onSelect,
   onAnswered,
 }: Props) {
   return (
@@ -22,6 +30,10 @@ function MultipleChoiceQuestionCard({
         question={question}
         options={options}
         correctAnswer={correctAnswer}
+        explanation={explanation}
+        selectedOption={selectedOption}
+        submitted={submitted}
+        onSelect={onSelect}
         onAnswered={onAnswered}
       />
     </Card>

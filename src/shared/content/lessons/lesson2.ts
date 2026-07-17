@@ -244,6 +244,64 @@ export const lesson2: LessonData = {
         "Give one word where G represents /g/ and one where it represents /dʒ/.",
         "Identify the letter pairs in ship, chair, and think.",
       ],
+      interactiveQuestions: [
+        {
+          id: 1,
+          question:
+            "What is the difference between a letter name and a speech sound?",
+          options: [
+            "A letter name identifies the letter; a speech sound describes how it is pronounced in a word",
+            "A letter name and a speech sound are always identical",
+            "A speech sound describes only how a letter is written",
+            "A letter name can be used only at the end of a word",
+          ],
+          correctAnswer: 0,
+          explanation:
+            "A letter has a name, but it may represent different speech sounds in different words.",
+        },
+        {
+          id: 2,
+          question:
+            "In which word does C represent the soft /s/ sound?",
+          options: [
+            "cat",
+            "cup",
+            "city",
+            "coat",
+          ],
+          correctAnswer: 2,
+          explanation:
+            "The C in city represents /s/; the other options use the hard /k/ sound.",
+        },
+        {
+          id: 3,
+          question:
+            "In which word does G represent the soft /dʒ/ sound?",
+          options: [
+            "game",
+            "go",
+            "gum",
+            "giant",
+          ],
+          correctAnswer: 3,
+          explanation:
+            "The G in giant represents /dʒ/; the other options begin with /g/.",
+        },
+        {
+          id: 4,
+          question:
+            "Which sequence correctly matches the opening letter pairs in ship, chair, and think?",
+          options: [
+            "sh, ch, th",
+            "ch, sh, th",
+            "th, ch, sh",
+            "sh, th, ch",
+          ],
+          correctAnswer: 0,
+          explanation:
+            "Ship begins with sh, chair with ch, and think with th.",
+        },
+      ],
     },
   ],
 };

@@ -256,6 +256,64 @@ export const lesson3: LessonData = {
         "Explain how /ʊ/ differs from /uː/ in full and fool.",
         "Identify the vowel contrast in pull and pool.",
       ],
+      interactiveQuestions: [
+        {
+          id: 1,
+          question:
+            "Which word contains the short /ɪ/ vowel?",
+          options: [
+            "sheep",
+            "seat",
+            "ship",
+            "pool",
+          ],
+          correctAnswer: 2,
+          explanation:
+            "Ship is transcribed /ʃɪp/ and contains /ɪ/.",
+        },
+        {
+          id: 2,
+          question:
+            "Which word contains the long /iː/ vowel?",
+          options: [
+            "sit",
+            "seat",
+            "full",
+            "pull",
+          ],
+          correctAnswer: 1,
+          explanation:
+            "Seat is transcribed /siːt/ and contains /iː/.",
+        },
+        {
+          id: 3,
+          question:
+            "Which pair contrasts /ʊ/ with /uː/?",
+          options: [
+            "ship and sheep",
+            "sit and seat",
+            "pull and pool",
+            "ship and sit",
+          ],
+          correctAnswer: 2,
+          explanation:
+            "Pull contains /ʊ/, while pool contains /uː/.",
+        },
+        {
+          id: 4,
+          question:
+            "What does the IPA mark /ː/ indicate in /iː/ and /uː/?",
+          options: [
+            "The vowel is typically held longer",
+            "The vowel is silent",
+            "The following consonant is doubled",
+            "The syllable is always unstressed",
+          ],
+          correctAnswer: 0,
+          explanation:
+            "The length mark /ː/ indicates that the vowel is typically held longer.",
+        },
+      ],
     },
   ],
 };

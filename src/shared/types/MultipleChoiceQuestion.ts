@@ -3,4 +3,5 @@ export type MultipleChoiceQuestion = {
   question: string;
   options: string[];
   correctAnswer: number;
+  explanation?: string;
 };

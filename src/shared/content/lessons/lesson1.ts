@@ -82,6 +82,50 @@ export const lesson1: LessonData = {
         "Identify the short /ɪ/ sound.",
         "Identify the long /iː/ sound.",
       ],
+      interactiveQuestions: [
+        {
+          id: 1,
+          question:
+            "Which word contains the short /ɪ/ sound?",
+          options: [
+            "ship",
+            "sheep",
+            "seat",
+            "see",
+          ],
+          correctAnswer: 0,
+          explanation:
+            "Ship contains the short /ɪ/ vowel sound.",
+        },
+        {
+          id: 2,
+          question:
+            "Which word contains the long /iː/ sound?",
+          options: [
+            "ship",
+            "sit",
+            "sheep",
+            "hit",
+          ],
+          correctAnswer: 2,
+          explanation:
+            "Sheep contains the long /iː/ vowel sound.",
+        },
+        {
+          id: 3,
+          question:
+            "Which pair contrasts /ɪ/ with /iː/?",
+          options: [
+            "ship and sheep",
+            "ship and sit",
+            "sheep and see",
+            "sit and hit",
+          ],
+          correctAnswer: 0,
+          explanation:
+            "Ship uses /ɪ/, while sheep uses /iː/.",
+        },
+      ],
     },
   ],
 };
