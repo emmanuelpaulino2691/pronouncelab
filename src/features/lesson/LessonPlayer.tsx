@@ -18,6 +18,7 @@ type Props = {
 function LessonPlayer({ lesson }: Props) {
 
   const {
+    progress: userProgress,
     startLesson,
     completeLesson,
     completeActivity: saveActivityProgress,
@@ -59,12 +60,20 @@ function LessonPlayer({ lesson }: Props) {
 
       completeActivity(current);
 
-      saveActivityProgress(
-        lesson.id,
-        current
-      );
+      const activityCompleted =
+        saveActivityProgress(
+          lesson.id,
+          current
+        );
 
-      addXP(10);
+      if (
+        activityCompleted &&
+        !userProgress.lessonsCompleted.includes(
+          lesson.id
+        )
+      ) {
+        addXP(10);
+      }
 
     }
 
@@ -73,14 +82,29 @@ function LessonPlayer({ lesson }: Props) {
 
   function handleFinish() {
 
-    completeLesson(lesson.id);
+    completeActivity(current);
 
-    addXP(50);
+    const activityCompleted =
+      saveActivityProgress(
+        lesson.id,
+        current
+      );
 
-    unlock("first-lesson");
+    const lessonCompleted =
+      completeLesson(lesson.id);
 
-    if (stats.xp + 50 >= 100) {
-      unlock("100-xp");
+    if (lessonCompleted) {
+      const activityXP =
+        activityCompleted ? 10 : 0;
+
+      const updatedStats =
+        addXP(activityXP + 50);
+
+      unlock("first-lesson");
+
+      if (updatedStats.xp >= 100) {
+        unlock("100-xp");
+      }
     }
 
   }

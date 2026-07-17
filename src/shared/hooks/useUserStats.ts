@@ -13,27 +13,25 @@ export function useUserStats() {
   function addXP(
     amount: number
   ) {
+    const previous =
+      loadUserStats();
 
-    setStats(previous => {
+    const xp =
+      previous.xp + amount;
 
-      const xp =
-        previous.xp + amount;
+    const level =
+      Math.floor(xp / 100) + 1;
 
-      const level =
-        Math.floor(xp / 100) + 1;
+    const updated = {
+      ...previous,
+      xp,
+      level,
+    };
 
-      const updated = {
-        ...previous,
-        xp,
-        level,
-      };
+    saveUserStats(updated);
+    setStats(updated);
 
-      saveUserStats(updated);
-
-      return updated;
-
-    });
-
+    return updated;
   }
 
   return {

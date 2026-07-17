@@ -5,11 +5,6 @@ import {
   saveLessonState,
 } from "../utils/lessonStorage";
 
-import {
-  loadUserProgress,
-  saveUserProgress,
-} from "../utils/progressStorage";
-
 export function useLessonState(
   lessonId: number,
   totalActivities: number
@@ -50,7 +45,6 @@ export function useLessonState(
   const completeActivity = (
     activityIndex: number
   ) => {
-
     setState((previous) => ({
       ...previous,
       completedActivities:
@@ -63,50 +57,6 @@ export function useLessonState(
               activityIndex,
             ].sort((a, b) => a - b),
     }));
-
-    const progress =
-      loadUserProgress();
-
-    const existing =
-      progress.activitiesCompleted.find(
-        (item) =>
-          item.lessonId === lessonId
-      );
-
-    const updatedActivities =
-      existing
-        ? progress.activitiesCompleted.map(
-            (item) =>
-              item.lessonId === lessonId
-                ? {
-                    ...item,
-                    activities:
-                      item.activities.includes(
-                        activityIndex
-                      )
-                        ? item.activities
-                        : [
-                            ...item.activities,
-                            activityIndex,
-                          ].sort((a, b) => a - b),
-                  }
-                : item
-          )
-        : [
-            ...progress.activitiesCompleted,
-            {
-              lessonId,
-              activities: [
-                activityIndex,
-              ],
-            },
-          ];
-
-    saveUserProgress({
-      ...progress,
-      activitiesCompleted:
-        updatedActivities,
-    });
   };
 
   const isFirstActivity =

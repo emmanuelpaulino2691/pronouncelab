@@ -12,50 +12,52 @@ export function useUserProgress() {
 
   const startLesson = useCallback(
     (lessonId: number) => {
-      setProgress((previous) => {
-        if (
-          previous.lessonsStarted.includes(lessonId)
-        ) {
-          return previous;
-        }
+      const latest = loadUserProgress();
 
-        const updated = {
-          ...previous,
-          lessonsStarted: [
-            ...previous.lessonsStarted,
-            lessonId,
-          ],
-        };
+      if (latest.lessonsStarted.includes(lessonId)) {
+        saveUserProgress(latest);
+        setProgress(latest);
+        return false;
+      }
 
-        saveUserProgress(updated);
+      const updated = {
+        ...latest,
+        lessonsStarted: [
+          ...latest.lessonsStarted,
+          lessonId,
+        ],
+      };
 
-        return updated;
-      });
+      saveUserProgress(updated);
+      setProgress(updated);
+
+      return true;
     },
     []
   );
 
   const completeLesson = useCallback(
     (lessonId: number) => {
-      setProgress((previous) => {
-        if (
-          previous.lessonsCompleted.includes(lessonId)
-        ) {
-          return previous;
-        }
+      const latest = loadUserProgress();
 
-        const updated = {
-          ...previous,
-          lessonsCompleted: [
-            ...previous.lessonsCompleted,
-            lessonId,
-          ],
-        };
+      if (latest.lessonsCompleted.includes(lessonId)) {
+        saveUserProgress(latest);
+        setProgress(latest);
+        return false;
+      }
 
-        saveUserProgress(updated);
+      const updated = {
+        ...latest,
+        lessonsCompleted: [
+          ...latest.lessonsCompleted,
+          lessonId,
+        ],
+      };
 
-        return updated;
-      });
+      saveUserProgress(updated);
+      setProgress(updated);
+
+      return true;
     },
     []
   );
@@ -65,55 +67,58 @@ export function useUserProgress() {
       lessonId: number,
       activityIndex: number
     ) => {
-      setProgress((previous) => {
-        const existing =
-          previous.activitiesCompleted.find(
-            (item) =>
-              item.lessonId === lessonId
-          );
+      const latest = loadUserProgress();
 
-        if (
-          existing?.activities.includes(
-            activityIndex
-          )
-        ) {
-          return previous;
-        }
+      const existing =
+        latest.activitiesCompleted.find(
+          (item) =>
+            item.lessonId === lessonId
+        );
 
-        const updatedActivities =
-          existing
-            ? previous.activitiesCompleted.map(
-                (item) =>
-                  item.lessonId === lessonId
-                    ? {
-                        ...item,
-                        activities: [
-                          ...item.activities,
-                          activityIndex,
-                        ],
-                      }
-                    : item
-              )
-            : [
-                ...previous.activitiesCompleted,
-                {
-                  lessonId,
-                  activities: [
-                    activityIndex,
-                  ],
-                },
-              ];
+      if (
+        existing?.activities.includes(
+          activityIndex
+        )
+      ) {
+        saveUserProgress(latest);
+        setProgress(latest);
+        return false;
+      }
 
-        const updated = {
-          ...previous,
-          activitiesCompleted:
-            updatedActivities,
-        };
+      const updatedActivities =
+        existing
+          ? latest.activitiesCompleted.map(
+              (item) =>
+                item.lessonId === lessonId
+                  ? {
+                      ...item,
+                      activities: [
+                        ...item.activities,
+                        activityIndex,
+                      ].sort((a, b) => a - b),
+                    }
+                  : item
+            )
+          : [
+              ...latest.activitiesCompleted,
+              {
+                lessonId,
+                activities: [
+                  activityIndex,
+                ],
+              },
+            ];
 
-        saveUserProgress(updated);
+      const updated = {
+        ...latest,
+        activitiesCompleted:
+          updatedActivities,
+      };
 
-        return updated;
-      });
+      saveUserProgress(updated);
+      setProgress(updated);
+
+      return true;
     },
     []
   );
