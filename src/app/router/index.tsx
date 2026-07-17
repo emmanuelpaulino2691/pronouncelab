@@ -5,6 +5,7 @@ import {
 
 import AdminCoursesPage from "../../features/admin/courses/AdminCoursesPage";
 import AdminUnitLessonsPage from "../../features/admin/lessons/AdminUnitLessonsPage";
+import LessonStudioPage from "../../features/admin/lesson-studio/pages/LessonStudioPage";
 import AdminLayout from "../../features/admin/layouts/AdminLayout";
 import AdminRoute from "../../features/admin/routing/AdminRoute";
 import AdminCourseUnitsPage from "../../features/admin/units/AdminCourseUnitsPage";
@@ -51,6 +52,10 @@ export const router = createBrowserRouter([
           {
             path: "courses/:courseId/units/:unitId",
             element: <AdminUnitLessonsPage />,
+          },
+          {
+            path: "courses/:courseId/units/:unitId/lessons/:lessonId/studio",
+            element: <LessonStudioPage />,
           },
         ],
       },

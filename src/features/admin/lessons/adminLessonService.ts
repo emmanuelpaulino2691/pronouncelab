@@ -94,6 +94,32 @@ export async function listAdminLessons(
   );
 }
 
+export async function getAdminLesson(
+  lessonId: number,
+  expectedUnitId: number
+) {
+  const { data, error } = await requireSupabase()
+    .from("lessons")
+    .select(lessonColumns)
+    .eq("id", lessonId)
+    .eq("unit_id", expectedUnitId)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  if (!data) {
+    throw new Error(
+      "Lesson not found in the expected unit."
+    );
+  }
+
+  return toAdminLesson(
+    data as unknown as LessonRow
+  );
+}
+
 export async function createAdminLesson(
   unitId: number,
   input: HierarchyItemInput

@@ -433,11 +433,18 @@ function UnitLessonsContent({
                         </span>
                       </td>
                       <td className="px-6 py-5">
+                        <div className="flex justify-end gap-2">
+                          <Link
+                            to={`/admin/courses/${courseId}/units/${unitId}/lessons/${lesson.id}/studio`}
+                            className="rounded-lg border border-blue-200 px-3 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-50"
+                          >
+                            Studio
+                          </Link>
                         {isDraft &&
                         canEditDrafts &&
                         course?.status === "draft" &&
                         unit?.status === "draft" ? (
-                          <div className="flex justify-end gap-2">
+                          <>
                             <button
                               type="button"
                               onClick={() =>
@@ -468,12 +475,13 @@ function UnitLessonsContent({
                                 ? "Deleting…"
                                 : "Delete"}
                             </button>
-                          </div>
+                          </>
                         ) : (
-                          <p className="text-right text-sm text-slate-400">
+                          <span className="self-center text-sm text-slate-400">
                             View only
-                          </p>
+                          </span>
                         )}
+                        </div>
                       </td>
                     </tr>
                   );
