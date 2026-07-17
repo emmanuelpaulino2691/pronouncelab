@@ -2,6 +2,7 @@ import {
   NavLink,
   useNavigate,
 } from "react-router-dom";
+import { useState } from "react";
 
 import { supabase } from "../../../shared/lib/supabaseClient";
 
@@ -14,10 +15,39 @@ const navigationItems = [
 
 function AdminSidebar() {
   const navigate = useNavigate();
+  const [isSigningOut, setIsSigningOut] =
+    useState(false);
+  const [signOutError, setSignOutError] =
+    useState<string | null>(null);
 
   async function handleSignOut() {
-    await supabase?.auth.signOut();
-    navigate("/login", { replace: true });
+    if (isSigningOut) {
+      return;
+    }
+
+    setIsSigningOut(true);
+    setSignOutError(null);
+
+    try {
+      if (!supabase) {
+        throw new Error(
+          "Authentication is not configured."
+        );
+      }
+
+      const { error } = await supabase.auth.signOut();
+
+      if (error) {
+        throw error;
+      }
+
+      navigate("/login", { replace: true });
+    } catch {
+      setSignOutError(
+        "Sign out failed. Please try again."
+      );
+      setIsSigningOut(false);
+    }
   }
 
   return (
@@ -34,10 +64,11 @@ function AdminSidebar() {
 
         <button
           type="button"
-          onClick={handleSignOut}
-          className="rounded-lg border border-slate-700 px-3 py-2 text-sm font-medium text-slate-200 transition hover:border-slate-500 hover:bg-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400 lg:hidden"
+          disabled={isSigningOut}
+          onClick={() => void handleSignOut()}
+          className="rounded-lg border border-slate-700 px-3 py-2 text-sm font-medium text-slate-200 transition hover:border-slate-500 hover:bg-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400 disabled:cursor-not-allowed disabled:opacity-50 lg:hidden"
         >
-          Sign out
+          {isSigningOut ? "Signing out…" : "Sign out"}
         </button>
       </div>
 
@@ -66,13 +97,23 @@ function AdminSidebar() {
         </ul>
       </nav>
 
+      {signOutError && (
+        <p
+          role="alert"
+          className="mx-5 mb-4 rounded-lg border border-red-800 bg-red-950/50 px-3 py-2 text-sm text-red-200"
+        >
+          {signOutError}
+        </p>
+      )}
+
       <div className="mt-auto hidden px-5 pb-8 lg:block">
         <button
           type="button"
-          onClick={handleSignOut}
-          className="w-full rounded-xl border border-slate-700 px-4 py-3 text-left text-sm font-semibold text-slate-300 transition hover:border-slate-500 hover:bg-slate-900 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400"
+          disabled={isSigningOut}
+          onClick={() => void handleSignOut()}
+          className="w-full rounded-xl border border-slate-700 px-4 py-3 text-left text-sm font-semibold text-slate-300 transition hover:border-slate-500 hover:bg-slate-900 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          Sign out
+          {isSigningOut ? "Signing out…" : "Sign out"}
         </button>
       </div>
     </aside>
