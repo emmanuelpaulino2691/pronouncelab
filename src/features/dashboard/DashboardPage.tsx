@@ -51,6 +51,7 @@ function DashboardPage() {
       <div className="mt-6 grid gap-6 lg:grid-cols-4">
 
         <ContinueLearningCard
+          courseId={1}
           courseTitle="Pronunciation Course"
           unitTitle={
             unit?.title ??
