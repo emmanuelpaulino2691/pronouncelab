@@ -1,8 +1,13 @@
-import { units } from "../data/units";
+import { contentProvider } from "../content/providers/localContentProvider";
 
 export function getUnitsByCourse(courseId: number) {
-  return units.filter((unit) => unit.courseId === courseId);
+  return contentProvider
+    .getUnits()
+    .filter((unit) => unit.courseId === courseId);
 }
-export function getUnitById(id: number) {
-  return units.find((unit) => unit.id === id);
+
+export function getUnit(unitId: number) {
+  return contentProvider
+    .getUnits()
+    .find((unit) => unit.id === unitId);
 }

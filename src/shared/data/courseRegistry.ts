@@ -1,7 +1,7 @@
-import { pronunciationCourse } from "./courses/pronunciationCourse";
-import { pronunciationUnits } from "./units/pronunciationUnits";
-import { pronunciationLessons } from "./lessons-v2/pronunciationLessons";
-import { lessonData } from "./lessons/index";
+import { pronunciationCourse } from "../content/courses/pronunciationCourse";
+import { pronunciationUnits } from "../content/units/pronunciationUnits";
+import { pronunciationLessons } from "../content/lessons/pronunciationLessons";
+import { lessonData } from "../content/lessons";
 
 export const courseRegistry = {
   courses: [pronunciationCourse],

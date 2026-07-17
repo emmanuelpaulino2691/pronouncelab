@@ -1,9 +1,11 @@
-import { courses } from "../data/courses";
+import { contentProvider } from "../content/providers/localContentProvider";
 
 export function getCourses() {
-  return courses;
+  return contentProvider.getCourses();
 }
 
-export function getCourseById(id: number) {
-  return courses.find((course) => course.id === id);
+export function getCourse(courseId: number) {
+  return contentProvider
+    .getCourses()
+    .find((course) => course.id === courseId);
 }
