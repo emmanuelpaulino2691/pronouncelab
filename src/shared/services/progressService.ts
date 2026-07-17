@@ -1,11 +1,14 @@
-import { getLessonsByUnit } from "./lessonService";
-import { getUnitsByCourse } from "./unitService";
+import {
+  getPlayableLessonsByCourse,
+  getPlayableLessonsByUnit,
+} from "./lessonService";
 
 export function getUnitProgress(
   unitId: number,
   completedLessons: number[]
 ) {
-  const lessons = getLessonsByUnit(unitId);
+  const lessons =
+    getPlayableLessonsByUnit(unitId);
 
   if (lessons.length === 0) {
     return 0;
@@ -24,11 +27,9 @@ export function getCourseProgress(
   courseId: number,
   completedLessons: number[]
 ) {
-  const units = getUnitsByCourse(courseId);
-
-  const lessonIds = units.flatMap((unit) =>
-    getLessonsByUnit(unit.id).map((lesson) => lesson.id)
-  );
+  const lessonIds =
+    getPlayableLessonsByCourse(courseId)
+      .map((lesson) => lesson.id);
 
   if (lessonIds.length === 0) {
     return 0;

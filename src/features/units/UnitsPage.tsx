@@ -6,7 +6,7 @@ import NotFoundState from "../../shared/components/ui/NotFoundState";
 
 import {
   getCourse,
-  getLessonsByUnit,
+  getPlayableLessonsByUnit,
   getUnitsByCourse,
 } from "../../shared/services/courseEngineService";
 
@@ -49,7 +49,9 @@ function UnitsPage() {
 
         {units.map((unit) => {
           const hasLessons =
-            getLessonsByUnit(unit.id).length > 0;
+            getPlayableLessonsByUnit(
+              unit.id
+            ).length > 0;
 
           return (
             <Card

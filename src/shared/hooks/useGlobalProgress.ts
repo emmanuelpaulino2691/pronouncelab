@@ -2,8 +2,7 @@
 
 import {
   getLesson,
-  getLessonSummary,
-  getUnit,
+  isLessonPlayable,
 } from "../services/courseEngineService";
 import { loadUserProgress } from "../utils/progressStorage";
 
@@ -13,15 +12,13 @@ export function useGlobalProgress() {
   const lessonProgress = useMemo(() => {
     return progress.lessonsStarted.flatMap(
       (lessonId) => {
-        const lesson = getLesson(lessonId);
-        const lessonSummary =
-          getLessonSummary(lessonId);
-        const unit =
-          lessonSummary
-            ? getUnit(lessonSummary.unitId)
-            : undefined;
+        if (!isLessonPlayable(lessonId)) {
+          return [];
+        }
 
-        if (!lesson || !lessonSummary || !unit) {
+        const lesson = getLesson(lessonId);
+
+        if (!lesson) {
           return [];
         }
 
@@ -81,6 +78,16 @@ export function useGlobalProgress() {
             100
         );
 
+  const lessonsStarted =
+    progress.lessonsStarted.filter(
+      isLessonPlayable
+    ).length;
+
+  const lessonsCompleted =
+    progress.lessonsCompleted.filter(
+      isLessonPlayable
+    ).length;
+
   const continueLessonProgress =
     [...lessonProgress].reverse().find(
       (lesson) =>
@@ -91,11 +98,9 @@ export function useGlobalProgress() {
     lessonProgress.at(-1);
 
   return {
-    lessonsStarted:
-      progress.lessonsStarted.length,
+    lessonsStarted,
 
-    lessonsCompleted:
-      progress.lessonsCompleted.length,
+    lessonsCompleted,
 
     completedActivities,
 

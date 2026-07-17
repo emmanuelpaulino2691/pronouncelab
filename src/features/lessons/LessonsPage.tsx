@@ -6,6 +6,7 @@ import NotFoundState from "../../shared/components/ui/NotFoundState";
 
 import {
   getLessonsByUnit,
+  getPlayableLessonsByUnit,
   getUnit,
 } from "../../shared/services/courseEngineService";
 import { loadUserProgress } from "../../shared/utils/progressStorage";
@@ -25,6 +26,18 @@ function LessonsPage() {
 
   const lessons =
     getLessonsByUnit(Number(unitId));
+
+  const playableLessons =
+    getPlayableLessonsByUnit(
+      Number(unitId)
+    );
+
+  const playableLessonIds =
+    new Set(
+      playableLessons.map(
+        (lesson) => lesson.id
+      )
+    );
 
   const progress = loadUserProgress();
 
@@ -77,7 +90,7 @@ function LessonsPage() {
 
       <div className="mt-8 grid gap-6">
 
-        {lessons.length === 0 && (
+        {playableLessons.length === 0 && (
           <Card title="Coming Soon">
             <p>
               Lessons for this unit are not available yet.
@@ -86,6 +99,27 @@ function LessonsPage() {
         )}
 
         {lessons.map((lesson) => {
+          const isPlayable =
+            playableLessonIds.has(lesson.id);
+
+          if (!isPlayable) {
+            return (
+              <Card
+                key={lesson.id}
+                title={lesson.title}
+              >
+                <p>
+                  {lesson.description}
+                </p>
+
+                <p className="mt-5 inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-700">
+                  <span aria-hidden="true">○</span>
+                  Coming Soon
+                </p>
+              </Card>
+            );
+          }
+
           const status =
             getLessonStatus(lesson.id);
 

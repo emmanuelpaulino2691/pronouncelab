@@ -10,8 +10,11 @@ export {
 
 export {
   getLessonsByUnit,
+  getPlayableLessonsByUnit,
+  getPlayableLessonsByCourse,
   getLessonSummary,
   getLesson,
+  isLessonPlayable,
 } from "./lessonService";
 
 export {

@@ -9,6 +9,7 @@ import {
   getLesson,
   getLessonSummary,
   getUnit,
+  isLessonPlayable,
 } from "../../shared/services/courseEngineService";
 
 import LessonPlayer from "./LessonPlayer";
@@ -18,20 +19,38 @@ function LessonPage() {
 
   const navigate = useNavigate();
 
-  const lesson = getLesson(Number(lessonId));
   const lessonSummary =
     getLessonSummary(Number(lessonId));
   const unit =
     lessonSummary
       ? getUnit(lessonSummary.unitId)
       : undefined;
+  const playable =
+    isLessonPlayable(Number(lessonId));
+  const lesson =
+    playable
+      ? getLesson(Number(lessonId))
+      : undefined;
 
-  if (!lesson || !lessonSummary || !unit) {
+  if (
+    !playable ||
+    !lesson ||
+    !lessonSummary ||
+    !unit
+  ) {
     return (
       <MainLayout>
         <NotFoundState
-          title="Lesson not found"
-          message="This lesson does not exist or is no longer available."
+          title={
+            lessonSummary
+              ? "Lesson unavailable"
+              : "Lesson not found"
+          }
+          message={
+            lessonSummary
+              ? "This lesson is coming soon."
+              : "This lesson does not exist or is no longer available."
+          }
           actionLabel={
             unit
               ? "Back to Lessons"
