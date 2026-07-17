@@ -4,15 +4,20 @@ import type { ListeningQuestion } from "../../types/ListeningQuestion";
 
 type Props = {
   question: ListeningQuestion;
+  onAnswered?: (isCorrect: boolean) => void;
 };
 
-function ListeningQuestionCard({ question }: Props) {
+function ListeningQuestionCard({
+  question,
+  onAnswered,
+}: Props) {
   return (
     <MultipleChoiceQuestionCard
       id={question.id}
       question={question.question}
       options={question.options}
       correctAnswer={question.correctAnswer}
+      onAnswered={onAnswered}
     />
   );
 }

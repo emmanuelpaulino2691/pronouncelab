@@ -3,6 +3,10 @@
 import ActivityRenderer from "../activities/shared/ActivityRenderer";
 import LessonNavigator from "./LessonNavigator";
 import LessonHeader from "./components/LessonHeader";
+import {
+  useCallback,
+  useState,
+} from "react";
 
 import { useLessonState } from "../../shared/hooks/useLessonState";
 import { useUserProgress } from "../../shared/hooks/useUserProgress";
@@ -16,6 +20,8 @@ type Props = {
 };
 
 function LessonPlayer({ lesson }: Props) {
+  const [activityReadiness, setActivityReadiness] =
+    useState<Record<string, boolean>>({});
 
   const {
     progress: userProgress,
@@ -47,6 +53,57 @@ function LessonPlayer({ lesson }: Props) {
 
   const activity = lesson.activities[current];
 
+  const readinessKey =
+    `${lesson.id}-${current}`;
+
+  const requiresAssessment =
+    activity.type === "listening" ||
+    activity.type === "practice" ||
+    activity.type === "quiz";
+
+  const activityPersistedComplete =
+    state.completedActivities.includes(
+      current
+    ) ||
+    userProgress.activitiesCompleted.some(
+      (item) =>
+        item.lessonId === lesson.id &&
+        item.activities.includes(current)
+    );
+
+  const lessonPersistedComplete =
+    userProgress.lessonsCompleted.includes(
+      lesson.id
+    );
+
+  const activityReady =
+    !requiresAssessment ||
+    activityReadiness[readinessKey] ===
+      true;
+
+  const canCompleteCurrent =
+    lessonPersistedComplete ||
+    activityPersistedComplete ||
+    activityReady;
+
+  const handleReadyChange = useCallback(
+    (ready: boolean) => {
+      setActivityReadiness((previous) => {
+        if (
+          previous[readinessKey] === ready
+        ) {
+          return previous;
+        }
+
+        return {
+          ...previous,
+          [readinessKey]: ready,
+        };
+      });
+    },
+    [readinessKey]
+  );
+
   const completed =
     state.completedActivities.length;
 
@@ -55,6 +112,9 @@ function LessonPlayer({ lesson }: Props) {
   );
 
   function handleNext() {
+    if (!canCompleteCurrent) {
+      return;
+    }
 
     if (!state.completedActivities.includes(current)) {
 
@@ -81,6 +141,9 @@ function LessonPlayer({ lesson }: Props) {
   }
 
   function handleFinish() {
+    if (!canCompleteCurrent) {
+      return;
+    }
 
     completeActivity(current);
 
@@ -130,20 +193,33 @@ function LessonPlayer({ lesson }: Props) {
       <ActivityRenderer
         activity={activity}
         lesson={lesson}
+        onReadyChange={handleReadyChange}
       />
+
+      {!canCompleteCurrent && (
+        <p
+          role="status"
+          className="rounded-lg bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800"
+        >
+          Submit every question in this activity to continue. Correct answers are not required.
+        </p>
+      )}
 
       <LessonNavigator
         current={current}
         total={lesson.activities.length}
         completed={state.completedActivities}
+        canAdvance={canCompleteCurrent}
         onPrevious={previousActivity}
         onNext={handleNext}
       />
 
       {isLastActivity && (
         <button
+          type="button"
           onClick={handleFinish}
-          className="w-full rounded-xl bg-green-600 px-6 py-3 font-semibold text-white transition hover:bg-green-700"
+          disabled={!canCompleteCurrent}
+          className="w-full rounded-xl bg-green-600 px-6 py-3 font-semibold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           Finish Lesson ✓
         </button>

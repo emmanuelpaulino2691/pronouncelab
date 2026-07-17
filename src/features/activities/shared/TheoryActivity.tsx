@@ -4,6 +4,7 @@ import type { LessonData } from "../../../shared/types/LessonData";
 
 type Props = {
   lesson: LessonData;
+  onReadyChange?: (ready: boolean) => void;
 };
 
 function TheoryActivity({ lesson }: Props) {

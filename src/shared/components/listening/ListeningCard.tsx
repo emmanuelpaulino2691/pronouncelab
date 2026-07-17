@@ -11,9 +11,13 @@ import type { ListeningData } from "../../types/ListeningData";
 
 type Props = {
   listening: ListeningData;
+  onReadyChange?: (ready: boolean) => void;
 };
 
-function ListeningCard({ listening }: Props) {
+function ListeningCard({
+  listening,
+  onReadyChange,
+}: Props) {
   return (
     <Card title={listening.title}>
       {listening.instructions && (
@@ -29,7 +33,10 @@ function ListeningCard({ listening }: Props) {
       )}
 
       {listening.questions && (
-        <QuestionGroup totalQuestions={listening.questions.length}>
+        <QuestionGroup
+          totalQuestions={listening.questions.length}
+          onReadyChange={onReadyChange}
+        >
           {listening.questions.map((question) => (
             <ListeningQuestionCard
               key={question.id}

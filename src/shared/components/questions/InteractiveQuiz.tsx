@@ -1,4 +1,7 @@
-import { useState } from "react";
+import {
+  useEffect,
+  useState,
+} from "react";
 
 import MultipleChoiceQuestionCard from "./MultipleChoiceQuestionCard";
 
@@ -6,6 +9,7 @@ import type { MultipleChoiceQuestion } from "../../types/MultipleChoiceQuestion"
 
 type Props = {
   questions: MultipleChoiceQuestion[];
+  onReadyChange?: (ready: boolean) => void;
 };
 
 type AnswerState = {
@@ -29,6 +33,7 @@ function createInitialAnswers(
 
 function InteractiveQuiz({
   questions,
+  onReadyChange,
 }: Props) {
   const [currentQuestion, setCurrentQuestion] =
     useState(0);
@@ -37,6 +42,16 @@ function InteractiveQuiz({
   );
   const [showResults, setShowResults] =
     useState(false);
+
+  const allSubmitted =
+    questions.length === 0 ||
+    answers.every(
+      (answer) => answer.submitted
+    );
+
+  useEffect(() => {
+    onReadyChange?.(allSubmitted);
+  }, [allSubmitted, onReadyChange]);
 
   if (questions.length === 0) {
     return (

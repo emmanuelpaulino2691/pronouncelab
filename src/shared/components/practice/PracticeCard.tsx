@@ -5,9 +5,13 @@ import type { PracticeData } from "../../types/PracticeData";
 
 type Props = {
   practice: PracticeData;
+  onReadyChange?: (ready: boolean) => void;
 };
 
-function PracticeCard({ practice }: Props) {
+function PracticeCard({
+  practice,
+  onReadyChange,
+}: Props) {
   return (
     <>
       {practice.instructions && (
@@ -15,7 +19,10 @@ function PracticeCard({ practice }: Props) {
       )}
 
       {practice.questions && (
-        <QuestionGroup totalQuestions={practice.questions.length}>
+        <QuestionGroup
+          totalQuestions={practice.questions.length}
+          onReadyChange={onReadyChange}
+        >
           {practice.questions.map((question) => (
             <MultipleChoiceQuestionCard
               key={question.id}

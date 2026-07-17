@@ -2,6 +2,7 @@
   current: number;
   total: number;
   completed: number[];
+  canAdvance: boolean;
   onPrevious: () => void;
   onNext: () => void;
 };
@@ -10,6 +11,7 @@ function LessonNavigator({
   current,
   total,
   completed,
+  canAdvance,
   onPrevious,
   onNext,
 }: Props) {
@@ -56,6 +58,7 @@ function LessonNavigator({
       <div className="flex items-center justify-between">
 
         <button
+          type="button"
           onClick={onPrevious}
           disabled={isFirst}
           className="rounded-lg bg-slate-200 px-5 py-2 transition hover:bg-slate-300 disabled:cursor-not-allowed disabled:opacity-40"
@@ -84,8 +87,9 @@ function LessonNavigator({
         </div>
 
         <button
+          type="button"
           onClick={onNext}
-          disabled={isLast}
+          disabled={isLast || !canAdvance}
           className="rounded-lg bg-blue-600 px-5 py-2 text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
         >
           Next →

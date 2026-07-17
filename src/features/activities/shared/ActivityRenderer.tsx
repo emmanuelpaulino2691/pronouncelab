@@ -6,11 +6,13 @@ import type { LessonData } from "../../../shared/types/LessonData";
 type Props = {
   activity: LessonActivity;
   lesson: LessonData;
+  onReadyChange: (ready: boolean) => void;
 };
 
 function ActivityRenderer({
   activity,
   lesson,
+  onReadyChange,
 }: Props) {
   const ActivityComponent =
     activityRegistry[activity.type];
@@ -25,7 +27,9 @@ function ActivityRenderer({
 
   return (
     <ActivityComponent
+      key={`${lesson.id}-${activity.id}`}
       lesson={lesson}
+      onReadyChange={onReadyChange}
     />
   );
 }

@@ -1,15 +1,36 @@
 import InteractiveQuiz from "../../../shared/components/questions/InteractiveQuiz";
+import { useAssessmentReadiness } from "../../../shared/hooks/useAssessmentReadiness";
 
 import type { LessonData } from "../../../shared/types/LessonData";
 
 type Props = {
   lesson: LessonData;
+  onReadyChange?: (ready: boolean) => void;
 };
 
-function QuizActivity({ lesson }: Props) {
+function QuizActivity({
+  lesson,
+  onReadyChange,
+}: Props) {
+  const quizzes = lesson.quiz ?? [];
+
+  const requiredKeys = quizzes.flatMap(
+    (quiz, index) =>
+      quiz.interactiveQuestions &&
+      quiz.interactiveQuestions.length > 0
+        ? [`quiz-${index}`]
+        : []
+  );
+
+  const setQuizReady =
+    useAssessmentReadiness(
+      requiredKeys,
+      onReadyChange
+    );
+
   return (
     <div className="space-y-4">
-      {(lesson.quiz ?? []).map((quiz) => (
+      {quizzes.map((quiz, index) => (
         <div
           key={`${lesson.id}-${quiz.id}`}
           className="rounded-lg border p-4"
@@ -24,6 +45,12 @@ function QuizActivity({ lesson }: Props) {
               <InteractiveQuiz
                 questions={
                   quiz.interactiveQuestions
+                }
+                onReadyChange={(ready) =>
+                  setQuizReady(
+                    `quiz-${index}`,
+                    ready
+                  )
                 }
               />
             ) : quiz.questions.length > 0 ? (
