@@ -35,3 +35,7 @@ export function saveLessonState(
     JSON.stringify(state)
   );
 }
+
+export function clearLessonState(lessonId: number) {
+  localStorage.removeItem(`${PREFIX}${lessonId}`);
+}

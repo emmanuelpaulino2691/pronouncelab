@@ -1057,7 +1057,7 @@ begin
   end if;
 
   for referenced_asset in
-    with references as (
+    with referenced_rows as (
       select 'theory media'::text as category,
         theory.media_asset_id as asset_id
       from public.theory_blocks as theory
@@ -1104,7 +1104,7 @@ begin
       asset.bucket,
       asset.object_path,
       asset.kind
-    from references as reference
+    from referenced_rows as reference
     join public.media_assets as asset
       on asset.id = reference.asset_id
     order by reference.asset_id, reference.category

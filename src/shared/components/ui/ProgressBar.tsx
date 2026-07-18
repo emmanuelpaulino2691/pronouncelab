@@ -1,22 +1,8 @@
-﻿type ProgressBarProps = {
-  value: number;
-};
+type ProgressBarProps = { value: number; label?: string };
 
-function ProgressBar({
-  value,
-}: ProgressBarProps) {
-  return (
-    <div className="h-3 w-full rounded-full bg-slate-200 overflow-hidden">
-
-      <div
-        className="h-full rounded-full bg-blue-600 transition-all duration-500"
-        style={{
-          width: `${value}%`,
-        }}
-      />
-
-    </div>
-  );
+export default function ProgressBar({ value, label = "Lesson progress" }: ProgressBarProps) {
+  const safeValue = Math.min(100, Math.max(0, Number.isFinite(value) ? value : 0));
+  return <div role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={safeValue} className="h-2.5 w-full overflow-hidden rounded-full bg-slate-200">
+    <div className="h-full rounded-full bg-blue-600 transition-[width] duration-300 motion-reduce:transition-none" style={{ width: `${safeValue}%` }} />
+  </div>;
 }
-
-export default ProgressBar;

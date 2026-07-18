@@ -1,61 +1,60 @@
-import {
-  Navigate,
-  createBrowserRouter,
-} from "react-router-dom";
-
-import AdminCoursesPage from "../../features/admin/courses/AdminCoursesPage";
-import AdminUnitLessonsPage from "../../features/admin/lessons/AdminUnitLessonsPage";
-import LessonStudioPage from "../../features/admin/lesson-studio/pages/LessonStudioPage";
-import AdminLayout from "../../features/admin/layouts/AdminLayout";
+/* eslint-disable react-refresh/only-export-components */
+import { lazy, Suspense, type ReactNode } from "react";
+import { createBrowserRouter } from "react-router-dom";
 import AdminRoute from "../../features/admin/routing/AdminRoute";
-import AdminCourseUnitsPage from "../../features/admin/units/AdminCourseUnitsPage";
-import DashboardPage from "../../features/dashboard/DashboardPage";
-import LoginPage from "../../features/auth/LoginPage";
-import CoursesPage from "../../features/courses/CoursesPage";
-import UnitsPage from "../../features/units/UnitsPage";
-import LessonsPage from "../../features/lessons/LessonsPage";
-import LessonPage from "../../features/lesson/LessonPage";
+
+const DashboardPage = lazy(() => import("../../features/dashboard/DashboardPage"));
+const CoursesPage = lazy(() => import("../../features/courses/CoursesPage"));
+const UnitsPage = lazy(() => import("../../features/units/UnitsPage"));
+const LessonsPage = lazy(() => import("../../features/lessons/LessonsPage"));
+const LessonPage = lazy(() => import("../../features/lesson/LessonPage"));
+const LoginPage = lazy(() => import("../../features/auth/LoginPage"));
+const AdminLayout = lazy(() => import("../../features/admin/layouts/AdminLayout"));
+const AdminDashboardPage = lazy(() => import("../../features/admin/dashboard/AdminDashboardPage"));
+const AdminCoursesPage = lazy(() => import("../../features/admin/courses/AdminCoursesPage"));
+const AdminCourseUnitsPage = lazy(() => import("../../features/admin/units/AdminCourseUnitsPage"));
+const AdminUnitLessonsPage = lazy(() => import("../../features/admin/lessons/AdminUnitLessonsPage"));
+const LessonStudioPage = lazy(() => import("../../features/admin/lesson-studio/pages/LessonStudioPage"));
+
+function LazyRoute({ children }: { children: ReactNode }) {
+  return <Suspense fallback={<div role="status" className="grid min-h-64 place-items-center text-sm font-medium text-slate-500">Loading PronounceLab…</div>}>{children}</Suspense>;
+}
 
 export const router = createBrowserRouter([
   {
     path: "/",
-    element: <DashboardPage />,
+    element: <LazyRoute><DashboardPage /></LazyRoute>,
   },
   {
     path: "/login",
-    element: <LoginPage />,
+    element: <LazyRoute><LoginPage /></LazyRoute>,
   },
   {
     path: "/admin",
     element: <AdminRoute />,
     children: [
       {
-        element: <AdminLayout />,
+        element: <LazyRoute><AdminLayout /></LazyRoute>,
         children: [
           {
             index: true,
-            element: (
-              <Navigate
-                to="courses"
-                replace
-              />
-            ),
+            element: <LazyRoute><AdminDashboardPage /></LazyRoute>,
           },
           {
             path: "courses",
-            element: <AdminCoursesPage />,
+            element: <LazyRoute><AdminCoursesPage /></LazyRoute>,
           },
           {
             path: "courses/:courseId",
-            element: <AdminCourseUnitsPage />,
+            element: <LazyRoute><AdminCourseUnitsPage /></LazyRoute>,
           },
           {
             path: "courses/:courseId/units/:unitId",
-            element: <AdminUnitLessonsPage />,
+            element: <LazyRoute><AdminUnitLessonsPage /></LazyRoute>,
           },
           {
             path: "courses/:courseId/units/:unitId/lessons/:lessonId/studio",
-            element: <LessonStudioPage />,
+            element: <LazyRoute><LessonStudioPage /></LazyRoute>,
           },
         ],
       },
@@ -63,18 +62,18 @@ export const router = createBrowserRouter([
   },
   {
     path: "/courses",
-    element: <CoursesPage />,
+    element: <LazyRoute><CoursesPage /></LazyRoute>,
   },
   {
     path: "/courses/:courseId",
-    element: <UnitsPage />,
+    element: <LazyRoute><UnitsPage /></LazyRoute>,
   },
   {
     path: "/units/:unitId",
-    element: <LessonsPage />,
+    element: <LazyRoute><LessonsPage /></LazyRoute>,
   },
   {
     path: "/lessons/:lessonId",
-    element: <LessonPage />,
+    element: <LazyRoute><LessonPage /></LazyRoute>,
   },
 ]);

@@ -1,105 +1,14 @@
-﻿type Props = {
-  current: number;
-  total: number;
-  completed: number[];
-  canAdvance: boolean;
-  onPrevious: () => void;
-  onNext: () => void;
+type Props = {
+  current: number; total: number; canAdvance: boolean; isLast: boolean;
+  onPrevious: () => void; onComplete: () => void;
 };
 
-function LessonNavigator({
-  current,
-  total,
-  completed,
-  canAdvance,
-  onPrevious,
-  onNext,
-}: Props) {
-
-  const isFirst =
-    current === 0;
-
-  const isLast =
-    current === total - 1;
-
-  const completedCurrent =
-    completed.includes(current);
-
-  return (
-
-    <div className="rounded-xl border bg-white p-5 shadow-sm">
-
-      <div className="mb-5 flex justify-center gap-3">
-
-        {Array.from({
-          length: total,
-        }).map((_, index) => (
-
-          <div
-            key={index}
-            className={[
-              "h-3 w-3 rounded-full transition-all",
-
-              completed.includes(index)
-                ? "bg-green-500"
-
-                : index === current
-                ? "scale-125 bg-blue-600"
-
-                : "bg-slate-300",
-
-            ].join(" ")}
-          />
-
-        ))}
-
-      </div>
-
-      <div className="flex items-center justify-between">
-
-        <button
-          type="button"
-          onClick={onPrevious}
-          disabled={isFirst}
-          className="rounded-lg bg-slate-200 px-5 py-2 transition hover:bg-slate-300 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          ← Previous
-        </button>
-
-        <div className="text-center">
-
-          <p className="font-semibold">
-            Activity {current + 1} of {total}
-          </p>
-
-          <p
-            className={
-              completedCurrent
-                ? "text-sm font-medium text-green-600"
-                : "text-sm text-slate-500"
-            }
-          >
-            {completedCurrent
-              ? "✓ Completed"
-              : "In Progress"}
-          </p>
-
-        </div>
-
-        <button
-          type="button"
-          onClick={onNext}
-          disabled={isLast || !canAdvance}
-          className="rounded-lg bg-blue-600 px-5 py-2 text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          Next →
-        </button>
-
-      </div>
-
+export default function LessonNavigator({ current, total, canAdvance, isLast, onPrevious, onComplete }: Props) {
+  return <nav aria-label="Lesson controls" className="sticky bottom-0 z-20 -mx-4 border-t border-slate-200 bg-white/95 px-4 py-4 shadow-[0_-8px_25px_rgb(15_23_42/0.06)] backdrop-blur sm:static sm:mx-0 sm:rounded-2xl sm:border sm:p-4 sm:shadow-sm">
+    <div className="mx-auto flex max-w-4xl items-center justify-between gap-3">
+      <button type="button" onClick={onPrevious} disabled={current === 0} className="min-h-12 rounded-xl border border-slate-300 px-4 text-sm font-bold text-slate-700 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:opacity-40">Previous</button>
+      <p className="hidden text-sm text-slate-500 sm:block">{current + 1} of {total}</p>
+      <button type="button" onClick={onComplete} disabled={!canAdvance} className="min-h-12 flex-1 rounded-xl bg-blue-600 px-5 text-sm font-bold text-white hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:opacity-40 sm:flex-none">{isLast ? "Complete Lesson" : "Complete Activity"}</button>
     </div>
-
-  );
+  </nav>;
 }
-
-export default LessonNavigator;

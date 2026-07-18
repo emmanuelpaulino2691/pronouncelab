@@ -4,6 +4,7 @@ import type {
   LessonActivity,
   LessonVersion,
 } from "../types";
+import { defaultAiSpeakingMission } from "../../../ai-missions";
 
 function client() {
   if (!supabase) {
@@ -101,6 +102,21 @@ export async function createActivity(
   type: ActivityType,
   title: string
 ) {
+  if (type === "ai_speaking_mission") {
+    const { data, error } = await client().rpc(
+      "create_draft_ai_speaking_mission",
+      {
+        requested_lesson_version_id: lessonVersionId,
+        requested_title: title,
+        requested_config: {
+          ...defaultAiSpeakingMission,
+          missionTitle: title,
+        },
+      }
+    );
+    if (error) throw error;
+    return toActivity(data as unknown as ActivityRow);
+  }
   const { data, error } = await client().rpc(
     "create_draft_lesson_activity",
     {
@@ -164,8 +180,20 @@ export async function deleteActivity(
 
 export async function duplicateActivity(
   activityId: number,
-  expectedLessonVersionId: number
+  expectedLessonVersionId: number,
+  type: ActivityType
 ) {
+  if (type === "ai_speaking_mission") {
+    const { data, error } = await client().rpc(
+      "duplicate_draft_ai_speaking_mission",
+      {
+        requested_activity_id: activityId,
+        expected_lesson_version_id: expectedLessonVersionId,
+      }
+    );
+    if (error) throw error;
+    return toActivity(data as unknown as ActivityRow);
+  }
   const { data, error } = await client().rpc(
     "duplicate_draft_lesson_activity",
     {

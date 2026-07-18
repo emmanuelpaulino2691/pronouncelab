@@ -35,6 +35,15 @@ import {
   type LessonVersion,
 } from "../types";
 import type { AdminCourse } from "../../courses/adminCourseService";
+import {
+  AdminIcon,
+  Alert,
+  Badge,
+  Button,
+  ButtonLink,
+  Card,
+  Select,
+} from "../../ui";
 
 function parseId(value: string | undefined) {
   const id = Number(value);
@@ -271,16 +280,14 @@ function Studio({
         <span>{lesson.title}</span>
       </nav>
 
-      <header className="mt-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+      <header className="mt-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_12px_32px_rgb(15_23_42/0.06)] sm:p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-2xl font-bold text-slate-950 sm:text-3xl">
                 {lesson.title}
               </h1>
-              <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold capitalize text-amber-800">
-                {version?.status ?? lesson.status}
-              </span>
+              <Badge tone={(version?.status ?? lesson.status) === "draft" ? "draft" : "success"}>{version?.status ?? lesson.status}</Badge>
             </div>
             <p className="mt-2 text-sm text-slate-500">
               {version
@@ -289,24 +296,20 @@ function Studio({
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Link
-              to={`/admin/courses/${courseId}/units/${unitId}`}
-              className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700"
-            >
-              Back to lessons
-            </Link>
-            <button
+            <ButtonLink icon="arrow-left" variant="secondary" to={`/admin/courses/${courseId}/units/${unitId}`}>Back to lessons</ButtonLink>
+            <Button
               type="button"
               disabled
               title="Student preview is coming later"
-              className="rounded-xl bg-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-500"
+              variant="secondary"
             >
               Preview · Coming later
-            </button>
+            </Button>
           </div>
         </div>
       </header>
 
+      {!editable && version && <div className="mt-4"><Alert tone="info"><strong>Read-only studio.</strong> This lesson is sealed or your role does not include draft editing.</Alert></div>}
       {error && (
         <p role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">
           {error}
@@ -318,9 +321,7 @@ function Studio({
           <h2 className="font-semibold text-blue-950">
             Start authoring this lesson
           </h2>
-          <button
-            type="button"
-            disabled={busy}
+          <Button isLoading={busy} icon="sparkle"
             onClick={() =>
               void run(
                 () =>
@@ -331,20 +332,18 @@ function Studio({
                 (created) => setVersion(created)
               )
             }
-            className="mt-4 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white"
+            className="mt-4"
           >
             Create draft version
-          </button>
+          </Button>
         </div>
       ) : (
         <div className="mt-6 grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
-          <aside className="self-start rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:sticky lg:top-6">
-            <h2 className="font-semibold text-slate-950">
-              Activities
-            </h2>
+          <aside className="self-start rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:sticky lg:top-24">
+            <div className="flex items-center gap-2"><AdminIcon name="activity" className="h-5 w-5 text-blue-600" /><h2 className="font-semibold text-slate-950">Activities</h2></div>
             {editable && (
               <div className="mt-4 flex gap-2">
-                <select
+                <Select
                   value={newType}
                   disabled={busy}
                   onChange={(event) =>
@@ -352,14 +351,14 @@ function Studio({
                       event.target.value as ActivityType
                     )
                   }
-                  className="min-w-0 flex-1 rounded-lg border border-slate-300 px-2 py-2 text-sm"
+                  className="min-w-0 flex-1"
                 >
                   {activityTypes.map((type) => (
                     <option key={type} value={type}>
                       {activityTypeLabels[type]}
                     </option>
                   ))}
-                </select>
+                </Select>
                 <button
                   type="button"
                   disabled={busy || !version}
@@ -399,10 +398,10 @@ function Studio({
                   <li
                     key={activity.id}
                     className={[
-                      "rounded-xl border p-3",
+                      "rounded-xl border p-3 transition",
                       selectedId === activity.id
                         ? "border-blue-400 bg-blue-50"
-                        : "border-slate-200",
+                        : "border-slate-200 hover:border-slate-300 hover:bg-slate-50",
                     ].join(" ")}
                   >
                     <button
@@ -450,7 +449,8 @@ function Studio({
                               () =>
                                 duplicateActivity(
                                   activity.id,
-                                  version.id
+                                  version.id,
+                                  activity.type
                                 ),
                               (created) => {
                                 setActivities((current) => [
@@ -534,9 +534,7 @@ function Studio({
                 }}
               />
             ) : (
-              <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center text-slate-500">
-                Select or add an activity to begin.
-              </div>
+              <Card className="border-dashed p-12 text-center"><AdminIcon name="sparkle" className="mx-auto h-8 w-8 text-blue-500" /><p className="mt-3 text-sm text-slate-500">Select or add an activity to begin.</p></Card>
             )}
           </main>
         </div>

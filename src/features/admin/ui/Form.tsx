@@ -1,0 +1,8 @@
+import { forwardRef, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from "react";
+const control = "admin-focus w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-950 shadow-sm transition placeholder:text-slate-400 hover:border-slate-400 disabled:bg-slate-100 aria-invalid:border-red-400";
+export function FormField({ label, htmlFor, hint, error, required, children }: { label: string; htmlFor: string; hint?: string; error?: string; required?: boolean; children: ReactNode }) {
+  return <div><label className="text-sm font-semibold text-slate-800" htmlFor={htmlFor}>{label}{required && <span className="ml-1 text-red-600" aria-hidden="true">*</span>}</label><div className="mt-1.5">{children}</div>{error ? <p className="mt-1.5 text-sm text-red-700">{error}</p> : hint ? <p className="mt-1.5 text-xs text-slate-500">{hint}</p> : null}</div>;
+}
+export const TextInput = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(function TextInput({ className = "", ...props }, ref) { return <input ref={ref} className={`${control} ${className}`} {...props} />; });
+export const TextArea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<HTMLTextAreaElement>>(function TextArea({ className = "", ...props }, ref) { return <textarea ref={ref} className={`${control} min-h-28 resize-y ${className}`} {...props} />; });
+export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSelectElement>>(function Select({ className = "", ...props }, ref) { return <select ref={ref} className={`${control} ${className}`} {...props} />; });

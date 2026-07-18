@@ -18,6 +18,7 @@ import {
   type AdminCourse,
 } from "../courses/adminCourseService";
 import { useAdminPermissions } from "../permissions/useAdminPermissions";
+import { Alert, Badge, Button, ButtonLink, Card, EmptyState, LoadingSkeleton, PageHeader, StatusBadge } from "../ui";
 import {
   getAdminUnit,
   type AdminUnit,
@@ -287,100 +288,34 @@ function UnitLessonsContent({
 
   if (isLoading) {
     return (
-      <p
-        role="status"
-        className="py-16 text-center text-slate-500"
-      >
-        Loading unit hierarchy…
-      </p>
+      <div role="status" className="space-y-5 py-8">
+        <LoadingSkeleton className="h-10 w-64" />
+        <LoadingSkeleton className="h-28" />
+        <LoadingSkeleton className="h-28" />
+        <span className="sr-only">Loading unit hierarchy…</span>
+      </div>
     );
   }
 
   return (
     <section className="mx-auto max-w-7xl">
-      <nav
-        aria-label="Breadcrumb"
-        className="flex flex-wrap items-center gap-2 text-sm text-slate-500"
-      >
-        <Link
-          to="/admin/courses"
-          className="font-medium text-blue-700 hover:underline"
-        >
-          Courses
-        </Link>
-        <span aria-hidden="true">/</span>
-        <Link
-          to={`/admin/courses/${courseId}`}
-          className="font-medium text-blue-700 hover:underline"
-        >
-          {course?.title ?? "Course"}
-        </Link>
-        <span aria-hidden="true">/</span>
-        <span>{unit?.title ?? "Unit"}</span>
-      </nav>
-
-      <div className="mt-6 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-widest text-blue-600">
-            Course → Units → Lessons
-          </p>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">
-            {unit?.title ?? "Unit"}
-          </h1>
-          <p className="mt-3 max-w-2xl text-slate-600">
-            {unit?.description ||
-              "Manage the lessons in this unit."}
-          </p>
-        </div>
-
-        {canEditDrafts &&
-        course?.status === "draft" &&
-        unit?.status === "draft" ? (
-          <button
-            type="button"
-            onClick={() =>
-              setFormState({ mode: "create" })
-            }
-            className="rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white shadow-sm transition hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
-          >
-            Create lesson
-          </button>
-        ) : (
-          <p className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-600">
-            {course?.status === "draft" &&
-            unit?.status === "draft"
-              ? "View-only lesson access"
-              : "Parent hierarchy is sealed; lessons are read only"}
-          </p>
-        )}
-      </div>
+      <PageHeader
+        eyebrow="Unit lessons"
+        title={unit?.title ?? "Unit"}
+        description={unit?.description || "Manage the ordered lessons and open the authoring studio."}
+        breadcrumbs={[{ label: "Courses", to: "/admin/courses" }, { label: course?.title ?? "Course", to: `/admin/courses/${courseId}` }, { label: unit?.title ?? "Unit" }]}
+        meta={unit ? <StatusBadge status={unit.status} /> : undefined}
+        actions={canEditDrafts && course?.status === "draft" && unit?.status === "draft" ? <Button icon="plus" onClick={() => setFormState({ mode: "create" })}>Create lesson</Button> : undefined}
+      />
+      {(!canEditDrafts || course?.status !== "draft" || unit?.status !== "draft") && <div className="mt-5"><Alert>{course?.status === "draft" && unit?.status === "draft" ? "Your role has view-only access to draft lessons." : "This hierarchy is sealed. Its lessons are read only."}</Alert></div>}
 
       {errorMessage && (
-        <div
-          role="alert"
-          className="mt-6 flex flex-col gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 sm:flex-row sm:items-center sm:justify-between"
-        >
-          <span>{errorMessage}</span>
-          <button
-            type="button"
-            onClick={() => void loadHierarchy()}
-            className="font-semibold underline underline-offset-4"
-          >
-            Try again
-          </button>
-        </div>
+        <div className="mt-6"><Alert tone="error" action={<Button variant="secondary" onClick={() => void loadHierarchy()}>Try again</Button>}>{errorMessage}</Alert></div>
       )}
 
-      <div className="mt-8 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <Card className="mt-8 overflow-hidden">
         {lessons.length === 0 ? (
-          <div className="px-6 py-16 text-center">
-            <p className="text-lg font-semibold text-slate-900">
-              No lessons yet
-            </p>
-            <p className="mt-2 text-sm text-slate-500">
-              Add the first draft lesson to this unit.
-            </p>
-          </div>
+          <EmptyState title="No lessons yet" description="Add the first draft lesson to begin authoring this unit." action={canEditDrafts && course?.status === "draft" && unit?.status === "draft" ? <Button icon="plus" onClick={() => setFormState({ mode: "create" })}>Create lesson</Button> : undefined} />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-3xl text-left">
@@ -421,25 +356,11 @@ function UnitLessonsContent({
                         {lesson.position}
                       </td>
                       <td className="px-4 py-5">
-                        <span
-                          className={[
-                            "rounded-full px-2.5 py-1 text-xs font-semibold capitalize",
-                            isDraft
-                              ? "bg-amber-100 text-amber-800"
-                              : "bg-emerald-100 text-emerald-800",
-                          ].join(" ")}
-                        >
-                          {lesson.status}
-                        </span>
+                        <Badge tone={isDraft ? "draft" : "success"}>{lesson.status}</Badge>
                       </td>
                       <td className="px-6 py-5">
                         <div className="flex justify-end gap-2">
-                          <Link
-                            to={`/admin/courses/${courseId}/units/${unitId}/lessons/${lesson.id}/studio`}
-                            className="rounded-lg border border-blue-200 px-3 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-50"
-                          >
-                            Studio
-                          </Link>
+                          <ButtonLink icon="sparkle" to={`/admin/courses/${courseId}/units/${unitId}/lessons/${lesson.id}/studio`}>Open Studio</ButtonLink>
                         {isDraft &&
                         canEditDrafts &&
                         course?.status === "draft" &&
@@ -490,7 +411,7 @@ function UnitLessonsContent({
             </table>
           </div>
         )}
-      </div>
+      </Card>
 
       {formState.mode !== "closed" && (
         <HierarchyItemForm

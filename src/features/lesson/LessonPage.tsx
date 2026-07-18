@@ -69,8 +69,13 @@ function LessonPage() {
   }
 
   return (
-    <MainLayout>
-      <LessonPlayer lesson={lesson} />
+    <MainLayout immersive>
+      <LessonPlayer
+        key={lesson.id}
+        lesson={lesson}
+        returnPath={`/units/${unit.id}`}
+        contextLabel={unit.title}
+      />
     </MainLayout>
   );
 }

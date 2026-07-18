@@ -1,4 +1,5 @@
 import type { LessonData } from "../../types/LessonData";
+import { defaultAiSpeakingMission } from "../../../features/ai-missions";
 
 const silentAudioFallback =
   "data:audio/wav;base64,UklGRjQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YRAAAACAgICAgICAgICAgICAgICA";
@@ -34,6 +35,11 @@ export const lesson3: LessonData = {
     },
     {
       id: 5,
+      title: "AI Speaking Mission",
+      type: "ai_speaking_mission",
+    },
+    {
+      id: 6,
       title: "Lesson Review",
       type: "quiz",
     },
@@ -245,6 +251,8 @@ export const lesson3: LessonData = {
       ],
     },
   ],
+
+  aiMissions: [defaultAiSpeakingMission],
 
   quiz: [
     {

@@ -1,5 +1,37 @@
 @import "tailwindcss";
 
+:root {
+  --pl-primary: #2563eb;
+  --pl-primary-dark: #1d4ed8;
+  --pl-navy: #0f172a;
+  --pl-page: #f4f7fb;
+  --pl-surface: #ffffff;
+  --pl-text: #0f172a;
+  --pl-text-muted: #64748b;
+  --pl-border: #dbe3ee;
+  --pl-success: #059669;
+  --pl-warning: #d97706;
+  --pl-danger: #dc2626;
+  --pl-info: #0284c7;
+  --pl-radius: 1rem;
+  --pl-shadow: 0 14px 36px rgb(15 23 42 / 0.08);
+  --pl-transition: 160ms ease;
+}
+
+html,
+body {
+  background: var(--pl-page);
+}
+
+body {
+  color: var(--pl-text);
+}
+
+::selection {
+  color: white;
+  background: var(--pl-primary);
+}
+
 @utility field {
   margin-top: 0.5rem;
   width: 100%;
@@ -7,4 +39,11 @@
   border: 1px solid var(--color-slate-300);
   padding: 0.625rem 0.75rem;
   outline: none;
+}
+
+@utility admin-focus {
+  outline: none;
+  &:focus-visible {
+    box-shadow: 0 0 0 3px rgb(37 99 235 / 0.25);
+  }
 }

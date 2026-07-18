@@ -123,10 +123,22 @@ export function useUserProgress() {
     []
   );
 
+  const resetLessonProgress = useCallback((lessonId: number) => {
+    const latest = loadUserProgress();
+    const updated = {
+      lessonsStarted: latest.lessonsStarted.filter((id) => id !== lessonId),
+      lessonsCompleted: latest.lessonsCompleted.filter((id) => id !== lessonId),
+      activitiesCompleted: latest.activitiesCompleted.filter((item) => item.lessonId !== lessonId),
+    };
+    saveUserProgress(updated);
+    setProgress(updated);
+  }, []);
+
   return {
     progress,
     startLesson,
     completeLesson,
     completeActivity,
+    resetLessonProgress,
   };
 }

@@ -18,6 +18,7 @@ import {
   type AdminCourse,
 } from "../courses/adminCourseService";
 import { useAdminPermissions } from "../permissions/useAdminPermissions";
+import { Alert, Badge, Button, ButtonLink, Card, EmptyState, LoadingSkeleton, PageHeader, StatusBadge } from "../ui";
 import {
   createAdminUnit,
   deleteDraftUnit,
@@ -245,100 +246,43 @@ function CourseUnitsContent({
 
   if (isLoading) {
     return (
-      <p
-        role="status"
-        className="py-16 text-center text-slate-500"
-      >
-        Loading course hierarchy…
-      </p>
+      <div role="status" className="space-y-5 py-8">
+        <LoadingSkeleton className="h-10 w-64" />
+        <LoadingSkeleton className="h-28" />
+        <LoadingSkeleton className="h-28" />
+        <span className="sr-only">Loading course hierarchy…</span>
+      </div>
     );
   }
 
   return (
     <section className="mx-auto max-w-7xl">
-      <nav
-        aria-label="Breadcrumb"
-        className="flex flex-wrap items-center gap-2 text-sm text-slate-500"
-      >
-        <Link
-          to="/admin/courses"
-          className="font-medium text-blue-700 hover:underline"
-        >
-          Courses
-        </Link>
-        <span aria-hidden="true">/</span>
-        <span>{course?.title ?? "Course"}</span>
-      </nav>
-
-      <div className="mt-6 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-widest text-blue-600">
-            Course → Units
-          </p>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">
-            {course?.emoji} {course?.title ?? "Course"}
-          </h1>
-          <p className="mt-3 max-w-2xl text-slate-600">
-            {course?.description ||
-              "Manage the units in this course."}
-          </p>
-        </div>
-
-        {canEditDrafts &&
-        course?.status === "draft" ? (
-          <button
-            type="button"
-            onClick={() =>
-              setFormState({ mode: "create" })
-            }
-            className="rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white shadow-sm transition hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
-          >
-            Create unit
-          </button>
-        ) : (
-          <p className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-600">
-            {course?.status === "draft"
-              ? "View-only unit access"
-              : "Course is sealed; units are read only"}
-          </p>
-        )}
-      </div>
+      <PageHeader
+        eyebrow="Course curriculum"
+        title={`${course?.emoji || "📘"} ${course?.title ?? "Course"}`}
+        description={course?.description || "Manage the ordered units in this course."}
+        breadcrumbs={[{ label: "Courses", to: "/admin/courses" }, { label: course?.title ?? "Course" }]}
+        meta={course ? <StatusBadge status={course.status} /> : undefined}
+        actions={canEditDrafts && course?.status === "draft" ? <Button icon="plus" onClick={() => setFormState({ mode: "create" })}>Create unit</Button> : undefined}
+      />
+      {(!canEditDrafts || course?.status !== "draft") && <div className="mt-5"><Alert>{course?.status === "draft" ? "Your role has view-only access to draft units." : "This course is sealed. Its unit curriculum is read only."}</Alert></div>}
 
       {errorMessage && (
-        <div
-          role="alert"
-          className="mt-6 flex flex-col gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 sm:flex-row sm:items-center sm:justify-between"
-        >
-          <span>{errorMessage}</span>
-          <button
-            type="button"
-            onClick={() => void loadHierarchy()}
-            className="font-semibold underline underline-offset-4"
-          >
-            Try again
-          </button>
-        </div>
+        <div className="mt-6"><Alert tone="error" action={<Button variant="secondary" onClick={() => void loadHierarchy()}>Try again</Button>}>{errorMessage}</Alert></div>
       )}
 
       <div className="mt-8 grid gap-4">
         {units.length === 0 ? (
-          <div className="rounded-2xl border border-slate-200 bg-white px-6 py-16 text-center shadow-sm">
-            <p className="text-lg font-semibold text-slate-900">
-              No units yet
-            </p>
-            <p className="mt-2 text-sm text-slate-500">
-              Add the first draft unit to this course.
-            </p>
-          </div>
+          <EmptyState title="No units yet" description="Add the first draft unit to begin shaping this curriculum." action={canEditDrafts && course?.status === "draft" ? <Button icon="plus" onClick={() => setFormState({ mode: "create" })}>Create unit</Button> : undefined} />
         ) : (
           units.map((unit) => {
             const isDraft =
               unit.status === "draft";
 
             return (
-              <article
+              <Card
                 key={unit.id}
-                className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
+                className="p-5 transition hover:border-blue-200 sm:p-6"
               >
                 <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
                   <div>
@@ -349,16 +293,7 @@ function CourseUnitsContent({
                       <h2 className="text-xl font-bold text-slate-950">
                         {unit.title}
                       </h2>
-                      <span
-                        className={[
-                          "rounded-full px-2.5 py-1 text-xs font-semibold capitalize",
-                          isDraft
-                            ? "bg-amber-100 text-amber-800"
-                            : "bg-emerald-100 text-emerald-800",
-                        ].join(" ")}
-                      >
-                        {unit.status}
-                      </span>
+                      <Badge tone={isDraft ? "draft" : "success"}>{unit.status}</Badge>
                     </div>
                     {unit.description && (
                       <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
@@ -368,12 +303,9 @@ function CourseUnitsContent({
                   </div>
 
                   <div className="flex flex-wrap gap-2">
-                    <Link
-                      to={`/admin/courses/${courseId}/units/${unit.id}`}
-                      className="rounded-lg border border-blue-200 px-3 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
-                    >
+                    <ButtonLink to={`/admin/courses/${courseId}/units/${unit.id}`}>
                       Manage lessons
-                    </Link>
+                    </ButtonLink>
                     {isDraft &&
                       canEditDrafts &&
                       course?.status === "draft" && (
@@ -408,7 +340,7 @@ function CourseUnitsContent({
                       )}
                   </div>
                 </div>
-              </article>
+              </Card>
             );
           })
         )}

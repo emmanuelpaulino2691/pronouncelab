@@ -4,6 +4,7 @@ import type { ListeningData } from "./ListeningData";
 import type { PronunciationData } from "./PronunciationData";
 import type { PracticeData } from "./PracticeData";
 import type { QuizData } from "./QuizData";
+import type { AiSpeakingMissionData } from "../../features/ai-missions";
 
 export type LessonData = {
   id: number;
@@ -21,4 +22,6 @@ export type LessonData = {
   practice?: PracticeData[];
 
   quiz?: QuizData[];
+
+  aiMissions?: AiSpeakingMissionData[];
 };

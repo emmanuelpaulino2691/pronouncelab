@@ -4,6 +4,7 @@ export const activityTypes = [
   "pronunciation",
   "practice",
   "quiz",
+  "ai_speaking_mission",
 ] as const;
 
 export type ActivityType =
@@ -18,6 +19,7 @@ export const activityTypeLabels: Record<
   pronunciation: "Pronunciation",
   practice: "Practice",
   quiz: "Quiz",
+  ai_speaking_mission: "AI Speaking Mission",
 };
 
 export type LessonVersionStatus =

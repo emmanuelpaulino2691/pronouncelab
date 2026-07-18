@@ -1,9 +1,14 @@
+import { lazy, Suspense } from "react";
 import ActivityMetadataEditor from "../components/ActivityMetadataEditor";
 import type { LessonActivity } from "../types";
 import ListeningEditor from "./ListeningEditor";
 import PronunciationEditor from "./PronunciationEditor";
 import QuizEditor from "./QuizEditor";
 import TheoryEditor from "./TheoryEditor";
+
+const AiSpeakingMissionEditor = lazy(
+  () => import("./AiSpeakingMissionEditor")
+);
 
 type Props = {
   activity: LessonActivity;
@@ -64,6 +69,15 @@ export default function ActivityEditor({
           activityId={activity.id}
           editable={editable}
         />
+      )}
+      {activity.type === "ai_speaking_mission" && (
+        <Suspense fallback={<section className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-600">Loading AI mission editor…</section>}>
+          <AiSpeakingMissionEditor
+            key={activity.id}
+            activityId={activity.id}
+            editable={editable}
+          />
+        </Suspense>
       )}
     </div>
   );
