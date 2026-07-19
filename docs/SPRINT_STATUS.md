@@ -21,8 +21,9 @@
 
 Status: Blueprint and ADR 0006 are complete. Phase 1 learner contracts,
 mapping foundations, asynchronous provider interface, and static provider
-compatibility are implemented locally. Migration 010 and Supabase delivery
-implementation have not started. Migration 009 remains applied only to the
+compatibility are complete. Phase 2A learner delivery infrastructure is
+implemented locally but remains inactive. Migration 010 and real published
+RPC delivery have not started. Migration 009 remains applied only to the
 disposable local Supabase database; remote review and application remain
 pending.
 
@@ -90,10 +91,25 @@ Sprint 35 Phase 1 delivers locally:
 - readonly learner collections and defensively copied static-provider results;
 - focused mapper, validation, and static-provider contract tests.
 
+Sprint 35 Phase 2A delivers locally:
+
+- learner-specific Supabase gateway and learner API service interfaces;
+- one SDK-backed gateway that isolates the existing Supabase client and
+  ungenerated future RPC call boundary;
+- typed answer-safe catalog and lesson RPC projection contracts;
+- focused runtime envelope, identifier, discriminant, ordering, and prohibited
+  answer-field validation;
+- normalized unavailable, not-found, invalid-response, aborted, unauthorized,
+  forbidden, and unexpected infrastructure errors;
+- end-to-end `AbortSignal` propagation through the SDK request builder;
+- dependency-injected gateway and service tests without global SDK mocking;
+- inactive infrastructure composition while the static provider remains the
+  sole active learner content provider.
+
 ## Work in progress
 
-- Review Sprint 35 Phase 1 implementation and validation.
-- Prepare Phase 2 learner delivery RPC migration work after authorization.
+- Review Sprint 35 Phase 2A implementation and validation.
+- Prepare the learner delivery RPC migration after authorization.
 
 ## Pending work
 
