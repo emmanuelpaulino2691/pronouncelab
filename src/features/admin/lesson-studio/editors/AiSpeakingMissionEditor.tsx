@@ -1,32 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import AiSpeakingMissionCard from "../../../ai-missions/AiSpeakingMissionCard";
-import { cefrLevels, copyPlainText, generateAiMissionPrompt, type AiSpeakingMissionData } from "../../../ai-missions";
+import { cefrLevels, copyPlainText, generateAiMissionPrompt, validateAiSpeakingMission, type AiSpeakingMissionData } from "../../../ai-missions";
 import { Alert, Button, Card, FormField, Select, TextArea, TextInput } from "../../ui";
 import {
   AiMissionConflictError,
   getAiMission,
   saveAiMission,
 } from "../services/aiMissionService";
-
-function validate(data: AiSpeakingMissionData) {
-  if (!data.missionTitle.trim() || !data.goal.trim()) return "Mission title and goal are required.";
-  if (data.missionTitle.length > 200 || data.goal.length > 2000) return "Mission title or goal is too long.";
-  if (data.missionLabel.length > 100 || data.difficultyLabel.length > 100) return "Mission label or difficulty is too long.";
-  if (!data.primarySoundLabel.trim() || !data.primarySoundIpa.trim()) return "The primary sound name and IPA are required.";
-  if ([data.primarySoundLabel, data.primarySoundIpa, data.secondarySoundLabel, data.secondarySoundIpa].some((value) => value.length > 200)) return "Sound names and IPA must use 200 characters or fewer.";
-  if (!data.primaryWords.length) return "Add at least one primary practice word.";
-  if (data.primaryWords.length > 50 || data.secondaryWords.length > 50) return "Use no more than 50 words in each sound group.";
-  if (data.secondaryWords.length && (!data.secondarySoundLabel.trim() || !data.secondarySoundIpa.trim())) return "Add the secondary sound name and IPA when using secondary words.";
-  if (!data.sentences.length || !data.readingText.trim()) return "Add at least one sentence and a short reading.";
-  if (data.sentences.length > 20 || data.readingText.length > 3000) return "Use no more than 20 sentences and 3,000 reading characters.";
-  if (!data.supportedTools.length) return "Select at least one supported AI platform.";
-  if (!data.promptLanguage.trim() || !data.feedbackLanguage.trim() || data.promptLanguage.length > 100 || data.feedbackLanguage.length > 100) return "Instruction and feedback languages are required and must use 100 characters or fewer.";
-  if (data.teacherInstructions.length > 5000 || data.studentInstructions.length > 5000) return "Teacher and student instructions must use 5,000 characters or fewer.";
-  if (data.resultFormatVersion !== 1) return "Only mission Format Version 1 is supported.";
-  if (data.estimatedMinutes < 1 || data.estimatedMinutes > 60) return "Estimated duration must be between 1 and 60 minutes.";
-  return null;
-}
 
 function normalizeMission(data: AiSpeakingMissionData): AiSpeakingMissionData {
   const clean = (items: string[]) => items.map((item) => item.trim()).filter(Boolean);
@@ -43,8 +24,8 @@ function normalizeMission(data: AiSpeakingMissionData): AiSpeakingMissionData {
     secondaryWords: clean(data.secondaryWords),
     sentences: clean(data.sentences),
     readingText: data.readingText.trim(),
-    promptLanguage: data.promptLanguage.trim() || "English",
-    feedbackLanguage: data.feedbackLanguage.trim() || "English",
+    promptLanguage: data.promptLanguage.trim(),
+    feedbackLanguage: data.feedbackLanguage.trim(),
     difficultyLabel: data.difficultyLabel.trim(),
     teacherInstructions: data.teacherInstructions.trim(),
     studentInstructions: data.studentInstructions.trim(),
@@ -82,8 +63,12 @@ export default function AiSpeakingMissionEditor({ activityId, editable }: { acti
   async function save() {
     if (!data || !missionId || !updatedAt || busy) return;
     const normalized = normalizeMission(data);
-    const error = validate(normalized);
-    if (error) { setMessage(error); return; }
+    const validation =
+      validateAiSpeakingMission(normalized);
+    if (!validation.ok) {
+      setMessage(validation.error);
+      return;
+    }
     const id = ++request.current;
     setBusy(true); setMessage("");
     try {

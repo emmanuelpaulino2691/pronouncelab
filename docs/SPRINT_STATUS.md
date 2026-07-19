@@ -19,10 +19,12 @@
 
 **Sprint 35 — Published Supabase Content Delivery Foundation.**
 
-Status: definitive architecture Blueprint and ADR 0006 are complete.
-Production implementation and migration 010 have not started. Migration 009
-remains applied only to the disposable local Supabase database; remote review
-and application remain pending.
+Status: Blueprint and ADR 0006 are complete. Phase 1 learner contracts,
+mapping foundations, asynchronous provider interface, and static provider
+compatibility are implemented locally. Migration 010 and Supabase delivery
+implementation have not started. Migration 009 remains applied only to the
+disposable local Supabase database; remote review and application remain
+pending.
 
 ## Sprint objective
 
@@ -68,17 +70,37 @@ Sprint 34 delivers:
 - successful application validation: production build, lint, 18 Vitest tests,
   and `git diff --check`.
 
+Sprint 35 Phase 1 delivers locally:
+
+- branded opaque string learner identifiers;
+- serializable learner course, unit, lesson, metadata, activity, media, and
+  answer-safe question DTOs;
+- typed provider results with not-found, unavailable, invalid-data, aborted,
+  and unexpected categories;
+- an asynchronous `LearnerContentProvider` contract with `AbortSignal`;
+- a pure static-fixture mapper and asynchronous static provider adapter;
+- explicit local provider composition without runtime fallback;
+- deterministic hierarchy and activity ordering;
+- metadata-only practice DTOs;
+- quiz DTOs that omit correctness and explanations while legacy renderers
+  continue using their unchanged compatibility types;
+- validated activity-scoped AI Speaking Mission mapping, including Lesson 3;
+- one canonical AI mission validator shared by authoring and learner mapping;
+- duplicate hierarchy-reference rejection with typed invalid-data results;
+- readonly learner collections and defensively copied static-provider results;
+- focused mapper, validation, and static-provider contract tests.
+
 ## Work in progress
 
-- Review and approve the Sprint 35 Blueprint implementation defaults.
-- Prepare independently testable DTO, RPC, provider, route, and progress phases.
+- Review Sprint 35 Phase 1 implementation and validation.
+- Prepare Phase 2 learner delivery RPC migration work after authorization.
 
 ## Pending work
 
 - Apply migration 009 only after explicit authorization.
-- Implement the approved Sprint 35 DTO and mapping contracts.
 - Create and locally validate forward-only migration 010.
-- Implement the Supabase learner provider and asynchronous learner routes.
+- Implement the Supabase learner provider after the RPC contract exists.
+- Convert learner routes to asynchronous loading in a later Sprint 35 phase.
 - Implement non-destructive local progress compatibility.
 - Add browser-level and disposable-database integration coverage.
 - Implement learner identity and synchronized progress only in a future,

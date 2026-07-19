@@ -1069,16 +1069,21 @@ metadata-only practice.
 
 **Dependencies:** None.
 
-### Phase 1 — DTOs and mapping
+### Phase 1 — Learner contracts and static provider foundation
 
-**Goal:** Implement versioned contracts, guards, and pure mappers.
+**Goal:** Implement versioned learner contracts, typed provider errors, the
+asynchronous provider interface, pure static-fixture mappers, and the static
+provider adapter without changing current route behavior.
 
-**Files:** `shared/content/contracts/*`, `shared/content/mappers/*`, adjacent
-tests.
+**Files:** `shared/content/contracts/*`, `shared/content/errors/*`,
+`shared/content/mappers/*`, the provider interface and static provider,
+explicit content composition, and adjacent tests.
 
 **Validation:** `npm.cmd test`, build, lint, diff check.
 
-**Exit criteria:** Every subtype and invalid-payload case is covered.
+**Exit criteria:** Every subtype and invalid-payload case is covered; static
+provider contract behavior is tested; learner quiz DTOs contain no answer
+keys; existing synchronous routes and Lesson Player remain unchanged.
 
 **Dependencies:** Phase 0.
 
@@ -1096,18 +1101,19 @@ answer-free.
 
 **Dependencies:** Migration 009 reviewed; Phase 1 contract frozen.
 
-### Phase 3 — Provider foundation
+### Phase 3 — Supabase provider foundation
 
-**Goal:** Formalize the interface, adapt local content, and add Supabase
-transport/mapping/cache behavior.
+**Goal:** Implement Supabase transport and published-RPC response mapping
+behind the Phase 1 provider interface. Caching remains in its later hardening
+phase.
 
-**Files:** provider interface, both providers, learner content service, provider
-tests.
+**Files:** Supabase provider, published RPC guards/mappers, learner content
+service composition, and provider tests.
 
 **Validation:** Provider contract tests, build, lint, diff check.
 
-**Exit criteria:** Both providers satisfy identical navigation and lesson
-semantics; no silent fallback.
+**Exit criteria:** Static and Supabase providers satisfy identical navigation
+and lesson semantics; provider cutover is explicit; no silent fallback.
 
 **Dependencies:** Phases 1–2.
 
