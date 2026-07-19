@@ -70,6 +70,22 @@ The current milestone remains **foundation hardening and convergence**:
 
 This milestone should precede analytics or commercial features because those systems need reliable content identity and learner identity.
 
+### Sprint 35 — Published Supabase Content Delivery Foundation
+
+**Status:** Blueprint complete; implementation not started.
+
+**Goal:** Establish learner-safe published catalog and current-version lesson
+delivery through versioned RPC projections, typed DTOs, an asynchronous
+Supabase content provider, explicit route states, and non-destructive local
+progress compatibility.
+
+**Boundary:** Sprint 35 does not implement server-side quiz scoring, learner
+authentication, synchronized progress, analytics, enrollment, payments, media
+management, or AI history.
+
+**Specification:** See [Sprint 35 Blueprint](SPRINT_35_BLUEPRINT.md) and
+[ADR 0006](ADR/0006-published-supabase-content-delivery.md).
+
 ## Future milestones
 
 ### Published content delivery

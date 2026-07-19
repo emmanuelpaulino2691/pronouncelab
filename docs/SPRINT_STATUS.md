@@ -17,25 +17,27 @@
 
 ## Current sprint
 
-**Sprint 34 — AI Speaking Mission Hardening.**
+**Sprint 35 — Published Supabase Content Delivery Foundation.**
 
-Status: implementation, application validation, and disposable local-database
-validation are complete. Migration 009 is applied only to the disposable local
-Supabase database; remote review and application remain pending.
+Status: definitive architecture Blueprint and ADR 0006 are complete.
+Production implementation and migration 010 have not started. Migration 009
+remains applied only to the disposable local Supabase database; remote review
+and application remain pending.
 
 ## Sprint objective
 
-Strengthen the existing Sprint 32 AI Speaking Mission system by fixing activity
-association, configuration integrity, optimistic concurrency, publication
-validation, parser ambiguity, and focused automated coverage without adding a
-native AI integration.
+Establish the architecture for learner-safe published catalog and current
+lesson-version delivery through narrow RPC projections, stable DTOs, an
+asynchronous provider boundary, explicit route states, and non-destructive
+local progress compatibility.
 
 ## Last completed sprint
 
-**Sprint 33 — Student Experience.**
+**Sprint 34 — AI Speaking Mission Hardening.**
 
-Sprint 33 remains implemented for static learner lessons with guided
-activity-by-activity navigation and device-local progress.
+Sprint 34 implementation, application validation, and disposable
+local-database validation are complete. Migration 009 remains unapplied
+remotely.
 
 ## Completed work
 
@@ -68,14 +70,16 @@ Sprint 34 delivers:
 
 ## Work in progress
 
-- Manually verify the Lesson Studio conflict experience with two authenticated
-  editor sessions.
-- Review the migration before any authorized remote application.
+- Review and approve the Sprint 35 Blueprint implementation defaults.
+- Prepare independently testable DTO, RPC, provider, route, and progress phases.
 
 ## Pending work
 
 - Apply migration 009 only after explicit authorization.
-- Design safe published Supabase learner DTOs and provider convergence.
+- Implement the approved Sprint 35 DTO and mapping contracts.
+- Create and locally validate forward-only migration 010.
+- Implement the Supabase learner provider and asynchronous learner routes.
+- Implement non-destructive local progress compatibility.
 - Add browser-level and disposable-database integration coverage.
 - Implement learner identity and synchronized progress only in a future,
   separately designed milestone.
@@ -89,8 +93,10 @@ Sprint 34 delivers:
 
 ## Next planned sprint
 
-No next numbered sprint is assigned. The next roadmap milestone is published
-content delivery design through the existing content-provider abstraction.
+Sprint 35 implementation follows the approved
+[Sprint 35 Blueprint](SPRINT_35_BLUEPRINT.md). Sprint 36 is expected to own
+server-side quiz evaluation and scoring; it is not implemented or fully
+specified yet.
 
 ## Areas that must not be modified
 
