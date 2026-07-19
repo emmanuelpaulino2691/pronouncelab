@@ -71,10 +71,11 @@ Required:
 ```powershell
 npm.cmd run build
 npm.cmd run lint
+npm.cmd test
 git diff --check
 ```
 
-Run available relevant tests. The repository currently has no automated test command, which is a known gap.
+`npm.cmd test` runs focused Vitest utility tests. Browser and database integration coverage remain future work.
 
 Database changes should also receive dry-run/ledger checks and, ideally, full execution against a disposable local Supabase database. Never equate dry-run output with SQL execution.
 

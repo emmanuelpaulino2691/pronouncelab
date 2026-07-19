@@ -26,6 +26,11 @@ export type AiSpeakingMissionData = {
   studentInstructions: string;
 };
 
+export type AiSpeakingMission =
+  AiSpeakingMissionData & {
+    activityId: number;
+  };
+
 export type ParsedAiMissionResult = {
   formatVersion: number | null;
   mission: string;

@@ -96,7 +96,7 @@ Feature folders own page-specific services and components. Shared folders contai
 
 `localContentProvider` implements the content provider interface using `courseRegistry` and static lesson arrays. Shared services resolve course, unit, lesson summaries, playable lesson data, and local progress. This abstraction is the intended future seam for a Supabase learner provider.
 
-`LessonData` contains an ordered `activities` array and subtype collections. `ActivityRenderer` resolves the activity component through `activityRegistry`.
+`LessonData` contains an ordered `activities` array and subtype collections. `ActivityRenderer` resolves the activity component through `activityRegistry` and passes the current activity alongside the lesson. AI missions carry their owning `activityId`, so a renderer selects the mission for the current activity rather than relying on array order.
 
 ```mermaid
 sequenceDiagram
@@ -168,14 +168,14 @@ The learner side retains older shared components plus the newer lesson shell sty
 - Add server progress through a secure account/enrollment/attempt model while retaining the Lesson Player state interface.
 - Persist AI mission results using the existing future journal type after identity and RLS are designed.
 - Generate Supabase TypeScript types to reduce handwritten mappings.
+- Extend the focused Vitest suite for pure domain utilities; browser and database contract testing remain separate future layers.
 
 ## Known architecture gaps
 
 These are current facts, not proposals:
 
 - Admin-authored content does not feed learner routes.
-- Automated tests are not configured.
+- Focused Vitest utility tests are configured, but browser and database integration tests are not.
 - Learner progress is device-local and not user-namespaced.
-- Multiple AI mission activities are not safely associated in the learner shape: the renderer currently selects the first mission entry.
 - The repository contains both `activityRegistry.ts` and `activityRegistry.tsx`; the TSX module is the active registry import path and the duplication should be resolved carefully.
-- Migration 008’s AI configuration contract and concurrency have known hardening opportunities; see [AI Speaking Mission](AI_SPEAKING_MISSION.md#known-limitations).
+- Migration 009 hardens AI configuration, creation, concurrency, and publication locally; it must be reviewed and applied before the linked database has those guarantees.

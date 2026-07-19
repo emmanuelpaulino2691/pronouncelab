@@ -3,14 +3,27 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import AiSpeakingMissionCard from "../../../ai-missions/AiSpeakingMissionCard";
 import { cefrLevels, copyPlainText, generateAiMissionPrompt, type AiSpeakingMissionData } from "../../../ai-missions";
 import { Alert, Button, Card, FormField, Select, TextArea, TextInput } from "../../ui";
-import { getAiMission, saveAiMission } from "../services/aiMissionService";
+import {
+  AiMissionConflictError,
+  getAiMission,
+  saveAiMission,
+} from "../services/aiMissionService";
 
 function validate(data: AiSpeakingMissionData) {
   if (!data.missionTitle.trim() || !data.goal.trim()) return "Mission title and goal are required.";
+  if (data.missionTitle.length > 200 || data.goal.length > 2000) return "Mission title or goal is too long.";
+  if (data.missionLabel.length > 100 || data.difficultyLabel.length > 100) return "Mission label or difficulty is too long.";
   if (!data.primarySoundLabel.trim() || !data.primarySoundIpa.trim()) return "The primary sound name and IPA are required.";
+  if ([data.primarySoundLabel, data.primarySoundIpa, data.secondarySoundLabel, data.secondarySoundIpa].some((value) => value.length > 200)) return "Sound names and IPA must use 200 characters or fewer.";
   if (!data.primaryWords.length) return "Add at least one primary practice word.";
+  if (data.primaryWords.length > 50 || data.secondaryWords.length > 50) return "Use no more than 50 words in each sound group.";
+  if (data.secondaryWords.length && (!data.secondarySoundLabel.trim() || !data.secondarySoundIpa.trim())) return "Add the secondary sound name and IPA when using secondary words.";
   if (!data.sentences.length || !data.readingText.trim()) return "Add at least one sentence and a short reading.";
+  if (data.sentences.length > 20 || data.readingText.length > 3000) return "Use no more than 20 sentences and 3,000 reading characters.";
   if (!data.supportedTools.length) return "Select at least one supported AI platform.";
+  if (!data.promptLanguage.trim() || !data.feedbackLanguage.trim() || data.promptLanguage.length > 100 || data.feedbackLanguage.length > 100) return "Instruction and feedback languages are required and must use 100 characters or fewer.";
+  if (data.teacherInstructions.length > 5000 || data.studentInstructions.length > 5000) return "Teacher and student instructions must use 5,000 characters or fewer.";
+  if (data.resultFormatVersion !== 1) return "Only mission Format Version 1 is supported.";
   if (data.estimatedMinutes < 1 || data.estimatedMinutes > 60) return "Estimated duration must be between 1 and 60 minutes.";
   return null;
 }
@@ -42,6 +55,7 @@ export default function AiSpeakingMissionEditor({ activityId, editable }: { acti
   const active = useRef(true);
   const request = useRef(0);
   const [missionId, setMissionId] = useState<number | null>(null);
+  const [updatedAt, setUpdatedAt] = useState("");
   const [data, setData] = useState<AiSpeakingMissionData | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
@@ -52,7 +66,11 @@ export default function AiSpeakingMissionEditor({ activityId, editable }: { acti
     active.current = true;
     const id = ++request.current;
     void getAiMission(activityId).then((row) => {
-      if (active.current && request.current === id) { setMissionId(row.id); setData(row.config); }
+      if (active.current && request.current === id) {
+        setMissionId(row.id);
+        setUpdatedAt(row.updated_at);
+        setData(row.config);
+      }
     }).catch(() => { if (active.current && request.current === id) setMessage("Unable to load the AI mission."); });
     return () => { active.current = false; request.current += 1; };
   }, [activityId]);
@@ -62,17 +80,59 @@ export default function AiSpeakingMissionEditor({ activityId, editable }: { acti
   }
 
   async function save() {
-    if (!data || !missionId || busy) return;
+    if (!data || !missionId || !updatedAt || busy) return;
     const normalized = normalizeMission(data);
     const error = validate(normalized);
     if (error) { setMessage(error); return; }
     const id = ++request.current;
     setBusy(true); setMessage("");
     try {
-      const saved = await saveAiMission(missionId, activityId, normalized);
-      if (active.current && request.current === id) { setData(saved.config); setMessage("AI speaking mission saved."); }
+      const saved = await saveAiMission(
+        missionId,
+        activityId,
+        updatedAt,
+        normalized
+      );
+      if (active.current && request.current === id) {
+        setData(saved.config);
+        setUpdatedAt(saved.updated_at);
+        setMessage("AI speaking mission saved.");
+      }
     } catch (error) {
-      if (active.current && request.current === id) setMessage(error instanceof Error ? error.message : "Unable to save the mission.");
+      if (
+        error instanceof AiMissionConflictError
+      ) {
+        try {
+          const latest = await getAiMission(activityId);
+          if (
+            active.current &&
+            request.current === id
+          ) {
+            setMissionId(latest.id);
+            setUpdatedAt(latest.updated_at);
+            setData(latest.config);
+            setMessage(error.message);
+          }
+        } catch {
+          if (
+            active.current &&
+            request.current === id
+          ) {
+            setMessage(
+              "This mission changed in another editor, but the latest version could not be loaded."
+            );
+          }
+        }
+      } else if (
+        active.current &&
+        request.current === id
+      ) {
+        setMessage(
+          error instanceof Error
+            ? error.message
+            : "Unable to save the mission."
+        );
+      }
     } finally { if (active.current && request.current === id) setBusy(false); }
   }
 

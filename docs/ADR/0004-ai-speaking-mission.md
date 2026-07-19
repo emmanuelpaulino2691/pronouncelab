@@ -1,6 +1,6 @@
 # ADR 0004: External AI Speaking Mission as a Distinct Activity
 
-- **Status:** Accepted for MVP
+- **Status:** Accepted; hardened by Sprint 34
 - **Date:** 2026-07-17
 
 ## Context
@@ -11,6 +11,8 @@ Learners benefit from conversational pronunciation practice, but native AI voice
 
 Model `ai_speaking_mission` as a distinct lesson activity with structured mission configuration. Generate a deterministic plain-text prompt for ChatGPT or Gemini. Parse a stable human-readable result pasted back by the learner. Keep result confirmation local and make no native API call.
 
+Sprint 34 makes activity identity part of the learner mission projection, requires dedicated atomic creation, validates the complete configuration at the database boundary, uses an optimistic-concurrency save RPC, and blocks publication when a mission row is missing or invalid.
+
 ## Consequences
 
 - The product delivers useful AI-guided practice without storing audio or AI keys.
@@ -18,7 +20,8 @@ Model `ai_speaking_mission` as a distinct lesson activity with structured missio
 - The workflow is transparent and provider-external.
 - Result quality and scores are non-authoritative.
 - Clipboard and parser UX become important.
-- Persistence, completeness validation, and several hardening gaps remain; see [AI Speaking Mission](../AI_SPEAKING_MISSION.md#known-limitations).
+- Mission publication and multi-editor integrity depend on migration 009 being applied through the normal reviewed deployment workflow.
+- Result persistence remains intentionally deferred; see [AI Speaking Mission](../AI_SPEAKING_MISSION.md#known-limitations).
 
 ## Alternatives considered
 

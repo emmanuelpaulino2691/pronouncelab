@@ -118,7 +118,7 @@ git status --short
 git diff --stat
 ```
 
-Run relevant existing tests if present. This repository currently has no test script; do not claim tests ran when they did not.
+Run relevant existing tests. Focused pure utility tests use `npm.cmd test`; do not claim checks ran when they did not.
 
 For migration work, also use `npx supabase db push --dry-run` and `npx supabase migration list` when the CLI and linked project are available. Use a disposable local Supabase database for execution validation when possible.
 
@@ -128,6 +128,12 @@ Never commit, push, merge, switch branches, apply migrations, or change environm
 
 The files under `docs/` are the canonical technical knowledge base.
 
+- Documentation updates are part of sprint completion and must be proposed or applied before the sprint is considered complete.
+- After every completed sprint, review and update `docs/SPRINT_STATUS.md`.
+- Update `docs/ROADMAP.md` when priorities or future sprint plans changed.
+- Update `docs/ARCHITECTURE.md` when architecture changed.
+- Update `docs/PROJECT_CONTEXT.md` when product scope or project status changed.
+- Add or supersede an ADR under `docs/ADR/` when an important architectural decision was introduced.
 - Update documentation in the same change that alters a documented contract.
 - Describe implemented behavior in the present tense.
 - Mark proposed work as **Future** or **Not implemented**.

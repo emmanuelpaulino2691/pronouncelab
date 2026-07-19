@@ -130,6 +130,7 @@ RPCs are used when browser statements cannot safely preserve a domain invariant:
 - `reorder_draft_quiz_questions`
 - `duplicate_draft_lesson_activity`
 - AI mission create and duplicate functions
+- `save_draft_ai_speaking_mission` with expected `updated_at`
 - `publish_lesson_version`
 - media publication prepare/finalize functions
 - published quiz projection functions
@@ -182,6 +183,7 @@ This prevents anonymous and ordinary authenticated learners from retrieving answ
 | `006_enforce_draft_parent_inserts` | Draft-parent requirements for unit/lesson inserts |
 | `007_lesson_authoring_rpcs` | Parent immutability and atomic Lesson Studio operations |
 | `008_ai_speaking_missions` | AI enum, configuration table, policies, create/duplicate RPCs |
+| `009_ai_speaking_mission_hardening` | Complete mission validation, RPC-only activity creation, clock-based optimistic save revisions, publication completeness |
 
 ## Migration rules
 
@@ -197,9 +199,7 @@ Never duplicate migration SQL in documentation. Read the effective object across
 ## Known limitations
 
 - The learner app does not query this schema.
-- Migration 008 allows direct AI configuration table writes under draft RLS, but its JSON checks do not fully prove every frontend-required property/type.
-- The generic activity-create RPC predates the AI subtype and does not create an AI configuration row; the Studio service uses the dedicated AI RPC, but the database does not yet make a missing AI configuration impossible for every direct caller.
-- AI mission updates do not currently use optimistic `updated_at` comparison.
+- Migration 009 is forward-only and unapplied in this working tree; the linked database does not gain its AI hardening guarantees until an authorized deployment.
 - Media finalization requires a trusted backend that is not in this repository.
 
 These are hardening opportunities, not implemented guarantees.

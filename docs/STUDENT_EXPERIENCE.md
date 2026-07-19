@@ -98,7 +98,7 @@ Separate existing utilities store dashboard progress, statistics, and achievemen
 - Unsupported activity types render a controlled fallback.
 - Long content wraps; mobile does not require a permanent sidebar.
 
-Manual browser coverage is still necessary because no automated test runner exists.
+Manual browser coverage is still necessary because the focused Vitest setup does not provide browser UI tests.
 
 ## Future account progress
 

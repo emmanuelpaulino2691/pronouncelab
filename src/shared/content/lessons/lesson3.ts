@@ -252,7 +252,12 @@ export const lesson3: LessonData = {
     },
   ],
 
-  aiMissions: [defaultAiSpeakingMission],
+  aiMissions: [
+    {
+      ...defaultAiSpeakingMission,
+      activityId: 5,
+    },
+  ],
 
   quiz: [
     {

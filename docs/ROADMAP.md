@@ -35,7 +35,7 @@ Before the numbered visual/product sprints, the repository established Supabase 
 
 **Delivered:** new activity type/table, dedicated create/duplicate RPCs, structured Studio editor, deterministic prompt generator, learner copy/paste card, result parser and local confirmation.
 
-**Dependencies still open:** publication completeness, full JSON validation, optimistic mission concurrency, multi-mission learner association, and stricter parser ambiguity handling. See [AI Mission known limitations](AI_SPEAKING_MISSION.md#known-limitations).
+**Dependencies addressed by Sprint 34:** publication completeness, full JSON validation, optimistic mission concurrency, multi-mission learner association, and stricter parser ambiguity handling.
 
 **User value:** teachers can author a repeatable speaking challenge; learners can receive external voice feedback without sharing platform credentials or requiring native integration.
 
@@ -49,12 +49,22 @@ Before the numbered visual/product sprints, the repository established Supabase 
 
 **User value:** lessons feel focused and resumable without pretending server progress exists.
 
+### Sprint 34 — AI Speaking Mission Hardening
+
+**Status:** Implemented locally; migration 009 remains unapplied.
+
+**Goal:** Strengthen the existing AI mission system without changing its external ChatGPT/Gemini workflow.
+
+**Delivered:** activity-scoped learner missions, complete database configuration validation, guarded atomic creation, optimistic-concurrency save RPC, publication completeness checks, strict parser handling, and focused Vitest coverage.
+
+**User value:** learners receive the correct mission when a lesson has several AI activities, while teachers receive conflict-safe authoring and publishers cannot release incomplete missions.
+
 ## Current milestone
 
-The current milestone is **foundation hardening and convergence**:
+The current milestone remains **foundation hardening and convergence**:
 
-- resolve the known AI Mission integrity/parser/concurrency gaps;
-- add automated unit coverage for pure utilities and SQL execution validation;
+- review and deploy the unapplied Sprint 34 migration through the authorized workflow;
+- expand database execution validation beyond focused pure utility tests;
 - design the migration from static learner content to published Supabase projections;
 - preserve learner route compatibility during that transition.
 

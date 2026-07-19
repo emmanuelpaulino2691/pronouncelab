@@ -44,6 +44,8 @@ See [ADR 0004](ADR/0004-ai-speaking-mission.md).
 
 The prompt is derived from this source of truth. It is never stored as the only mission representation.
 
+The learner-facing `AiSpeakingMission` shape adds `activityId`. `ActivityRenderer` passes the current activity, and `findAiMissionForActivity` resolves the matching configuration. Multiple AI mission activities therefore do not depend on array position.
+
 Defaults target A1, 8–10 minutes, 10 + 10 contrast words, 2–3 sentences, and one short reading. Recommendations are not all hard limits.
 
 ## Prompt generation
@@ -75,9 +77,9 @@ Goal for Next Practice:
 Coach Message:
 ```
 
-`resultParser.ts` accepts LF/CRLF, case-insensitive headings, whitespace, and common bullet markers. It returns typed values and warnings for missing sections, cleans list values, limits input to 20,000 characters, and never interprets HTML.
+`resultParser.ts` accepts LF/CRLF, case-insensitive headings, whitespace, and common bullet markers. It returns typed values and warnings for missing sections, cleans list values, limits input to 20,000 characters, and never interprets HTML. Duplicate recognized headings preserve the first section and produce a warning.
 
-Supported score intent is `85`, `85%`, or `85/100`. The displayed result explicitly says external feedback and the score are not authoritative.
+The only accepted score forms are a whole number, a whole-number percent, or a whole number over 100—for example `85`, `85%`, or `85/100`. Extra or conflicting text is rejected. The displayed result explicitly says external feedback and the score are not authoritative.
 
 ## Authoring workflow
 
@@ -91,7 +93,9 @@ Lesson Studio lazy-loads `AiSpeakingMissionEditor`. The editor provides:
 - learner-card preview;
 - explicit save and read-only behavior.
 
-Creation uses the dedicated `create_draft_ai_speaking_mission` RPC so activity metadata and configuration are inserted in one transaction. Duplication uses a matching dedicated RPC.
+Creation uses the dedicated `create_draft_ai_speaking_mission` RPC so activity metadata and configuration are inserted in one transaction. Duplication uses a matching dedicated RPC. Generic AI activity creation is rejected by the database creation guard, and authenticated clients no longer receive direct activity-insert privileges.
+
+Mission saves use `save_draft_ai_speaking_mission` with the loaded `updated_at` value. The function acquires the hierarchy gate, revalidates the full draft hierarchy, locks the mission and its parents, then compares the revision. Mission revisions use `clock_timestamp()` so separate successful writes receive a new concurrency token even inside one transaction. A stale save raises a conflict without changing data; the editor reloads the authoritative mission.
 
 ## Learner workflow
 
@@ -114,17 +118,11 @@ Confirmation remains component state only. It does not create progress, an attem
 
 ## Known limitations
 
-The following are current implementation gaps:
-
-- Learner `LessonData.aiMissions` lacks an activity identifier, and the renderer selects the first mission. A lesson with multiple AI missions can display the wrong configuration.
-- Migration 008’s JSON checks do not fully validate every required frontend property and JSON type.
-- The generic `create_draft_lesson_activity` RPC can accept the enum but does not create the AI subtype; the Studio uses the dedicated safe RPC, but direct callers can create an incomplete activity.
-- Deleting the configuration can leave an activity without mission content, and publication does not yet validate AI mission completeness.
-- Admin mission saves scope by mission/activity ID but do not compare the loaded `updated_at`; concurrent editors can overwrite one another.
-- Duplicate result headings overwrite earlier sections without a warning.
-- Score parsing currently extracts an initial number and can accept ambiguous strings beyond the intended three forms.
-
-These limitations must be fixed before presenting the system as a hardened multi-editor publishing workflow.
+- Migration 009 contains the database hardening contract but is not applied by this sprint task.
+- AI result confirmation remains component state only.
+- The parser can validate structure, not the truth or quality of external feedback.
+- No browser UI or disposable-database integration tests are configured.
+- Native AI, audio assessment, and provider APIs remain intentionally absent.
 
 ## Future journal
 

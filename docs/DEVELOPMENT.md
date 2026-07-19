@@ -67,6 +67,7 @@ Required after changes:
 ```powershell
 npm.cmd run build
 npm.cmd run lint
+npm.cmd test
 git diff --check
 ```
 
@@ -74,7 +75,7 @@ git diff --check
 - Lint catches repository coding-policy violations.
 - Diff check catches whitespace errors that compilers ignore.
 
-Run relevant tests when available. There is currently no `test` package script, so report that limitation rather than adding a framework without approval.
+Run relevant focused Vitest tests with `npm.cmd test`. Browser and database integration test infrastructure is not configured; report that limitation rather than inventing coverage.
 
 For database changes:
 

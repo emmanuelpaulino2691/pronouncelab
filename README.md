@@ -36,10 +36,11 @@ The Supabase browser client expects the public values described in `.env.example
 ```powershell
 npm.cmd run build
 npm.cmd run lint
+npm.cmd test
 git diff --check
 ```
 
-No automated test script is currently configured.
+Focused pure utility tests run with Vitest. Browser and database integration tests are not currently configured.
 
 ## Routes
 

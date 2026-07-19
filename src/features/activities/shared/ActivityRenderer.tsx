@@ -28,6 +28,7 @@ function ActivityRenderer({
   return (
     <ActivityComponent
       key={`${lesson.id}-${activity.id}`}
+      activity={activity}
       lesson={lesson}
       onReadyChange={onReadyChange}
     />

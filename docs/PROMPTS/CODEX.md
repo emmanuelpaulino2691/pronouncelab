@@ -42,6 +42,15 @@ Run relevant existing tests if available; do not invent a passing test result.
 Review the final diff, update canonical docs when contracts change, and report
 files, validation, limitations, git status, and diff stat. Do not commit or push
 unless explicitly requested.
+
+Documentation updates are part of sprint completion and must be proposed or
+applied before the sprint is considered complete. After every completed sprint:
+- review and update docs/SPRINT_STATUS.md;
+- update docs/ROADMAP.md when priorities or future sprint plans changed;
+- update docs/ARCHITECTURE.md when architecture changed;
+- update docs/PROJECT_CONTEXT.md when product scope or project status changed;
+- add or supersede an ADR under docs/ADR/ when an important architectural
+  decision was introduced.
 ```
 
 ## Best use
