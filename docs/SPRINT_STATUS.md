@@ -19,9 +19,9 @@
 
 **Sprint 34 — AI Speaking Mission Hardening.**
 
-Status: implementation and application validation are complete. Migration 009
-is intentionally unapplied; disposable-database execution is blocked because
-the local Docker/Supabase runtime is unavailable.
+Status: implementation, application validation, and disposable local-database
+validation are complete. Migration 009 is applied only to the disposable local
+Supabase database; remote review and application remain pending.
 
 ## Sprint objective
 
@@ -58,11 +58,16 @@ Sprint 34 delivers:
 - strict whole-value score parsing for `85`, `85%`, and `85/100`;
 - focused Vitest tests for prompt, parser, score, missing-section, duplicate,
   and mission-association behavior.
+- local PostgreSQL execution of migrations 001–009 from scratch;
+- 24 passing local SQL checks covering the migration ledger and schema objects,
+  authenticated direct-write restrictions, authorized create/duplicate/save
+  RPCs, optimistic concurrency, malformed configuration rejection, publication
+  completeness, and published/archived immutability;
+- successful application validation: production build, lint, 18 Vitest tests,
+  and `git diff --check`.
 
 ## Work in progress
 
-- Review migration 009 against a disposable local Supabase database when that
-  environment is available.
 - Manually verify the Lesson Studio conflict experience with two authenticated
   editor sessions.
 - Review the migration before any authorized remote application.
@@ -78,9 +83,6 @@ Sprint 34 delivers:
 ## Blockers
 
 - Admin-authored Supabase content is not connected to learner routes.
-- The disposable local Supabase stack cannot run because its Docker engine is
-  unavailable, so migration 009 and its database scenarios still require
-  execution in a disposable environment.
 - Learner identity, enrollment, attempts, and synchronized progress do not
   exist.
 - Media finalization still requires a trusted backend outside this repository.
