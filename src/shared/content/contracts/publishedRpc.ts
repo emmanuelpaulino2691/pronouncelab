@@ -2,8 +2,12 @@ export type DecimalContentId = string & {
   readonly __decimalContentId: unique symbol;
 };
 
+export type PublishedRpcMediaId = string & {
+  readonly __publishedRpcMediaId: unique symbol;
+};
+
 export type PublishedRpcMedia = {
-  id: DecimalContentId;
+  id: PublishedRpcMediaId;
   kind: "audio" | "image";
   publicPath: string;
   mimeType: string | null;
@@ -96,6 +100,7 @@ export type PublishedRpcActivity =
       items: readonly {
         id: DecimalContentId;
         title: string;
+        position: number;
         instructions: string | null;
         transcript: string | null;
         audio: PublishedRpcMedia | null;
@@ -107,6 +112,7 @@ export type PublishedRpcActivity =
       items: readonly {
         id: DecimalContentId;
         title: string;
+        position: number;
         instructions: string | null;
         displayText: string;
         audio: PublishedRpcMedia | null;
@@ -117,6 +123,7 @@ export type PublishedRpcActivity =
       items: readonly {
         id: DecimalContentId;
         title: string;
+        position: number;
         instructions: string | null;
       }[];
     })
@@ -125,6 +132,7 @@ export type PublishedRpcActivity =
       assessments: readonly {
         id: DecimalContentId;
         title: string;
+        position: number;
         questions: readonly PublishedRpcQuestion[];
       }[];
     })
@@ -188,4 +196,12 @@ export type PublishedLessonRpcEnvelope = {
   lessonRevision: string;
   generatedAt: string;
   lesson: PublishedRpcLesson | null;
+};
+
+export type PublishedRpcErrorEnvelope = {
+  error: {
+    code: "unsupported_schema_version";
+    requestedSchemaVersion: number | null;
+    supportedSchemaVersions: readonly [1];
+  };
 };

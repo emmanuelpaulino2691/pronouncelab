@@ -5,17 +5,50 @@ import type {
   PublishedLessonRpcEnvelope,
   PublishedRpcActivity,
   PublishedRpcAiMissionConfig,
+  PublishedRpcErrorEnvelope,
   PublishedRpcMedia,
+  PublishedRpcMediaId,
   PublishedRpcQuestion,
   PublishedRpcTheoryBlock,
 } from "./publishedRpc";
 
 const maxSignedBigint = "9223372036854775807";
 const prohibitedKeys = new Set([
+  "answer_key",
+  "correct_option",
   "correctAnswer",
+  "created_by",
+  "editor",
+  "internalNotes",
   "is_correct",
   "isCorrect",
   "explanation",
+  "publisher",
+  "updated_by",
+]);
+const canonicalTimestamp =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/;
+const aiMissionConfigKeys = new Set([
+  "missionTitle",
+  "missionLabel",
+  "cefrLevel",
+  "goal",
+  "estimatedMinutes",
+  "primarySoundLabel",
+  "primarySoundIpa",
+  "secondarySoundLabel",
+  "secondarySoundIpa",
+  "primaryWords",
+  "secondaryWords",
+  "sentences",
+  "readingText",
+  "supportedTools",
+  "promptLanguage",
+  "feedbackLanguage",
+  "difficultyLabel",
+  "resultFormatVersion",
+  "teacherInstructions",
+  "studentInstructions",
 ]);
 
 function isRecord(
@@ -76,6 +109,13 @@ function isText(value: unknown) {
   return typeof value === "string";
 }
 
+function isTimestamp(value: unknown) {
+  return (
+    typeof value === "string" &&
+    canonicalTimestamp.test(value)
+  );
+}
+
 function isNullableText(value: unknown) {
   return value === null || isText(value);
 }
@@ -85,12 +125,23 @@ function isMedia(
 ): value is PublishedRpcMedia {
   if (!isRecord(value)) return false;
   return (
-    isDecimalContentId(value.id) &&
+    isPublishedRpcMediaId(value.id) &&
     (value.kind === "audio" ||
       value.kind === "image") &&
     isText(value.publicPath) &&
     isNullableText(value.mimeType) &&
     isNullableText(value.altText)
+  );
+}
+
+function isPublishedRpcMediaId(
+  value: unknown
+): value is PublishedRpcMediaId {
+  return (
+    typeof value === "string" &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      value
+    )
   );
 }
 
@@ -162,6 +213,7 @@ function isListeningItem(value: unknown) {
   return (
     isDecimalContentId(value.id) &&
     isText(value.title) &&
+    isPosition(value.position) &&
     isNullableText(value.instructions) &&
     isNullableText(value.transcript) &&
     isNullableMedia(value.audio) &&
@@ -177,6 +229,7 @@ function isPronunciationItem(value: unknown) {
   return (
     isDecimalContentId(value.id) &&
     isText(value.title) &&
+    isPosition(value.position) &&
     isNullableText(value.instructions) &&
     isText(value.displayText) &&
     isNullableMedia(value.audio) &&
@@ -190,6 +243,7 @@ function isPracticeItem(value: unknown) {
   return (
     isDecimalContentId(value.id) &&
     isText(value.title) &&
+    isPosition(value.position) &&
     isNullableText(value.instructions)
   );
 }
@@ -199,6 +253,7 @@ function isAssessment(value: unknown) {
   return (
     isDecimalContentId(value.id) &&
     isText(value.title) &&
+    isPosition(value.position) &&
     Array.isArray(value.questions) &&
     value.questions.every(isQuestion)
   );
@@ -207,7 +262,15 @@ function isAssessment(value: unknown) {
 function isAiMissionConfig(
   value: unknown
 ): value is PublishedRpcAiMissionConfig {
-  return validateAiSpeakingMission(value).ok;
+  return (
+    isRecord(value) &&
+    Object.keys(value).length ===
+      aiMissionConfigKeys.size &&
+    Object.keys(value).every((key) =>
+      aiMissionConfigKeys.has(key)
+    ) &&
+    validateAiSpeakingMission(value).ok
+  );
 }
 
 function hasActivityBase(
@@ -312,7 +375,7 @@ export function isPublishedCatalogRpcEnvelope(
     isRecord(value) &&
     value.schemaVersion === 1 &&
     isText(value.catalogRevision) &&
-    isText(value.generatedAt) &&
+    isTimestamp(value.generatedAt) &&
     Array.isArray(value.courses) &&
     value.courses.every(isCourse)
   );
@@ -326,7 +389,7 @@ export function isPublishedLessonRpcEnvelope(
     !isRecord(value) ||
     value.schemaVersion !== 1 ||
     !isText(value.lessonRevision) ||
-    !isText(value.generatedAt)
+    !isTimestamp(value.generatedAt)
   ) {
     return false;
   }
@@ -342,8 +405,34 @@ export function isPublishedLessonRpcEnvelope(
       value.lesson.currentVersionId
     ) &&
     isPositiveInteger(value.lesson.versionNumber) &&
-    isText(value.lesson.publishedAt) &&
+    isTimestamp(value.lesson.publishedAt) &&
     Array.isArray(value.lesson.activities) &&
     value.lesson.activities.every(isActivity)
+  );
+}
+
+export function isPublishedRpcErrorEnvelope(
+  value: unknown
+): value is PublishedRpcErrorEnvelope {
+  if (
+    !isRecord(value) ||
+    !isRecord(value.error)
+  ) {
+    return false;
+  }
+  const requested =
+    value.error.requestedSchemaVersion;
+  return (
+    value.error.code ===
+      "unsupported_schema_version" &&
+    (requested === null ||
+      (typeof requested === "number" &&
+        Number.isSafeInteger(requested))) &&
+    Array.isArray(
+      value.error.supportedSchemaVersions
+    ) &&
+    value.error.supportedSchemaVersions.length ===
+      1 &&
+    value.error.supportedSchemaVersions[0] === 1
   );
 }

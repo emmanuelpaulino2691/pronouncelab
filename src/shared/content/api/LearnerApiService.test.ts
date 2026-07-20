@@ -186,6 +186,33 @@ describe("LearnerApiService", () => {
     });
   });
 
+  it.each(["catalog", "lesson"] as const)(
+    "normalizes a stable unsupported-version %s envelope",
+    async (kind) => {
+      const unsupported = {
+        error: {
+          code: "unsupported_schema_version",
+          requestedSchemaVersion: 2,
+          supportedSchemaVersions: [1],
+        },
+      };
+      const service = createLearnerApiService(
+        kind === "catalog"
+          ? fakeGateway(unsupported)
+          : fakeGateway(catalog, unsupported)
+      );
+      const result =
+        kind === "catalog"
+          ? await service.getPublishedLearningCatalog()
+          : await service.getPublishedLesson(id("3"));
+
+      expect(result).toMatchObject({
+        ok: false,
+        error: { code: "invalid_response" },
+      });
+    }
+  );
+
   it.each([
     infrastructureFailure(
       "aborted",

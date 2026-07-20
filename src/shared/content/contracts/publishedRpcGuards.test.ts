@@ -7,7 +7,7 @@ import {
 } from "./publishedRpcGuards";
 
 const audio = {
-  id: "20",
+  id: "123e4567-e89b-42d3-a456-426614174000",
   kind: "audio",
   publicPath: "published/audio.mp3",
   mimeType: "audio/mpeg",
@@ -70,6 +70,7 @@ const validLessonEnvelope = {
           {
             id: "21",
             title: "Listen",
+            position: 0,
             instructions: null,
             transcript: "ship",
             audio,
@@ -87,6 +88,7 @@ const validLessonEnvelope = {
           {
             id: "22",
             title: "Repeat",
+            position: 0,
             instructions: "Speak clearly.",
             displayText: "ship",
             audio,
@@ -103,6 +105,7 @@ const validLessonEnvelope = {
           {
             id: "23",
             title: "Practice",
+            position: 0,
             instructions: null,
           },
         ],
@@ -117,6 +120,7 @@ const validLessonEnvelope = {
           {
             id: "24",
             title: "Check",
+            position: 0,
             questions: [question],
           },
         ],
@@ -201,6 +205,58 @@ describe("published RPC guards", () => {
   });
 
   it.each([
+    "123e4567-e89b-72d3-a456-426614174000",
+    "00000000-0000-0000-0000-000000000000",
+  ])(
+    "accepts canonical PostgreSQL UUID media ID %s",
+    (mediaId) => {
+      const value = changed((envelope) => {
+        const listening = nestedObjects(
+          activity(envelope, 1),
+          "items"
+        )[0]!;
+        listening.audio = {
+          ...audio,
+          id: mediaId,
+        };
+      });
+      expect(
+        isPublishedLessonRpcEnvelope(value)
+      ).toBe(true);
+    }
+  );
+
+  it.each([
+    "2026-07-19 00:00:00+00",
+    "2026-07-19T00:00:00",
+    "not-a-timestamp",
+  ])(
+    "rejects noncanonical generated timestamp %s",
+    (generatedAt) => {
+      const value = structuredClone(
+        validLessonEnvelope
+      );
+      value.generatedAt = generatedAt;
+      expect(
+        isPublishedLessonRpcEnvelope(value)
+      ).toBe(false);
+    }
+  );
+
+  it("rejects unexpected AI mission configuration keys", () => {
+    const value = changed((envelope) => {
+      const mission = activity(envelope, 5);
+      mission.config = {
+        ...(mission.config as MutableObject),
+        internalNotes: "private",
+      };
+    });
+    expect(
+      isPublishedLessonRpcEnvelope(value)
+    ).toBe(false);
+  });
+
+  it.each([
     [
       "theory block discriminant",
       (value: MutableEnvelope) => {
@@ -218,7 +274,7 @@ describe("published RPC guards", () => {
           "items"
         )[0]!.audio = {
           ...audio,
-          id: "01",
+          id: "not-a-uuid",
         };
       },
     ],

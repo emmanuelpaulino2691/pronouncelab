@@ -18,7 +18,9 @@
 
 Supabase Postgres is the authority for staff content management. Browser UI checks are advisory; constraints, triggers, RLS, grants, and RPC authorization enforce integrity. Multi-row workflows run inside security-definer functions with narrow grants.
 
-This database is not yet the learner content source and does not contain learner progress or enrollment tables.
+Migration 010 exposes an inactive learner-safe published delivery surface.
+The application still defaults to static content, and the database does not
+contain learner progress or enrollment tables.
 
 ## Entity model
 
@@ -134,6 +136,8 @@ RPCs are used when browser statements cannot safely preserve a domain invariant:
 - `publish_lesson_version`
 - media publication prepare/finalize functions
 - published quiz projection functions
+- `get_published_learning_catalog`
+- `get_published_lesson`
 
 Functions schema-qualify objects, set an empty search path when security-definer, perform internal authorization, revoke `PUBLIC`, and grant only required roles. Reorder functions perform a temporary offset then assign the exact requested permutation transactionally, avoiding transient uniqueness collisions.
 
@@ -171,6 +175,19 @@ The `questions` and `question_options` base tables are manager-only for SELECT. 
 
 This prevents anonymous and ordinary authenticated learners from retrieving answer keys through direct table reads. Do not broaden these grants when adding learner quiz behavior.
 
+The migration 010 lesson-delivery RPC applies the same boundary to the complete
+lesson graph: quiz questions and option text are projected, while explanations
+and option correctness are omitted in SQL. Both learner RPCs require a fully
+published course, unit, lesson, and current published version. Their execution
+is granted explicitly to `anon`, `authenticated`, and `service_role`; internal
+projection helpers are not executable by API roles.
+
+AI Speaking Mission configuration is projected through an explicit SQL field
+allow-list, so additional authoring JSON properties never cross the learner
+delivery boundary. Unsupported requested schema versions return a stable
+`unsupported_schema_version` error envelope rather than a partial success
+projection.
+
 ## Migration map
 
 | Migration | Purpose |
@@ -184,6 +201,7 @@ This prevents anonymous and ordinary authenticated learners from retrieving answ
 | `007_lesson_authoring_rpcs` | Parent immutability and atomic Lesson Studio operations |
 | `008_ai_speaking_missions` | AI enum, configuration table, policies, create/duplicate RPCs |
 | `009_ai_speaking_mission_hardening` | Complete mission validation, RPC-only activity creation, clock-based optimistic save revisions, publication completeness |
+| `010_published_learner_delivery` | Learner-safe published catalog and current lesson RPC projections |
 
 ## Migration rules
 
@@ -198,7 +216,8 @@ Never duplicate migration SQL in documentation. Read the effective object across
 
 ## Known limitations
 
-- The learner app does not query this schema.
+- The learner app still defaults to static content; the Supabase provider is
+  constructed only through explicit composition and is not used by routes.
 - Migration 009 is forward-only and unapplied in this working tree; the linked database does not gain its AI hardening guarantees until an authorized deployment.
 - Media finalization requires a trusted backend that is not in this repository.
 

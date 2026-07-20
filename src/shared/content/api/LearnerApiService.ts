@@ -1,6 +1,7 @@
 import {
   isPublishedCatalogRpcEnvelope,
   isPublishedLessonRpcEnvelope,
+  isPublishedRpcErrorEnvelope,
 } from "../contracts/publishedRpcGuards";
 import type {
   DecimalContentId,
@@ -50,6 +51,12 @@ export function createLearnerApiService(
         );
       }
       if (!result.ok) return result;
+      if (isPublishedRpcErrorEnvelope(result.value)) {
+        return infrastructureFailure(
+          "invalid_response",
+          "The published catalog schema version is unsupported."
+        );
+      }
       if (
         !isPublishedCatalogRpcEnvelope(
           result.value
@@ -85,6 +92,12 @@ export function createLearnerApiService(
         );
       }
       if (!result.ok) return result;
+      if (isPublishedRpcErrorEnvelope(result.value)) {
+        return infrastructureFailure(
+          "invalid_response",
+          "The published lesson schema version is unsupported."
+        );
+      }
       if (
         !isPublishedLessonRpcEnvelope(
           result.value

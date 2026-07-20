@@ -496,6 +496,9 @@ Rules:
 
 1. Database `bigint` IDs are cast to canonical unsigned decimal text inside
    learner RPC projections.
+   `media_assets.id` is a UUID in the existing schema and crosses the raw
+   media projection as a canonical UUID string before mapping to opaque
+   `ContentId`.
 2. Route parameters remain strings and are not passed through `Number`,
    `parseInt`, or arithmetic.
 3. Route shapes remain `/courses/:courseId`, `/units/:unitId`, and
@@ -557,9 +560,10 @@ projection as anonymous users.
 **Consumers:** Dashboard, Courses, Units, Lessons, provider cache, and progress
 reconciliation.
 
-**Failure behavior:** Unsupported schema versions fail with a stable contract
-error. An empty catalog returns a successful envelope with an empty array.
-Internal failures are translated by the provider.
+**Failure behavior:** Unsupported schema versions return a stable
+`unsupported_schema_version` error envelope that the learner API service
+normalizes to `invalid_response`. An empty catalog returns a successful
+envelope with an empty array. Internal failures are translated by the provider.
 
 **Performance:** One request replaces navigation N+1 queries. It excludes
 activity subtype content. Existing hierarchy and position indexes support the
@@ -614,8 +618,8 @@ or authoring identity is returned.
 
 **Failure behavior:** A missing, unpublished, archived, incomplete, or
 incorrectly parented lesson produces no learner result. Unsupported schema
-versions produce a stable contract error. Malformed published data fails
-closed.
+versions return the same stable discriminated error envelope used by the
+catalog RPC. Malformed published data fails closed.
 
 **Performance:** One RPC prevents subtype N+1 calls. Enforce a reasonable JSON
 payload ceiling in validation, use indexed parent joins, and test representative

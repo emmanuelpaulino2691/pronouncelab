@@ -22,10 +22,11 @@
 Status: Blueprint and ADR 0006 are complete. Phase 1 learner contracts,
 mapping foundations, asynchronous provider interface, and static provider
 compatibility are complete. Phase 2A learner delivery infrastructure is
-implemented locally but remains inactive. Migration 010 and real published
-RPC delivery have not started. Migration 009 remains applied only to the
-disposable local Supabase database; remote review and application remain
-pending.
+complete. Phase 2B migration 010, RPC mapping, and the Supabase learner
+provider are implemented locally but remain inactive. Local Docker validation
+is pending because Docker Desktop is unavailable. Phase 2B.1 security and
+contract hardening is complete at the application/static-review level.
+Migration 009 and migration 010 remain unapplied remotely.
 
 ## Sprint objective
 
@@ -106,16 +107,39 @@ Sprint 35 Phase 2A delivers locally:
 - inactive infrastructure composition while the static provider remains the
   sole active learner content provider.
 
+Sprint 35 Phase 2B delivers locally:
+
+- migration 010 with learner-safe published catalog and current-lesson RPCs;
+- explicit `anon`, `authenticated`, and `service_role` execute grants with
+  default `PUBLIC` execution revoked;
+- uniform lesson not-found behavior and complete published-parent checks;
+- SQL-level quiz answer and explanation exclusion;
+- pure catalog, lesson, activity, media, and metadata projection mapping;
+- a dependency-injected Supabase learner provider with typed errors,
+  cancellation, and defensive copies;
+- explicit local and Supabase provider construction while local remains the
+  application default;
+- focused mapper, provider, composition, and SQL regression coverage.
+
+Sprint 35 Phase 2B.1 hardens that delivery boundary with:
+
+- an explicit SQL allow-list for every learner-visible AI mission field;
+- draft-first SQL fixtures that use the publication RPC before learner reads;
+- publication lifecycle, stale-version, permission, direct-access, ordering,
+  schema-version, quiz-secrecy, and AI allow-list database checks;
+- duplicate hierarchy and parent-identity rejection;
+- provider-side PostgreSQL bigint identifier validation;
+- canonical PostgreSQL UUID and timestamp validation;
+- stable unsupported-schema-version error envelopes.
+
 ## Work in progress
 
-- Review Sprint 35 Phase 2A implementation and validation.
-- Prepare the learner delivery RPC migration after authorization.
+- Review Sprint 35 Phase 2B.1 hardening and application validation.
+- Complete disposable local database execution when Docker is available.
 
 ## Pending work
 
 - Apply migration 009 only after explicit authorization.
-- Create and locally validate forward-only migration 010.
-- Implement the Supabase learner provider after the RPC contract exists.
 - Convert learner routes to asynchronous loading in a later Sprint 35 phase.
 - Implement non-destructive local progress compatibility.
 - Add browser-level and disposable-database integration coverage.
