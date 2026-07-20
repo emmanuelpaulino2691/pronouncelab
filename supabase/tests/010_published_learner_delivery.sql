@@ -425,22 +425,22 @@ select is(
   'lesson returns the stable unsupported-version error'
 );
 
-select throws_ok(
+select throws_matching(
   $test$
     insert into public.lesson_versions (
       lesson_id, version_number, status
     )
     values (910003, 2, 'draft')
   $test$,
-  '23505',
+  '.*lesson_versions_number_unique.*',
   'duplicate lesson version numbers are rejected'
 );
 
-select throws_ok(
+select throws_matching(
   $test$
     select public.publish_lesson_version(910015)
   $test$,
-  '23505',
+  '.*lesson_versions_one_published.*',
   'a second published version is rejected'
 );
 
