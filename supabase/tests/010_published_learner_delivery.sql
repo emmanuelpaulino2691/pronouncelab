@@ -1,5 +1,13 @@
 begin;
 
+create extension if not exists pgtap
+  with schema extensions;
+
+set local search_path =
+  public, extensions, pg_catalog;
+
+select plan(53);
+
 insert into auth.users (id)
 values ('91000000-0000-4000-8000-000000000001');
 
@@ -9,11 +17,8 @@ values (
   'admin'
 );
 
-select pg_catalog.set_config(
-  'request.jwt.claim.sub',
-  '91000000-0000-4000-8000-000000000001',
-  true
-);
+set local request.jwt.claim.sub =
+  '91000000-0000-4000-8000-000000000001';
 
 -- Build the complete test graph as draft content. Descendants are never
 -- inserted into a sealed lesson version.
@@ -108,10 +113,12 @@ values
   (910010, 910009, 'Wrong', 0, false),
   (910011, 910009, 'Right', 1, true);
 
-select public.create_draft_ai_speaking_mission(
-  910014,
-  'Allow-listed mission',
-  pg_catalog.jsonb_build_object(
+do $$
+begin
+  perform public.create_draft_ai_speaking_mission(
+    910014,
+    'Allow-listed mission',
+    pg_catalog.jsonb_build_object(
     'missionTitle', 'Safe mission',
     'missionLabel', 'Mission',
     'cefrLevel', 'A1',
@@ -141,16 +148,26 @@ select public.create_draft_ai_speaking_mission(
     'internalNotes', pg_catalog.jsonb_build_object(
       'secret', 'private'
     )
-  )
-);
+    )
+  );
+end;
+$$;
 
 -- Publish the old version, archive it, then publish the current version.
 -- Version 3 remains draft and must never appear.
-select public.publish_lesson_version(910004);
+do $$
+begin
+  perform public.publish_lesson_version(910004);
+end;
+$$;
 update public.lesson_versions
 set status = 'archived'
 where id = 910004;
-select public.publish_lesson_version(910014);
+do $$
+begin
+  perform public.publish_lesson_version(910014);
+end;
+$$;
 
 update public.lessons
 set status = 'published',
@@ -191,55 +208,124 @@ set status = 'published',
   published_at = pg_catalog.now()
 where id = 910301;
 
-do $$
-declare
-  catalog jsonb;
-  lesson jsonb;
-  missing jsonb;
-  hidden jsonb;
-  mission_config jsonb;
-begin
-  catalog := public.get_published_learning_catalog(1);
-  lesson := public.get_published_lesson(910003, 1);
-  missing := public.get_published_lesson(919999, 1);
-  hidden := public.get_published_lesson(910012, 1);
+select is(
+  public.get_published_learning_catalog(1)
+    #>> '{courses,0,id}',
+  '910001',
+  'catalog contains the complete published course'
+);
 
-  if catalog #>> '{courses,0,id}' <> '910001'
-    or pg_catalog.jsonb_array_length(catalog -> 'courses') <> 1
-  then
-    raise exception
-      'Catalog publication lifecycle filtering failed';
-  end if;
+select is(
+  pg_catalog.jsonb_array_length(
+    public.get_published_learning_catalog(1)
+      -> 'courses'
+  ),
+  1,
+  'catalog excludes incomplete unpublished and archived hierarchies'
+);
 
-  if lesson #>> '{lesson,currentVersionId}' <> '910014'
-    or lesson #>> '{lesson,activities,0,type}' <> 'theory'
-    or lesson #>> '{lesson,activities,1,type}' <> 'quiz'
-    or lesson #>> '{lesson,activities,2,type}'
-      <> 'ai_speaking_mission'
-    or lesson::text like '%Stale content.%'
-  then
-    raise exception
-      'Current-version selection or ordering failed';
-  end if;
+select is(
+  public.get_published_lesson(910003, 1)
+    #>> '{lesson,currentVersionId}',
+  '910014',
+  'lesson selects the current published version'
+);
 
-  if lesson::text ~
-    '(is_correct|correctAnswer|correct_option|answer_key|explanation)'
-    or lesson::text like '%Private answer explanation%'
-  then
-    raise exception
-      'Published lesson projection leaked quiz answer data';
-  end if;
+select is(
+  public.get_published_lesson(910003, 1)
+    #>> '{lesson,activities,0,type}',
+  'theory',
+  'first learner activity is ordered theory'
+);
 
-  mission_config :=
-    lesson #> '{lesson,activities,2,config}';
-  if mission_config is null
-    or (
-      select pg_catalog.count(*)
-      from pg_catalog.jsonb_object_keys(
-        mission_config
-      )
-    ) <> 20
-    or mission_config ?| array[
+select is(
+  public.get_published_lesson(910003, 1)
+    #>> '{lesson,activities,1,type}',
+  'quiz',
+  'second learner activity is ordered quiz'
+);
+
+select is(
+  public.get_published_lesson(910003, 1)
+    #>> '{lesson,activities,2,type}',
+  'ai_speaking_mission',
+  'third learner activity is ordered AI mission'
+);
+
+select ok(
+  public.get_published_lesson(910003, 1)::text
+    not like '%Stale content.%',
+  'archived stale-version activity content is absent'
+);
+
+select ok(
+  public.get_published_lesson(910003, 1)::text
+    not like '%910015%',
+  'draft future-version identity is absent'
+);
+
+select is(
+  (
+    select status::text
+    from public.lesson_versions
+    where id = 910004
+  ),
+  'archived',
+  'stale version is archived'
+);
+
+select is(
+  (
+    select status::text
+    from public.lesson_versions
+    where id = 910014
+  ),
+  'published',
+  'current version is published'
+);
+
+select is(
+  (
+    select status::text
+    from public.lesson_versions
+    where id = 910015
+  ),
+  'draft',
+  'future version remains draft'
+);
+
+select ok(
+  public.get_published_lesson(910003, 1)::text
+    !~ '(is_correct|correctAnswer|correct_option|answer_key|explanation)'
+  and public.get_published_lesson(910003, 1)::text
+    not like '%Private answer explanation%',
+  'published quiz projection omits answer data'
+);
+
+select ok(
+  public.get_published_lesson(910003, 1)
+    #> '{lesson,activities,2,config}'
+    is not null,
+  'AI mission learner configuration exists'
+);
+
+select is(
+  (
+    select pg_catalog.count(*)::integer
+    from pg_catalog.jsonb_object_keys(
+      public.get_published_lesson(910003, 1)
+        #> '{lesson,activities,2,config}'
+    )
+  ),
+  20,
+  'AI mission projection contains exactly the approved fields'
+);
+
+select ok(
+  not (
+    public.get_published_lesson(910003, 1)
+      #> '{lesson,activities,2,config}'
+    ?| array[
       'answer_key',
       'correct_option',
       'created_by',
@@ -248,96 +334,154 @@ begin
       'publisher',
       'internalNotes'
     ]
-  then
-    raise exception
-      'AI mission learner projection is not allow-listed';
-  end if;
+  ),
+  'AI mission projection excludes unknown private fields'
+);
 
-  if missing is distinct from hidden
-    or hidden -> 'lesson' <> 'null'::jsonb
-    or missing is distinct from
-      public.get_published_lesson(910013, 1)
-    or missing is distinct from
-      public.get_published_lesson(910103, 1)
-    or missing is distinct from
-      public.get_published_lesson(910203, 1)
-    or missing is distinct from
-      public.get_published_lesson(910304, 1)
-    or missing is distinct from
-      public.get_published_lesson(910305, 1)
-  then
-    raise exception
-      'Unpublished and nonexistent lesson envelopes differ';
-  end if;
+select is_deeply(
+  public.get_published_lesson(919999, 1)
+    - 'generatedAt',
+  public.get_published_lesson(910012, 1)
+    - 'generatedAt',
+  'nonexistent and unpublished lessons are indistinguishable'
+);
 
-  if public.get_published_learning_catalog(2)
-      #>> '{error,code}'
-      <> 'unsupported_schema_version'
-    or public.get_published_lesson(910003, 2)
-      #>> '{error,code}'
-      <> 'unsupported_schema_version'
-  then
-    raise exception
-      'Schema-version negotiation envelope is invalid';
-  end if;
+select is(
+  public.get_published_lesson(910012, 1)
+    -> 'lesson',
+  'null'::jsonb,
+  'unpublished lesson is hidden'
+);
 
-  begin
+select is_deeply(
+  public.get_published_lesson(919999, 1)
+    - 'generatedAt',
+  public.get_published_lesson(910013, 1)
+    - 'generatedAt',
+  'archived lesson is hidden'
+);
+
+select is_deeply(
+  public.get_published_lesson(919999, 1)
+    - 'generatedAt',
+  public.get_published_lesson(910103, 1)
+    - 'generatedAt',
+  'unpublished course hides its lesson'
+);
+
+select is_deeply(
+  public.get_published_lesson(919999, 1)
+    - 'generatedAt',
+  public.get_published_lesson(910203, 1)
+    - 'generatedAt',
+  'archived course hides its lesson'
+);
+
+select is_deeply(
+  public.get_published_lesson(919999, 1)
+    - 'generatedAt',
+  public.get_published_lesson(910304, 1)
+    - 'generatedAt',
+  'unpublished unit hides its lesson'
+);
+
+select is_deeply(
+  public.get_published_lesson(919999, 1)
+    - 'generatedAt',
+  public.get_published_lesson(910305, 1)
+    - 'generatedAt',
+  'archived unit hides its lesson'
+);
+
+select is(
+  public.get_published_learning_catalog(2)
+    #>> '{error,code}',
+  'unsupported_schema_version',
+  'catalog returns the stable unsupported-version error'
+);
+
+select is(
+  public.get_published_lesson(910003, 2)
+    #>> '{error,code}',
+  'unsupported_schema_version',
+  'lesson returns the stable unsupported-version error'
+);
+
+select throws_ok(
+  $test$
     insert into public.lesson_versions (
       lesson_id, version_number, status
     )
-    values (910003, 2, 'draft');
-    raise exception
-      'Duplicate lesson version number was accepted';
-  exception
-    when unique_violation then
-      null;
-  end;
+    values (910003, 2, 'draft')
+  $test$,
+  '23505',
+  'duplicate lesson version numbers are rejected'
+);
 
-  begin
-    perform public.publish_lesson_version(910015);
-    raise exception
-      'A second published version was accepted';
-  exception
-    when unique_violation then
-      null;
-  end;
+select throws_ok(
+  $test$
+    select public.publish_lesson_version(910015)
+  $test$,
+  '23505',
+  'a second published version is rejected'
+);
 
-  if not pg_catalog.has_function_privilege(
-      'anon',
-      'public.get_published_learning_catalog(integer)',
-      'EXECUTE'
-    )
-    or not pg_catalog.has_function_privilege(
-      'anon',
-      'public.get_published_lesson(bigint,integer)',
-      'EXECUTE'
-    )
-    or not pg_catalog.has_function_privilege(
-      'authenticated',
-      'public.get_published_learning_catalog(integer)',
-      'EXECUTE'
-    )
-    or not pg_catalog.has_function_privilege(
-      'authenticated',
-      'public.get_published_lesson(bigint,integer)',
-      'EXECUTE'
-    )
-    or not pg_catalog.has_function_privilege(
-      'service_role',
-      'public.get_published_learning_catalog(integer)',
-      'EXECUTE'
-    )
-    or not pg_catalog.has_function_privilege(
-      'service_role',
-      'public.get_published_lesson(bigint,integer)',
-      'EXECUTE'
-    )
-  then
-    raise exception
-      'Public learner RPC grants are incomplete';
-  end if;
+select ok(
+  pg_catalog.has_function_privilege(
+    'anon',
+    'public.get_published_learning_catalog(integer)',
+    'EXECUTE'
+  ),
+  'anon can execute catalog RPC'
+);
 
-  if exists (
+select ok(
+  pg_catalog.has_function_privilege(
+    'anon',
+    'public.get_published_lesson(bigint,integer)',
+    'EXECUTE'
+  ),
+  'anon can execute lesson RPC'
+);
+
+select ok(
+  pg_catalog.has_function_privilege(
+    'authenticated',
+    'public.get_published_learning_catalog(integer)',
+    'EXECUTE'
+  ),
+  'authenticated can execute catalog RPC'
+);
+
+select ok(
+  pg_catalog.has_function_privilege(
+    'authenticated',
+    'public.get_published_lesson(bigint,integer)',
+    'EXECUTE'
+  ),
+  'authenticated can execute lesson RPC'
+);
+
+select ok(
+  pg_catalog.has_function_privilege(
+    'service_role',
+    'public.get_published_learning_catalog(integer)',
+    'EXECUTE'
+  ),
+  'service_role can execute catalog RPC'
+);
+
+select ok(
+  pg_catalog.has_function_privilege(
+    'service_role',
+    'public.get_published_lesson(bigint,integer)',
+    'EXECUTE'
+  ),
+  'service_role can execute lesson RPC'
+);
+
+select ok(
+  not exists (
     select 1
     from pg_catalog.pg_proc as procedure
     cross join lateral pg_catalog.aclexplode(
@@ -349,93 +493,211 @@ begin
         )
       )
     ) as privilege
-    where procedure.oid in (
-      'public.get_published_learning_catalog(integer)'::regprocedure,
-      'public.get_published_lesson(bigint,integer)'::regprocedure
-    )
+    where procedure.oid =
+      'public.get_published_learning_catalog(integer)'::regprocedure
       and privilege.grantee = 0
       and privilege.privilege_type = 'EXECUTE'
-  )
-  then
-    raise exception
-      'PUBLIC can execute a learner delivery RPC';
-  end if;
+  ),
+  'PUBLIC cannot execute catalog RPC'
+);
 
-  if exists (
+select ok(
+  not exists (
     select 1
-    from (
-      values
-        (
-          'public.learner_public_media_projection(uuid)'
-        ),
-        (
-          'public.learner_safe_questions_projection(bigint)'
-        ),
-        (
-          'public.learner_published_activity_projection(bigint)'
+    from pg_catalog.pg_proc as procedure
+    cross join lateral pg_catalog.aclexplode(
+      coalesce(
+        procedure.proacl,
+        pg_catalog.acldefault(
+          'f',
+          procedure.proowner
         )
-    ) as helper(signature)
-    cross join (
-      values ('anon'), ('authenticated'), ('service_role')
-    ) as api_role(name)
-    where pg_catalog.has_function_privilege(
-      api_role.name,
-      helper.signature,
-      'EXECUTE'
-    )
-  )
-  then
-    raise exception
-      'An API role can execute an internal projection helper';
-  end if;
+      )
+    ) as privilege
+    where procedure.oid =
+      'public.get_published_lesson(bigint,integer)'::regprocedure
+      and privilege.grantee = 0
+      and privilege.privilege_type = 'EXECUTE'
+  ),
+  'PUBLIC cannot execute lesson RPC'
+);
 
-  if pg_catalog.has_table_privilege(
-      'anon',
-      'public.questions',
-      'SELECT'
-    )
-    or pg_catalog.has_table_privilege(
-      'anon',
-      'public.question_options',
-      'SELECT'
-    )
-  then
-    raise exception
-      'Learner roles can read protected quiz base tables';
-  end if;
-end;
-$$;
+select ok(
+  not pg_catalog.has_function_privilege(
+    'anon',
+    'public.learner_public_media_projection(uuid)',
+    'EXECUTE'
+  ),
+  'anon cannot execute media helper'
+);
+
+select ok(
+  not pg_catalog.has_function_privilege(
+    'authenticated',
+    'public.learner_public_media_projection(uuid)',
+    'EXECUTE'
+  ),
+  'authenticated cannot execute media helper'
+);
+
+select ok(
+  not pg_catalog.has_function_privilege(
+    'service_role',
+    'public.learner_public_media_projection(uuid)',
+    'EXECUTE'
+  ),
+  'service_role cannot execute media helper'
+);
+
+select ok(
+  not pg_catalog.has_function_privilege(
+    'anon',
+    'public.learner_safe_questions_projection(bigint)',
+    'EXECUTE'
+  ),
+  'anon cannot execute question helper'
+);
+
+select ok(
+  not pg_catalog.has_function_privilege(
+    'authenticated',
+    'public.learner_safe_questions_projection(bigint)',
+    'EXECUTE'
+  ),
+  'authenticated cannot execute question helper'
+);
+
+select ok(
+  not pg_catalog.has_function_privilege(
+    'service_role',
+    'public.learner_safe_questions_projection(bigint)',
+    'EXECUTE'
+  ),
+  'service_role cannot execute question helper'
+);
+
+select ok(
+  not pg_catalog.has_function_privilege(
+    'anon',
+    'public.learner_published_activity_projection(bigint)',
+    'EXECUTE'
+  ),
+  'anon cannot execute activity helper'
+);
+
+select ok(
+  not pg_catalog.has_function_privilege(
+    'authenticated',
+    'public.learner_published_activity_projection(bigint)',
+    'EXECUTE'
+  ),
+  'authenticated cannot execute activity helper'
+);
+
+select ok(
+  not pg_catalog.has_function_privilege(
+    'service_role',
+    'public.learner_published_activity_projection(bigint)',
+    'EXECUTE'
+  ),
+  'service_role cannot execute activity helper'
+);
+
+select ok(
+  not pg_catalog.has_table_privilege(
+    'anon',
+    'public.questions',
+    'SELECT'
+  ),
+  'anon has no direct question table privilege'
+);
+
+select ok(
+  not pg_catalog.has_table_privilege(
+    'anon',
+    'public.question_options',
+    'SELECT'
+  ),
+  'anon has no direct option table privilege'
+);
 
 set local role anon;
-select public.get_published_learning_catalog(1);
-select public.get_published_lesson(910003, 1);
+
+select lives_ok(
+  $test$
+    select public.get_published_learning_catalog(1)
+  $test$,
+  'anon can call catalog RPC'
+);
+
+select lives_ok(
+  $test$
+    select public.get_published_lesson(910003, 1)
+  $test$,
+  'anon can call lesson RPC'
+);
+
 reset role;
 
 set local role authenticated;
-select pg_catalog.set_config(
-  'request.jwt.claim.sub',
-  '91000000-0000-4000-8000-000000000099',
-  true
+
+set local request.jwt.claim.sub =
+  '91000000-0000-4000-8000-000000000099';
+
+select lives_ok(
+  $test$
+    select public.get_published_learning_catalog(1)
+  $test$,
+  'ordinary authenticated user can call catalog RPC'
 );
-select public.get_published_learning_catalog(1);
-select public.get_published_lesson(910003, 1);
-do $$
-begin
-  if exists (select 1 from public.questions)
-    or exists (
-      select 1 from public.question_options
-    )
-  then
-    raise exception
-      'Ordinary authenticated role can read quiz base rows';
-  end if;
-end;
-$$;
+
+select lives_ok(
+  $test$
+    select public.get_published_lesson(910003, 1)
+  $test$,
+  'ordinary authenticated user can call lesson RPC'
+);
+
+select results_eq(
+  $test$
+    select id from public.questions
+  $test$,
+  $test$
+    select null::bigint where false
+  $test$,
+  'ordinary authenticated user sees no question rows through RLS'
+);
+
+select results_eq(
+  $test$
+    select id from public.question_options
+  $test$,
+  $test$
+    select null::bigint where false
+  $test$,
+  'ordinary authenticated user sees no option rows through RLS'
+);
+
 reset role;
 
 set local role service_role;
-select public.get_published_learning_catalog(1);
-select public.get_published_lesson(910003, 1);
+
+select lives_ok(
+  $test$
+    select public.get_published_learning_catalog(1)
+  $test$,
+  'service_role can call catalog RPC'
+);
+
+select lives_ok(
+  $test$
+    select public.get_published_lesson(910003, 1)
+  $test$,
+  'service_role can call lesson RPC'
+);
+
 reset role;
+
+select * from finish();
 
 rollback;
