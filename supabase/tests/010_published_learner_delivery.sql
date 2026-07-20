@@ -338,11 +338,14 @@ select ok(
   'AI mission projection excludes unknown private fields'
 );
 
-select is_deeply(
-  public.get_published_lesson(919999, 1)
-    - 'generatedAt',
-  public.get_published_lesson(910012, 1)
-    - 'generatedAt',
+select ok(
+  (
+    public.get_published_lesson(919999, 1)
+      - 'generatedAt'
+  ) = (
+    public.get_published_lesson(910012, 1)
+      - 'generatedAt'
+  ),
   'nonexistent and unpublished lessons are indistinguishable'
 );
 
@@ -353,43 +356,58 @@ select is(
   'unpublished lesson is hidden'
 );
 
-select is_deeply(
-  public.get_published_lesson(919999, 1)
-    - 'generatedAt',
-  public.get_published_lesson(910013, 1)
-    - 'generatedAt',
+select ok(
+  (
+    public.get_published_lesson(919999, 1)
+      - 'generatedAt'
+  ) = (
+    public.get_published_lesson(910013, 1)
+      - 'generatedAt'
+  ),
   'archived lesson is hidden'
 );
 
-select is_deeply(
-  public.get_published_lesson(919999, 1)
-    - 'generatedAt',
-  public.get_published_lesson(910103, 1)
-    - 'generatedAt',
+select ok(
+  (
+    public.get_published_lesson(919999, 1)
+      - 'generatedAt'
+  ) = (
+    public.get_published_lesson(910103, 1)
+      - 'generatedAt'
+  ),
   'unpublished course hides its lesson'
 );
 
-select is_deeply(
-  public.get_published_lesson(919999, 1)
-    - 'generatedAt',
-  public.get_published_lesson(910203, 1)
-    - 'generatedAt',
+select ok(
+  (
+    public.get_published_lesson(919999, 1)
+      - 'generatedAt'
+  ) = (
+    public.get_published_lesson(910203, 1)
+      - 'generatedAt'
+  ),
   'archived course hides its lesson'
 );
 
-select is_deeply(
-  public.get_published_lesson(919999, 1)
-    - 'generatedAt',
-  public.get_published_lesson(910304, 1)
-    - 'generatedAt',
+select ok(
+  (
+    public.get_published_lesson(919999, 1)
+      - 'generatedAt'
+  ) = (
+    public.get_published_lesson(910304, 1)
+      - 'generatedAt'
+  ),
   'unpublished unit hides its lesson'
 );
 
-select is_deeply(
-  public.get_published_lesson(919999, 1)
-    - 'generatedAt',
-  public.get_published_lesson(910305, 1)
-    - 'generatedAt',
+select ok(
+  (
+    public.get_published_lesson(919999, 1)
+      - 'generatedAt'
+  ) = (
+    public.get_published_lesson(910305, 1)
+      - 'generatedAt'
+  ),
   'archived unit hides its lesson'
 );
 
