@@ -7,6 +7,7 @@ import {
 } from "react";
 import {
   Link,
+  useNavigate,
   useParams,
 } from "react-router-dom";
 
@@ -30,6 +31,8 @@ import {
   updateAdminLesson,
   type AdminLesson,
 } from "./adminLessonService";
+import LessonCreationDialog from "./LessonCreationDialog";
+import { canStartLessonCreation } from "./lessonCreationState";
 
 type FormState =
   | { mode: "closed" }
@@ -76,9 +79,12 @@ function UnitLessonsContent({
   courseId,
   unitId,
 }: UnitLessonsContentProps) {
+  const navigate = useNavigate();
   const { canEditDrafts } =
     useAdminPermissions();
   const isActiveRef = useRef(true);
+  const saveInFlightRef = useRef(false);
+  const creationCompletedRef = useRef(false);
   const [course, setCourse] =
     useState<AdminCourse | null>(null);
   const [unit, setUnit] =
@@ -97,6 +103,8 @@ function UnitLessonsContent({
   const [formState, setFormState] =
     useState<FormState>({ mode: "closed" });
   const [errorMessage, setErrorMessage] =
+    useState<string | null>(null);
+  const [formErrorMessage, setFormErrorMessage] =
     useState<string | null>(null);
 
   const applyHierarchy = useCallback(
@@ -178,8 +186,15 @@ function UnitLessonsContent({
   async function handleSave(
     input: HierarchyItemInput
   ) {
+    if (formState.mode === "closed" || saveInFlightRef.current) return;
+    if (
+      formState.mode === "create" &&
+      !canStartLessonCreation(isSaving, creationCompletedRef.current)
+    ) return;
+
+    saveInFlightRef.current = true;
     setIsSaving(true);
-    setErrorMessage(null);
+    setFormErrorMessage(null);
 
     try {
       if (formState.mode === "edit") {
@@ -217,6 +232,7 @@ function UnitLessonsContent({
           isActiveRef.current &&
           createdLesson.unitId === unitId
         ) {
+          creationCompletedRef.current = true;
           setLessons((current) =>
             [...current, createdLesson].sort(
               (first, second) =>
@@ -224,6 +240,11 @@ function UnitLessonsContent({
                 second.position
             )
           );
+          setFormState({ mode: "closed" });
+          navigate(
+            `/admin/courses/${courseId}/units/${unitId}/lessons/${createdLesson.id}/studio`
+          );
+          return;
         }
       }
 
@@ -232,9 +253,13 @@ function UnitLessonsContent({
       }
     } catch (error) {
       if (isActiveRef.current) {
-        setErrorMessage(getErrorMessage(error));
+        void error;
+        setFormErrorMessage(
+          "The lesson could not be saved. Your changes are still here. Please try again."
+        );
       }
     } finally {
+      saveInFlightRef.current = false;
       if (isActiveRef.current) {
         setIsSaving(false);
       }
@@ -304,7 +329,7 @@ function UnitLessonsContent({
         description={unit?.description || "Manage the ordered lessons and open the authoring studio."}
         breadcrumbs={[{ label: "Courses", to: "/admin/courses" }, { label: course?.title ?? "Course", to: `/admin/courses/${courseId}` }, { label: unit?.title ?? "Unit" }]}
         meta={unit ? <StatusBadge status={unit.status} /> : undefined}
-        actions={<><ButtonLink icon="arrow-left" variant="secondary" to={`/admin/courses/${courseId}`}>Back to curriculum</ButtonLink>{canEditDrafts && course?.status === "draft" && unit?.status === "draft" && <Button icon="plus" onClick={() => setFormState({ mode: "create" })}>Create lesson</Button>}</>}
+        actions={<><ButtonLink icon="arrow-left" variant="secondary" to={`/admin/courses/${courseId}`}>Back to curriculum</ButtonLink>{canEditDrafts && course?.status === "draft" && unit?.status === "draft" && <Button icon="plus" onClick={() => { creationCompletedRef.current = false; setFormErrorMessage(null); setFormState({ mode: "create" }); }}>Create lesson</Button>}</>}
       />
       {(!canEditDrafts || course?.status !== "draft" || unit?.status !== "draft") && <div className="mt-5"><Alert>{course?.status === "draft" && unit?.status === "draft" ? "Your role has view-only access to draft lessons." : "This hierarchy is sealed. Its lessons are read only."}</Alert></div>}
 
@@ -314,7 +339,7 @@ function UnitLessonsContent({
 
       <Card className="mt-8 overflow-hidden">
         {lessons.length === 0 ? (
-          <EmptyState title="No lessons yet" description="Add the first draft lesson to begin authoring this unit." action={canEditDrafts && course?.status === "draft" && unit?.status === "draft" ? <Button icon="plus" onClick={() => setFormState({ mode: "create" })}>Create lesson</Button> : undefined} />
+          <EmptyState title="No lessons yet" description="Add the first draft lesson to begin authoring this unit." action={canEditDrafts && course?.status === "draft" && unit?.status === "draft" ? <Button icon="plus" onClick={() => { creationCompletedRef.current = false; setFormErrorMessage(null); setFormState({ mode: "create" }); }}>Create lesson</Button> : undefined} />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-3xl text-left">
@@ -367,12 +392,13 @@ function UnitLessonsContent({
                           <>
                             <button
                               type="button"
-                              onClick={() =>
+                              onClick={() => {
+                                setFormErrorMessage(null);
                                 setFormState({
                                   mode: "edit",
                                   lesson,
-                                })
-                              }
+                                });
+                              }}
                               className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
                             >
                               Edit
@@ -412,19 +438,30 @@ function UnitLessonsContent({
         )}
       </Card>
 
-      {formState.mode !== "closed" && (
-        <HierarchyItemForm
-          itemType="lesson"
-          item={
-            formState.mode === "edit"
-              ? formState.lesson
-              : null
-          }
+      {formState.mode === "create" && (
+        <LessonCreationDialog
           nextPosition={nextPosition}
           isSaving={isSaving}
-          onCancel={() =>
-            setFormState({ mode: "closed" })
-          }
+          errorMessage={formErrorMessage}
+          onClose={() => {
+            setFormErrorMessage(null);
+            setFormState({ mode: "closed" });
+          }}
+          onSubmit={(input) => void handleSave(input)}
+        />
+      )}
+
+      {formState.mode === "edit" && (
+        <HierarchyItemForm
+          itemType="lesson"
+          item={formState.lesson}
+          nextPosition={nextPosition}
+          isSaving={isSaving}
+          errorMessage={formErrorMessage}
+          onCancel={() => {
+            setFormErrorMessage(null);
+            setFormState({ mode: "closed" });
+          }}
           onSubmit={(input) =>
             void handleSave(input)
           }
