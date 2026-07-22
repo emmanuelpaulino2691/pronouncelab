@@ -378,10 +378,11 @@ function Studio({
                   >
                     <button
                       type="button"
+                      aria-pressed={selectedId === activity.id}
                       onClick={() =>
                         setSelectedId(activity.id)
                       }
-                      className="w-full text-left"
+                      className="admin-focus min-h-11 w-full rounded-lg text-left"
                     >
                       <span className="text-xs font-semibold uppercase text-blue-600">
                         {index + 1} ·{" "}
@@ -390,30 +391,34 @@ function Studio({
                       <span className="mt-1 block text-sm font-semibold text-slate-900">
                         {activity.title}
                       </span>
+                      {selectedId === activity.id && <span className="mt-1 block text-xs font-semibold text-blue-800">Selected activity</span>}
                     </button>
                     {editable && (
-                      <div className="mt-3 flex flex-wrap gap-1">
+                      <div className="mt-3 flex flex-wrap gap-2">
                         <button
                           type="button"
+                          aria-label={`Move ${activity.title} up`}
                           disabled={busy || index === 0}
                           onClick={() => move(activity.id, -1)}
-                          className="rounded border px-2 py-1 text-xs disabled:opacity-30"
+                          className="admin-focus min-h-10 rounded-lg border px-3 py-2 text-xs disabled:opacity-40"
                         >
                           Up
                         </button>
                         <button
                           type="button"
+                          aria-label={`Move ${activity.title} down`}
                           disabled={
                             busy ||
                             index === activities.length - 1
                           }
                           onClick={() => move(activity.id, 1)}
-                          className="rounded border px-2 py-1 text-xs disabled:opacity-30"
+                          className="admin-focus min-h-10 rounded-lg border px-3 py-2 text-xs disabled:opacity-40"
                         >
                           Down
                         </button>
                         <button
                           type="button"
+                          aria-label={`Duplicate ${activity.title}`}
                           disabled={busy || !version}
                           onClick={() => {
                             if (!version) return;
@@ -433,12 +438,13 @@ function Studio({
                               }
                             );
                           }}
-                          className="rounded border px-2 py-1 text-xs"
+                          className="admin-focus min-h-10 rounded-lg border px-3 py-2 text-xs"
                         >
                           Duplicate
                         </button>
                         <button
                           type="button"
+                          aria-label={`Delete ${activity.title}`}
                           disabled={busy || !version}
                           onClick={() => {
                             if (
@@ -467,7 +473,7 @@ function Studio({
                               }
                             );
                           }}
-                          className="rounded border border-red-200 px-2 py-1 text-xs text-red-700"
+                          className="admin-focus min-h-10 rounded-lg border border-red-200 px-3 py-2 text-xs text-red-700"
                         >
                           Delete
                         </button>

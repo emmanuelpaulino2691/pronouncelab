@@ -186,6 +186,7 @@ export function Dialog({
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
+        aria-busy={preventClose || undefined}
         aria-labelledby={titleId}
         aria-describedby={
           description ? descriptionId : undefined
@@ -214,10 +215,10 @@ export function Dialog({
             type="button"
             variant="ghost"
             icon="close"
-            aria-label="Close dialog"
+            aria-label={`Close ${title}`}
             disabled={preventClose}
             onClick={requestClose}
-            className="shrink-0 px-3"
+            className="min-h-11 min-w-11 shrink-0 px-3"
           >
             <span className="sr-only">Close</span>
           </Button>

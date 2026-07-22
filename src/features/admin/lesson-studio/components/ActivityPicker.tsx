@@ -57,6 +57,7 @@ export default function ActivityPicker({ onClose, onCreate }: ActivityPickerProp
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {activityCatalog.map((activity, index) => {
           const selected = state.selectedType === activity.type;
+          const descriptionId = `${activity.type}-activity-description`;
           return (
             <Card
               key={activity.type}
@@ -70,13 +71,15 @@ export default function ActivityPicker({ onClose, onCreate }: ActivityPickerProp
                 <Badge tone={activity.category === "AI" ? "info" : "neutral"}>{activity.category}</Badge>
               </div>
               <h3 className="mt-4 text-base font-bold text-slate-950">{activity.title}</h3>
-              <p className="mt-2 flex-1 text-sm leading-6 text-slate-600">{activity.description}</p>
+              <p id={descriptionId} className="mt-2 flex-1 text-sm leading-6 text-slate-600">{activity.description}</p>
+              {selected && <div className="mt-3"><Badge tone="info">Selected</Badge></div>}
               {activity.canCreate ? (
                 <button
                   ref={index === 0 ? firstChoiceRef : undefined}
                   type="button"
-                  className="admin-focus mt-5 inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="admin-focus mt-5 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
                   disabled={isSubmitting}
+                  aria-describedby={descriptionId}
                   onClick={() => void create(activity.type)}
                 >
                   {isSubmitting && selected && <Spinner />}
@@ -85,7 +88,7 @@ export default function ActivityPicker({ onClose, onCreate }: ActivityPickerProp
               ) : (
                 <div className="mt-5">
                   <p className="mb-2 text-xs font-semibold text-slate-600">Existing Practice activities can still be edited</p>
-                  <Button type="button" variant="secondary" className="w-full" disabled aria-disabled="true">
+                  <Button type="button" variant="secondary" className="w-full" disabled aria-disabled="true" aria-describedby={descriptionId}>
                     Cannot add new Practice
                   </Button>
                 </div>

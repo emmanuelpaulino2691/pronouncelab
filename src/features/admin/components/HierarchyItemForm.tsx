@@ -57,6 +57,7 @@ function HierarchyItemForm({
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
   const displayType = itemType === "unit" ? "Unit" : "Lesson";
   const titleError = input.title.trim() ? "" : `Add a ${itemType} title.`;
+  const showTitleError = Boolean(attemptedSubmit && titleError);
   const isDirty = !inputsMatch(input, initialInput);
 
   function mayLeave() {
@@ -108,7 +109,7 @@ function HierarchyItemForm({
           label={`${displayType} title`}
           htmlFor={`${formId}-title`}
           required
-          error={attemptedSubmit ? titleError : undefined}
+          error={showTitleError ? titleError : undefined}
         >
           <TextInput
             ref={titleRef}
@@ -116,13 +117,15 @@ function HierarchyItemForm({
             required
             value={input.title}
             onChange={(event) => setInput((current) => ({ ...current, title: event.target.value }))}
-            aria-invalid={Boolean(attemptedSubmit && titleError)}
+            aria-invalid={showTitleError}
+            aria-describedby={showTitleError ? `${formId}-title-error` : undefined}
             placeholder={`${displayType} title`}
           />
         </FormField>
-        <FormField label="Description" htmlFor={`${formId}-description`} hint={`Briefly explain the purpose of this ${itemType}.`}>
+        <FormField label="Description (optional)" htmlFor={`${formId}-description`} hint={`Briefly explain the purpose of this ${itemType}.`}>
           <TextArea
             id={`${formId}-description`}
+            aria-describedby={`${formId}-description-hint`}
             value={input.description}
             onChange={(event) => setInput((current) => ({ ...current, description: event.target.value }))}
             placeholder={`Describe this ${itemType}.`}
@@ -131,6 +134,7 @@ function HierarchyItemForm({
         <FormField label="Position" htmlFor={`${formId}-position`} hint={`Choose where this ${itemType} appears in the learning order.`} required>
           <TextInput
             id={`${formId}-position`}
+            aria-describedby={`${formId}-position-hint`}
             required
             type="number"
             min={0}

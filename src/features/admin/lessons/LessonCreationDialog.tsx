@@ -55,13 +55,14 @@ function LessonCreationDialog({
       <div className="grid gap-4 sm:grid-cols-2">
         <Card className="flex min-w-0 flex-col p-5">
           <h3 className="text-lg font-bold text-slate-950">Blank Lesson</h3>
-          <p className="mt-2 flex-1 text-sm leading-6 text-slate-600">
+          <p id="blank-lesson-description" className="mt-2 flex-1 text-sm leading-6 text-slate-600">
             Start with an empty draft and add the title, description, and learning order yourself.
           </p>
           <button
             ref={blankLessonRef}
             type="button"
-            className="admin-focus mt-5 inline-flex min-h-10 w-full items-center justify-center rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
+            className="admin-focus mt-5 inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
+            aria-describedby="blank-lesson-description"
             onClick={() => setStage(chooseBlankLesson())}
           >
             Start blank lesson
@@ -76,10 +77,10 @@ function LessonCreationDialog({
             <h3 className="text-lg font-bold text-slate-700">Lesson from Template</h3>
             <Badge tone="neutral">Coming later</Badge>
           </div>
-          <p className="mt-2 flex-1 text-sm leading-6 text-slate-600">
+          <p id="template-lesson-description" className="mt-2 flex-1 text-sm leading-6 text-slate-600">
             Official PronounceLab templates will provide a guided lesson structure while keeping the content editable.
           </p>
-          <Button type="button" variant="secondary" className="mt-5 w-full" disabled aria-disabled="true">
+          <Button type="button" variant="secondary" className="mt-5 w-full" disabled aria-disabled="true" aria-describedby="template-lesson-description">
             Not available yet
           </Button>
         </Card>

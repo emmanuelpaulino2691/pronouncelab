@@ -61,7 +61,7 @@ function AdminSidebar({ isOpen, onClose }: Props) {
       {isOpen && <button type="button" aria-label="Close navigation" onClick={onClose} className="fixed inset-0 z-40 bg-slate-950/55 backdrop-blur-[2px] lg:hidden" />}
       <aside
         aria-label="Content Studio navigation"
-        className={`fixed inset-y-0 left-0 z-50 flex w-[min(86vw,18rem)] flex-col bg-slate-950 text-white shadow-2xl transition-transform duration-200 lg:sticky lg:top-0 lg:z-20 lg:h-screen lg:w-72 lg:translate-x-0 lg:shadow-none ${isOpen ? "translate-x-0" : "-translate-x-full"}`}
+        className={`fixed inset-y-0 left-0 z-50 flex w-[min(86vw,18rem)] flex-col bg-slate-950 text-white shadow-2xl transition-transform duration-200 motion-reduce:transition-none lg:sticky lg:top-0 lg:z-20 lg:h-screen lg:w-72 lg:translate-x-0 lg:shadow-none ${isOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
         <div className="flex items-start justify-between border-b border-slate-800 px-6 py-6">
           <div>
@@ -71,7 +71,7 @@ function AdminSidebar({ isOpen, onClose }: Props) {
             </div>
             <p className="mt-5 text-xs font-bold uppercase tracking-[0.2em] text-blue-400">Content Studio</p>
           </div>
-          <button autoFocus={isOpen} type="button" aria-label="Close menu" onClick={onClose} className="admin-focus rounded-lg p-2 text-slate-400 hover:bg-slate-800 hover:text-white lg:hidden">
+          <button autoFocus={isOpen} type="button" aria-label="Close menu" onClick={onClose} className="admin-focus min-h-11 min-w-11 rounded-lg p-2 text-slate-400 hover:bg-slate-800 hover:text-white lg:hidden">
             <AdminIcon name="close" className="h-5 w-5" />
           </button>
         </div>

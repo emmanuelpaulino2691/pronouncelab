@@ -82,6 +82,8 @@ function CourseForm({
     : slugPattern.test(input.slug.trim())
       ? ""
       : "Use lowercase letters, numbers, and single hyphens only.";
+  const showTitleError = Boolean((attemptedSubmit || touched.title) && titleError);
+  const showSlugError = Boolean((attemptedSubmit || touched.slug) && slugError);
   const hasUnsavedChanges = !areCourseInputsEqual(input, initialInput);
 
   function requestClose() {
@@ -154,7 +156,7 @@ function CourseForm({
               htmlFor={`${formId}-title`}
               required
               hint="Use a short, specific title that describes the learning focus."
-              error={(attemptedSubmit || touched.title) ? titleError : undefined}
+              error={showTitleError ? titleError : undefined}
             >
               <TextInput
                 ref={titleRef}
@@ -163,7 +165,8 @@ function CourseForm({
                 value={input.title}
                 onBlur={() => setTouched((current) => ({ ...current, title: true }))}
                 onChange={(event) => handleTitleChange(event.target.value)}
-                aria-invalid={Boolean((attemptedSubmit || touched.title) && titleError)}
+                aria-invalid={showTitleError}
+                aria-describedby={`${formId}-title-${showTitleError ? "error" : "hint"}`}
                 placeholder="English Pronunciation"
               />
             </FormField>
@@ -181,17 +184,19 @@ function CourseForm({
             <p className="mt-1 text-sm text-slate-600">Describe the learning experience and its intended level.</p>
           </div>
           <div className="grid gap-5 sm:grid-cols-2">
-            <FormField label="Description" htmlFor={`${formId}-description`} hint="Explain what learners will understand or practise.">
+            <FormField label="Description (optional)" htmlFor={`${formId}-description`} hint="Explain what learners will understand or practise.">
               <TextArea
                 id={`${formId}-description`}
+                aria-describedby={`${formId}-description-hint`}
                 value={input.description}
                 onChange={(event) => setInput((current) => ({ ...current, description: event.target.value }))}
                 placeholder="What learners will achieve in this course."
               />
             </FormField>
-            <FormField label="Level" htmlFor={`${formId}-level`} hint="For example: Beginner, Intermediate, or All levels.">
+            <FormField label="Level (optional)" htmlFor={`${formId}-level`} hint="For example: Beginner, Intermediate, or All levels.">
               <TextInput
                 id={`${formId}-level`}
+                aria-describedby={`${formId}-level-hint`}
                 value={input.level}
                 onChange={(event) => setInput((current) => ({ ...current, level: event.target.value }))}
                 placeholder="Beginner"
@@ -210,7 +215,7 @@ function CourseForm({
             htmlFor={`${formId}-slug`}
             required
             hint="Use lowercase letters, numbers, and hyphens."
-            error={(attemptedSubmit || touched.slug) ? slugError : undefined}
+            error={showSlugError ? slugError : undefined}
           >
             <div className="flex flex-col gap-2 sm:flex-row">
               <TextInput
@@ -223,7 +228,8 @@ function CourseForm({
                   setSlugState(next);
                   setInput((current) => ({ ...current, slug: next.slug }));
                 }}
-                aria-invalid={Boolean((attemptedSubmit || touched.slug) && slugError)}
+                aria-invalid={showSlugError}
+                aria-describedby={`${formId}-slug-${showSlugError ? "error" : "hint"}`}
                 pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
                 placeholder="english-pronunciation"
               />

@@ -30,7 +30,7 @@ function AdminLayout() {
         <header className="sticky top-0 z-30 border-b border-slate-200/90 bg-white/95 px-4 py-3 backdrop-blur sm:px-7 lg:px-10">
           <div className="flex items-center justify-between gap-4">
             <div className="flex min-w-0 items-center gap-3">
-              <button ref={menuButtonRef} type="button" aria-label="Open navigation" aria-expanded={isMenuOpen} onClick={() => setIsMenuOpen(true)} className="admin-focus rounded-xl border border-slate-200 p-2.5 text-slate-700 hover:bg-slate-50 lg:hidden">
+              <button ref={menuButtonRef} type="button" aria-label="Open navigation" aria-expanded={isMenuOpen} onClick={() => setIsMenuOpen(true)} className="admin-focus min-h-11 min-w-11 rounded-xl border border-slate-200 p-2.5 text-slate-700 hover:bg-slate-50 lg:hidden">
                 <AdminIcon name="menu" className="h-5 w-5" />
               </button>
               <div className="min-w-0"><p className="truncate text-sm font-bold text-slate-900">{getPageContext(location.pathname)}</p><p className="hidden truncate text-xs text-slate-500 sm:block">Improve your English every day.</p></div>
