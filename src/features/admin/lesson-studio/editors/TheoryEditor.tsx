@@ -82,7 +82,7 @@ export default function TheoryEditor({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="font-semibold text-slate-950">
-            Theory blocks
+            Learning content
           </h2>
           <p className="mt-1 text-sm text-slate-500">
             Structured blocks supported by the current

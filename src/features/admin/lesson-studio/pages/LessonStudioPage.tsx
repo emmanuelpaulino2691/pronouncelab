@@ -69,6 +69,7 @@ function Studio({
   const active = useRef(true);
   const mutation = useRef(0);
   const activityCreationRef = useRef(false);
+  const mutationInFlightRef = useRef(false);
   const editorRef = useRef<HTMLElement>(null);
   const [course, setCourse] =
     useState<AdminCourse | null>(null);
@@ -174,6 +175,8 @@ function Studio({
     action: () => Promise<T>,
     apply: (value: T) => void
   ) {
+    if (mutationInFlightRef.current) return;
+    mutationInFlightRef.current = true;
     const request = mutation.current;
     setBusy(true);
     setSaved("Saving…");
@@ -197,6 +200,7 @@ function Studio({
         setSaved("Save failed");
       }
     } finally {
+      mutationInFlightRef.current = false;
       if (
         active.current &&
         request === mutation.current
@@ -430,11 +434,13 @@ function Studio({
                                   activity.type
                                 ),
                               (created) => {
-                                setActivities((current) => [
-                                  ...current,
-                                  created,
-                                ]);
+                                setActivities((current) =>
+                                  [...current, created].sort(
+                                    (first, second) => first.position - second.position
+                                  )
+                                );
                                 setSelectedId(created.id);
+                                window.requestAnimationFrame(() => editorRef.current?.focus());
                               }
                             );
                           }}
@@ -467,9 +473,9 @@ function Studio({
                                       item.id !== activity.id
                                   );
                                 setActivities(remaining);
-                                setSelectedId(
-                                  remaining[0]?.id ?? null
-                                );
+                                if (selectedId === activity.id) {
+                                  setSelectedId(remaining[0]?.id ?? null);
+                                }
                               }
                             );
                           }}

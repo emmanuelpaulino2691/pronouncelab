@@ -14,7 +14,7 @@ export const activityTypeLabels: Record<
   ActivityType,
   string
 > = {
-  theory: "Theory",
+  theory: "Learn",
   listening: "Listening",
   pronunciation: "Pronunciation",
   practice: "Practice",

@@ -57,4 +57,12 @@ describe("activityCatalog", () => {
       future: false,
     });
   });
+
+  it("presents the stored theory type as Learn", () => {
+    const learn = activityCatalog.find(
+      (activity) => activity.type === "theory"
+    );
+
+    expect(learn?.title).toBe("Learn");
+  });
 });

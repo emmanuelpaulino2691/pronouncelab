@@ -20,7 +20,7 @@ export type ActivityPresentation = {
 export const activityCatalog = [
   {
     type: "theory",
-    title: "Theory",
+    title: "Learn",
     description:
       "Introduce a new concept clearly and prepare students for practice.",
     icon: "theory",

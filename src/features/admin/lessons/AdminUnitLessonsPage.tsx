@@ -79,6 +79,7 @@ function UnitLessonsContent({
     useAdminPermissions();
   const isActiveRef = useRef(true);
   const saveInFlightRef = useRef(false);
+  const deleteInFlightRef = useRef(false);
   const creationCompletedRef = useRef(false);
   const [course, setCourse] =
     useState<AdminCourse | null>(null);
@@ -139,6 +140,7 @@ function UnitLessonsContent({
   }, [applyHierarchy, courseId, unitId]);
 
   useEffect(() => {
+    isActiveRef.current = true;
     let isActive = true;
 
     void getHierarchy(courseId, unitId)
@@ -262,6 +264,7 @@ function UnitLessonsContent({
   async function handleDelete(
     lesson: AdminLesson
   ) {
+    if (deleteInFlightRef.current) return;
     if (
       !window.confirm(
         `Delete the draft lesson "${lesson.title}"? This cannot be undone.`
@@ -270,6 +273,7 @@ function UnitLessonsContent({
       return;
     }
 
+    deleteInFlightRef.current = true;
     setDeletingLessonId(lesson.id);
     setErrorMessage(null);
 
@@ -290,6 +294,7 @@ function UnitLessonsContent({
         setErrorMessage("The lesson could not be deleted. Refresh the lesson list and try again.");
       }
     } finally {
+      deleteInFlightRef.current = false;
       if (isActiveRef.current) {
         setDeletingLessonId(null);
       }

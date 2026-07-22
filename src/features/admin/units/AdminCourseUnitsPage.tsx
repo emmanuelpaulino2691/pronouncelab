@@ -49,6 +49,8 @@ function CourseUnitsContent({
   const { canEditDrafts } =
     useAdminPermissions();
   const isActiveRef = useRef(true);
+  const saveInFlightRef = useRef(false);
+  const deleteInFlightRef = useRef(false);
   const [course, setCourse] =
     useState<AdminCourse | null>(null);
   const [units, setUnits] = useState<
@@ -96,6 +98,7 @@ function CourseUnitsContent({
   }, [courseId]);
 
   useEffect(() => {
+    isActiveRef.current = true;
     let isActive = true;
 
     void Promise.all([
@@ -138,6 +141,8 @@ function CourseUnitsContent({
   async function handleSave(
     input: HierarchyItemInput
   ) {
+    if (formState.mode === "closed" || saveInFlightRef.current) return;
+    saveInFlightRef.current = true;
     setIsSaving(true);
     setFormErrorMessage(null);
 
@@ -193,6 +198,7 @@ function CourseUnitsContent({
         setFormErrorMessage("The unit could not be saved. Your changes are still here. Try again.");
       }
     } finally {
+      saveInFlightRef.current = false;
       if (isActiveRef.current) {
         setIsSaving(false);
       }
@@ -200,6 +206,7 @@ function CourseUnitsContent({
   }
 
   async function handleDelete(unit: AdminUnit) {
+    if (deleteInFlightRef.current) return;
     if (
       !window.confirm(
         `Delete the draft unit "${unit.title}"? This also removes its draft descendants.`
@@ -208,6 +215,7 @@ function CourseUnitsContent({
       return;
     }
 
+    deleteInFlightRef.current = true;
     setDeletingUnitId(unit.id);
     setErrorMessage(null);
 
@@ -225,6 +233,7 @@ function CourseUnitsContent({
         setErrorMessage("The unit could not be deleted. Refresh the curriculum and try again.");
       }
     } finally {
+      deleteInFlightRef.current = false;
       if (isActiveRef.current) {
         setDeletingUnitId(null);
       }
