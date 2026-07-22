@@ -17,6 +17,8 @@ import {
   type AdminUnit,
 } from "../../units/adminUnitService";
 import ActivityEditor from "../editors/ActivityEditor";
+import ActivityPicker from "../components/ActivityPicker";
+import { getActivityPresentation } from "../activityCatalog";
 import {
   createActivity,
   createDraftVersion,
@@ -28,8 +30,6 @@ import {
   updateActivity,
 } from "../services/lessonStudioService";
 import {
-  activityTypeLabels,
-  activityTypes,
   type ActivityType,
   type LessonActivity,
   type LessonVersion,
@@ -44,7 +44,6 @@ import {
   Card,
   LoadingSkeleton,
   PageHeader,
-  Select,
 } from "../../ui";
 
 function parseId(value: string | undefined) {
@@ -74,6 +73,8 @@ function Studio({
     useAdminPermissions();
   const active = useRef(true);
   const mutation = useRef(0);
+  const activityCreationRef = useRef(false);
+  const editorRef = useRef<HTMLElement>(null);
   const [course, setCourse] =
     useState<AdminCourse | null>(null);
   const [unit, setUnit] =
@@ -94,8 +95,7 @@ function Studio({
     null
   );
   const [saved, setSaved] = useState("All changes saved");
-  const [newType, setNewType] =
-    useState<ActivityType>("theory");
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
 
   useEffect(() => {
     active.current = true;
@@ -238,6 +238,41 @@ function Studio({
     );
   }
 
+  async function handleCreateActivity(type: ActivityType) {
+    if (!version || !editable || busy || activityCreationRef.current) {
+      throw new Error("Activity creation is not currently available.");
+    }
+
+    activityCreationRef.current = true;
+    const request = mutation.current;
+    const presentation = getActivityPresentation(type);
+    setBusy(true);
+    setSaved("Saving…");
+    setError(null);
+    try {
+      const created = await createActivity(
+        version.id,
+        type,
+        `New ${presentation.title.toLowerCase()} activity`
+      );
+      if (!active.current || request !== mutation.current) return;
+
+      setActivities((current) => [...current, created]);
+      setSelectedId(created.id);
+      setSaved("All changes saved");
+      setIsPickerOpen(false);
+      window.requestAnimationFrame(() => editorRef.current?.focus());
+    } catch (reason) {
+      if (active.current && request === mutation.current) {
+        setSaved("Save failed");
+      }
+      throw reason;
+    } finally {
+      activityCreationRef.current = false;
+      if (active.current && request === mutation.current) setBusy(false);
+    }
+  }
+
   if (loading) {
     return (
       <section className="mx-auto max-w-[1500px]" aria-busy="true">
@@ -314,51 +349,15 @@ function Studio({
           <aside className="self-start rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:sticky lg:top-24">
             <div className="flex items-center gap-2"><AdminIcon name="activity" className="h-5 w-5 text-blue-600" /><h2 className="font-semibold text-slate-950">Activities</h2></div>
             {editable && (
-              <div className="mt-4 flex gap-2">
-                <Select
-                  value={newType}
-                  disabled={busy}
-                  onChange={(event) =>
-                    setNewType(
-                      event.target.value as ActivityType
-                    )
-                  }
-                  className="min-w-0 flex-1"
-                >
-                  {activityTypes.map((type) => (
-                    <option key={type} value={type}>
-                      {activityTypeLabels[type]}
-                    </option>
-                  ))}
-                </Select>
-                <button
-                  type="button"
-                  disabled={busy || !version}
-                  onClick={() => {
-                    if (!version) return;
-                    void run(
-                      () =>
-                        createActivity(
-                          version.id,
-                          newType,
-                          `New ${activityTypeLabels[
-                            newType
-                          ].toLowerCase()} activity`
-                        ),
-                      (created) => {
-                        setActivities((current) => [
-                          ...current,
-                          created,
-                        ]);
-                        setSelectedId(created.id);
-                      }
-                    );
-                  }}
-                  className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-40"
-                >
-                  Add
-                </button>
-              </div>
+              <Button
+                type="button"
+                icon="plus"
+                className="mt-4 w-full"
+                disabled={busy || !version}
+                onClick={() => setIsPickerOpen(true)}
+              >
+                Add Activity
+              </Button>
             )}
             {activities.length === 0 ? (
               <p className="mt-5 rounded-xl bg-slate-50 p-4 text-sm text-slate-500">
@@ -385,7 +384,7 @@ function Studio({
                     >
                       <span className="text-xs font-semibold uppercase text-blue-600">
                         {index + 1} ·{" "}
-                        {activityTypeLabels[activity.type]}
+                        {getActivityPresentation(activity.type).title}
                       </span>
                       <span className="mt-1 block text-sm font-semibold text-slate-900">
                         {activity.title}
@@ -479,7 +478,7 @@ function Studio({
             )}
           </aside>
 
-          <main className="min-w-0">
+          <main ref={editorRef} tabIndex={-1} aria-label="Activity editor" className="admin-focus min-w-0 rounded-2xl">
             {selected && version ? (
               <ActivityEditor
                 key={selected.id}
@@ -510,6 +509,13 @@ function Studio({
             )}
           </main>
         </div>
+      )}
+
+      {isPickerOpen && editable && version && (
+        <ActivityPicker
+          onClose={() => setIsPickerOpen(false)}
+          onCreate={handleCreateActivity}
+        />
       )}
     </section>
   );

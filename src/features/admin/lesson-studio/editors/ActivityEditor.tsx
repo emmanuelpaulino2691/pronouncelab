@@ -56,11 +56,10 @@ export default function ActivityEditor({
       )}
       {activity.type === "practice" && (
         <section className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-600 shadow-sm">
-          Practice currently has no subtype or JSON
-          content fields in the database. Activity title
-          and required state are available above; exercise
-          authoring is deferred until the schema supports
-          it.
+          <h2 className="font-semibold text-slate-950">Existing Practice activity</h2>
+          <p className="mt-2 leading-6">
+            This activity remains available for compatibility with existing lessons. You can update its title and required status above, while its existing lesson position and actions remain supported.
+          </p>
         </section>
       )}
       {activity.type === "quiz" && (

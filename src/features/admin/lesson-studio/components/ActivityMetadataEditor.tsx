@@ -1,5 +1,6 @@
 import { useState } from "react";
 
+import { getActivityPresentation } from "../activityCatalog";
 import type { LessonActivity } from "../types";
 
 type Props = {
@@ -37,7 +38,7 @@ export default function ActivityMetadataEditor({
           Activity settings
         </h2>
         <span className="text-xs font-medium uppercase tracking-wide text-slate-400">
-          {activity.type}
+          {getActivityPresentation(activity.type).title}
         </span>
       </div>
       <label className="mt-4 block text-sm font-medium text-slate-700">

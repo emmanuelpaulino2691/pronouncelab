@@ -85,3 +85,16 @@ export const activityCatalog = [
     future: false,
   },
 ] as const satisfies readonly ActivityPresentation[];
+
+export function getActivityPresentation(type: ActivityType): ActivityPresentation {
+  return activityCatalog.find((activity) => activity.type === type) ?? {
+    type,
+    title: "Unsupported activity",
+    description: "This activity remains visible so existing lesson content can be reviewed safely.",
+    icon: "activity",
+    category: "Core",
+    allowsMultiple: false,
+    canCreate: false,
+    future: false,
+  };
+}
