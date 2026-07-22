@@ -27,7 +27,7 @@ Activities should remain focused, predictable, and easy for teachers to understa
 
 ## Design Philosophy
 
-Activities represent learning experiences, not content containers. Their value comes from what students notice, practise, understand, or communicate while completing them.
+Activities represent learning experiences, not content containers. Their value comes from what students notice, practice, understand, or communicate while completing them.
 
 A lesson becomes meaningful by combining activities with different educational purposes. The sequence should help learners move from initial understanding toward increasingly independent language use. Every activity should answer one question:
 
@@ -41,7 +41,7 @@ If the expected learner action is unclear, the activity needs a stronger purpose
 - **Activities should be reusable.** A useful activity pattern should work across different topics, levels, and lesson contexts.
 - **Activities should be easy to recognize.** Teachers should understand what an activity is for before adding it to a lesson.
 - **Activities should support communication.** Even focused language work should contribute to meaningful understanding or expression.
-- **Activities should encourage active learning.** Students should listen, notice, choose, respond, practise, create, or reflect rather than only consume information.
+- **Activities should encourage active learning.** Students should listen, notice, choose, respond, practice, create, or reflect rather than only consume information.
 - **Simplicity is preferred over feature overload.** An activity should include only the capabilities needed to achieve its educational purpose.
 
 ## Official Activity Types
@@ -80,7 +80,7 @@ The following types define the intended PronounceLab activity system. They descr
 
 ### Vocabulary
 
-**Purpose:** Introduce and practise useful vocabulary in context.
+**Purpose:** Introduce and practice useful vocabulary in context.
 
 **Learning Goal:** Students understand selected words or phrases and can use them appropriately in meaningful situations.
 
@@ -96,7 +96,7 @@ The following types define the intended PronounceLab activity system. They descr
 
 **Learning Goal:** Students notice how a grammatical pattern expresses meaning and use it to communicate more clearly.
 
-**Typical Student Experience:** The student observes the pattern in context, compares examples, practises supported choices, and applies the structure to a meaningful message.
+**Typical Student Experience:** The student observes the pattern in context, compares examples, practices supported choices, and applies the structure to a meaningful message.
 
 **Typical Teacher Use:** The teacher begins with communicative purpose, explains only what learners need, and moves quickly from observation to use.
 
@@ -132,7 +132,7 @@ Interactive Practice is the intended unified practice activity. It replaces the 
 
 **Purpose:** Provide guided speaking practice through an external AI voice experience.
 
-**Learning Goal:** Students use lesson language in extended communication, practise speaking more independently, and identify a useful next step.
+**Learning Goal:** Students use lesson language in extended communication, practice speaking more independently, and identify a useful next step.
 
 **Typical Student Experience:** The student follows a clear mission, speaks with an external AI tool, and treats the resulting feedback as supportive guidance rather than an authoritative assessment.
 
@@ -164,7 +164,7 @@ This progression is a teaching guide, not a required template. Teachers may reor
 
 ## Choosing Activities
 
-Teachers should choose activities by starting with the learning objective: what should students understand, practise, or communicate by the end of the lesson? Each selected activity should make a necessary contribution to that outcome.
+Teachers should choose activities by starting with the learning objective: what should students understand, practice, or communicate by the end of the lesson? Each selected activity should make a necessary contribution to that outcome.
 
 A lesson does not need every available activity. Adding an activity without a clear purpose increases length and cognitive load without improving learning. Quality is more important than quantity, and a short, coherent sequence is better than a crowded lesson with repeated or disconnected tasks.
 
