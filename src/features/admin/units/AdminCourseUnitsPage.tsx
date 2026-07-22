@@ -32,11 +32,6 @@ type FormState =
   | { mode: "create" }
   | { mode: "edit"; unit: AdminUnit };
 
-function getErrorMessage(error: unknown) {
-  void error;
-  return "The course curriculum could not be updated. Refresh the curriculum and try again.";
-}
-
 function parseId(value: string | undefined) {
   const id = Number(value);
   return Number.isSafeInteger(id) && id > 0
@@ -69,6 +64,8 @@ function CourseUnitsContent({
     useState<FormState>({ mode: "closed" });
   const [errorMessage, setErrorMessage] =
     useState<string | null>(null);
+  const [formErrorMessage, setFormErrorMessage] =
+    useState<string | null>(null);
 
   const loadHierarchy = useCallback(async () => {
     setIsLoading(true);
@@ -87,9 +84,9 @@ function CourseUnitsContent({
         setCourse(loadedCourse);
         setUnits(loadedUnits);
       }
-    } catch (error) {
+    } catch {
       if (isActiveRef.current) {
-        setErrorMessage(getErrorMessage(error));
+        setErrorMessage("We couldn’t load this curriculum. Try again.");
       }
     } finally {
       if (isActiveRef.current) {
@@ -111,11 +108,9 @@ function CourseUnitsContent({
           setUnits(loadedUnits);
         }
       })
-      .catch((error: unknown) => {
+      .catch(() => {
         if (isActive) {
-          setErrorMessage(
-            getErrorMessage(error)
-          );
+          setErrorMessage("We couldn’t load this curriculum. Try again.");
         }
       })
       .finally(() => {
@@ -144,7 +139,7 @@ function CourseUnitsContent({
     input: HierarchyItemInput
   ) {
     setIsSaving(true);
-    setErrorMessage(null);
+    setFormErrorMessage(null);
 
     try {
       if (formState.mode === "edit") {
@@ -193,9 +188,9 @@ function CourseUnitsContent({
       if (isActiveRef.current) {
         setFormState({ mode: "closed" });
       }
-    } catch (error) {
+    } catch {
       if (isActiveRef.current) {
-        setErrorMessage(getErrorMessage(error));
+        setFormErrorMessage("The unit could not be saved. Your changes are still here. Try again.");
       }
     } finally {
       if (isActiveRef.current) {
@@ -225,9 +220,9 @@ function CourseUnitsContent({
           )
         );
       }
-    } catch (error) {
+    } catch {
       if (isActiveRef.current) {
-        setErrorMessage(getErrorMessage(error));
+        setErrorMessage("The unit could not be deleted. Refresh the curriculum and try again.");
       }
     } finally {
       if (isActiveRef.current) {
@@ -262,9 +257,9 @@ function CourseUnitsContent({
         description={course?.description || "Manage the ordered units in this course."}
         breadcrumbs={[{ label: "Courses", to: "/admin/courses" }, { label: course?.title ?? "Course" }]}
         meta={course ? <StatusBadge status={course.status} /> : undefined}
-        actions={<><ButtonLink icon="arrow-left" variant="secondary" to="/admin/courses">Back to courses</ButtonLink>{canEditDrafts && course?.status === "draft" && <Button icon="plus" onClick={() => setFormState({ mode: "create" })}>Create unit</Button>}</>}
+        actions={<><ButtonLink icon="arrow-left" variant="secondary" to="/admin/courses">Back to courses</ButtonLink>{canEditDrafts && course?.status === "draft" && <Button icon="plus" onClick={() => { setFormErrorMessage(null); setFormState({ mode: "create" }); }}>Create unit</Button>}</>}
       />
-      {(!canEditDrafts || course?.status !== "draft") && <div className="mt-5"><Alert>{course?.status === "draft" ? "Your role has view-only access to draft units." : "This course is sealed. Its unit curriculum is read only."}</Alert></div>}
+      {(!canEditDrafts || course?.status !== "draft") && <div className="mt-5"><Alert>{course?.status === "draft" ? "You can view this curriculum, but your role does not allow editing draft units." : "You can view this curriculum, but editing is unavailable because the course is no longer a draft."}</Alert></div>}
 
       {errorMessage && (
         <div className="mt-6"><Alert tone="error" action={<Button variant="secondary" onClick={() => void loadHierarchy()}>Try again</Button>}>{errorMessage}</Alert></div>
@@ -272,7 +267,7 @@ function CourseUnitsContent({
 
       <div className="mt-8 grid gap-4">
         {units.length === 0 ? (
-          <EmptyState title="No units yet" description="Add the first draft unit to begin shaping this curriculum." action={canEditDrafts && course?.status === "draft" ? <Button icon="plus" onClick={() => setFormState({ mode: "create" })}>Create unit</Button> : undefined} />
+          <EmptyState title="No units yet" description={canEditDrafts && course?.status === "draft" ? "Create the first unit to begin shaping this curriculum." : "This course does not contain any units to view."} action={canEditDrafts && course?.status === "draft" ? <Button icon="plus" onClick={() => { setFormErrorMessage(null); setFormState({ mode: "create" }); }}>Create unit</Button> : undefined} />
         ) : (
           units.map((unit) => {
             const isDraft =
@@ -311,12 +306,13 @@ function CourseUnitsContent({
                         <>
                           <button
                             type="button"
-                            onClick={() =>
+                            onClick={() => {
+                              setFormErrorMessage(null);
                               setFormState({
                                 mode: "edit",
                                 unit,
-                              })
-                            }
+                              });
+                            }}
                             className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
                           >
                             Edit
@@ -355,9 +351,11 @@ function CourseUnitsContent({
           }
           nextPosition={nextPosition}
           isSaving={isSaving}
-          onCancel={() =>
-            setFormState({ mode: "closed" })
-          }
+          errorMessage={formErrorMessage}
+          onCancel={() => {
+            setFormErrorMessage(null);
+            setFormState({ mode: "closed" });
+          }}
           onSubmit={(input) =>
             void handleSave(input)
           }

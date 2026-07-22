@@ -70,7 +70,7 @@ export default function ActivityEditor({
         />
       )}
       {activity.type === "ai_speaking_mission" && (
-        <Suspense fallback={<section className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-600">Loading AI mission editor…</section>}>
+        <Suspense fallback={<section role="status" className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-600">Loading AI Speaking Mission editor…</section>}>
           <AiSpeakingMissionEditor
             key={activity.id}
             activityId={activity.id}

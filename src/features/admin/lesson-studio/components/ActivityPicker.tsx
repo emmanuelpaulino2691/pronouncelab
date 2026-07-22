@@ -80,11 +80,11 @@ export default function ActivityPicker({ onClose, onCreate }: ActivityPickerProp
                   onClick={() => void create(activity.type)}
                 >
                   {isSubmitting && selected && <Spinner />}
-                  Add {activity.title}
+                  {isSubmitting && selected ? "Creating activity…" : `Add ${activity.title}`}
                 </button>
               ) : (
                 <div className="mt-5">
-                  <p className="mb-2 text-xs font-semibold text-slate-600">Existing lesson compatibility only</p>
+                  <p className="mb-2 text-xs font-semibold text-slate-600">Existing Practice activities can still be edited</p>
                   <Button type="button" variant="secondary" className="w-full" disabled aria-disabled="true">
                     Cannot add new Practice
                   </Button>

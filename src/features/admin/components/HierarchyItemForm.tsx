@@ -97,7 +97,7 @@ function HierarchyItemForm({
         {onBack && <Button type="button" variant="ghost" onClick={requestBack} disabled={isSaving}>Back to choices</Button>}
         <Button type="button" variant="secondary" onClick={requestClose} disabled={isSaving}>Cancel</Button>
         <Button type="submit" form={formId} isLoading={isSaving} disabled={isSaving}>
-          {item ? `Save ${itemType} changes` : `Create draft ${itemType}`}
+          {isSaving ? "Saving…" : item ? `Save ${itemType} changes` : `Create draft ${itemType}`}
         </Button>
       </>}
       className="max-w-xl"

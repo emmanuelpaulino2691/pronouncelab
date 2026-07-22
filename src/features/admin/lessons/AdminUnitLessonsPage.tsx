@@ -45,11 +45,6 @@ type LoadedHierarchy = {
   lessons: AdminLesson[];
 };
 
-function getErrorMessage(error: unknown) {
-  void error;
-  return "The unit lessons could not be updated. Refresh the lesson list and try again.";
-}
-
 function parseId(value: string | undefined) {
   const id = Number(value);
   return Number.isSafeInteger(id) && id > 0
@@ -132,9 +127,9 @@ function UnitLessonsContent({
       if (isActiveRef.current) {
         applyHierarchy(hierarchy);
       }
-    } catch (error) {
+    } catch {
       if (isActiveRef.current) {
-        setErrorMessage(getErrorMessage(error));
+        setErrorMessage("We couldn’t load these lessons. Try again.");
       }
     } finally {
       if (isActiveRef.current) {
@@ -152,11 +147,9 @@ function UnitLessonsContent({
           applyHierarchy(hierarchy);
         }
       })
-      .catch((error: unknown) => {
+      .catch(() => {
         if (isActive) {
-          setErrorMessage(
-            getErrorMessage(error)
-          );
+          setErrorMessage("We couldn’t load these lessons. Try again.");
         }
       })
       .finally(() => {
@@ -292,9 +285,9 @@ function UnitLessonsContent({
           )
         );
       }
-    } catch (error) {
+    } catch {
       if (isActiveRef.current) {
-        setErrorMessage(getErrorMessage(error));
+        setErrorMessage("The lesson could not be deleted. Refresh the lesson list and try again.");
       }
     } finally {
       if (isActiveRef.current) {
@@ -331,7 +324,7 @@ function UnitLessonsContent({
         meta={unit ? <StatusBadge status={unit.status} /> : undefined}
         actions={<><ButtonLink icon="arrow-left" variant="secondary" to={`/admin/courses/${courseId}`}>Back to curriculum</ButtonLink>{canEditDrafts && course?.status === "draft" && unit?.status === "draft" && <Button icon="plus" onClick={() => { creationCompletedRef.current = false; setFormErrorMessage(null); setFormState({ mode: "create" }); }}>Create lesson</Button>}</>}
       />
-      {(!canEditDrafts || course?.status !== "draft" || unit?.status !== "draft") && <div className="mt-5"><Alert>{course?.status === "draft" && unit?.status === "draft" ? "Your role has view-only access to draft lessons." : "This hierarchy is sealed. Its lessons are read only."}</Alert></div>}
+      {(!canEditDrafts || course?.status !== "draft" || unit?.status !== "draft") && <div className="mt-5"><Alert>{course?.status === "draft" && unit?.status === "draft" ? "You can view these lessons, but your role does not allow editing drafts." : "You can view these lessons, but editing is unavailable because the course or unit is no longer a draft."}</Alert></div>}
 
       {errorMessage && (
         <div className="mt-6"><Alert tone="error" action={<Button variant="secondary" onClick={() => void loadHierarchy()}>Try again</Button>}>{errorMessage}</Alert></div>
@@ -339,7 +332,7 @@ function UnitLessonsContent({
 
       <Card className="mt-8 overflow-hidden">
         {lessons.length === 0 ? (
-          <EmptyState title="No lessons yet" description="Add the first draft lesson to begin authoring this unit." action={canEditDrafts && course?.status === "draft" && unit?.status === "draft" ? <Button icon="plus" onClick={() => { creationCompletedRef.current = false; setFormErrorMessage(null); setFormState({ mode: "create" }); }}>Create lesson</Button> : undefined} />
+          <EmptyState title="No lessons yet" description={canEditDrafts && course?.status === "draft" && unit?.status === "draft" ? "Create the first lesson to begin authoring this unit." : "This unit does not contain any lessons to view."} action={canEditDrafts && course?.status === "draft" && unit?.status === "draft" ? <Button icon="plus" onClick={() => { creationCompletedRef.current = false; setFormErrorMessage(null); setFormState({ mode: "create" }); }}>Create lesson</Button> : undefined} />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-3xl text-left">

@@ -17,10 +17,6 @@ function getErrorText(error: unknown) {
   return error instanceof Error ? error.message : "Something went wrong. Please try again.";
 }
 
-function getErrorMessage() {
-  return "The course list could not be updated. Refresh the list and try again.";
-}
-
 function getCourseSaveErrorMessage(error: unknown) {
   const message = getErrorText(error).toLowerCase();
   if (message.includes("duplicate") || message.includes("unique") || message.includes("slug")) {
@@ -35,7 +31,7 @@ function getCourseSaveErrorMessage(error: unknown) {
   if (message.includes("draft") || message.includes("editable") || message.includes("sealed")) {
     return "This course is no longer editable. Close the form and refresh the course list.";
   }
-  return "The course could not be saved. Your changes are still here. Please try again.";
+  return "Your course changes could not be saved. Review the fields and try again.";
 }
 
 function AdminCoursesPage() {
@@ -56,14 +52,14 @@ function AdminCoursesPage() {
     setIsLoading(true);
     setErrorMessage(null);
     try { setCourses(await listAdminCourses()); }
-    catch { setCourses([]); setErrorMessage(getErrorMessage()); }
+    catch { setCourses([]); setErrorMessage("We couldn’t load the courses. Try again."); }
     finally { setIsLoading(false); }
   }, []);
 
   useEffect(() => {
     let active = true;
     void listAdminCourses().then((loaded) => { if (active) setCourses(loaded); })
-      .catch(() => { if (active) setErrorMessage(getErrorMessage()); })
+      .catch(() => { if (active) setErrorMessage("We couldn’t load the courses. Try again."); })
       .finally(() => { if (active) setIsLoading(false); });
     return () => { active = false; };
   }, []);
@@ -104,7 +100,7 @@ function AdminCoursesPage() {
     setDeletingCourseId(course.id);
     setErrorMessage(null);
     try { await deleteDraftCourse(course.id); setCourses((current) => current.filter((item) => item.id !== course.id)); }
-    catch { setErrorMessage(getErrorMessage()); }
+    catch { setErrorMessage("The course could not be deleted. Refresh the course list and try again."); }
     finally { setDeletingCourseId(null); }
   }
 
@@ -114,12 +110,12 @@ function AdminCoursesPage() {
         eyebrow="Curriculum"
         title="Courses"
         breadcrumbs={[{ label: "Courses" }]}
-        description="Shape the PronounceLab curriculum, from the first draft through its sealed learning experience."
+        description="Organize courses, units, and lessons into clear learning experiences."
         actions={canEditDrafts
           ? <Button icon="plus" onClick={() => { setFormErrorMessage(null); setFormState({ mode: "create" }); }}>Create course</Button>
           : <span className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600">View-only access</span>}
       />
-      {!canEditDrafts && <Alert>Publishers can browse all available course structures. Draft creation and editing are reserved for editors and administrators.</Alert>}
+      {!canEditDrafts && <Alert>You can view courses, but your role does not allow creating or editing course drafts.</Alert>}
       {errorMessage && <Alert tone="error" action={<Button variant="secondary" onClick={() => void loadCourses()}>Try again</Button>}>{errorMessage}</Alert>}
 
       <Card className="p-4">
@@ -130,8 +126,8 @@ function AdminCoursesPage() {
         </div>
       </Card>
 
-      {isLoading ? <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">{[1, 2, 3, 4, 5, 6].map((item) => <Card key={item} className="p-6"><LoadingSkeleton className="h-12 w-12" /><LoadingSkeleton className="mt-5 h-6 w-2/3" /><LoadingSkeleton className="mt-3 h-16" /><LoadingSkeleton className="mt-5 h-10" /></Card>)}</div>
-        : visibleCourses.length === 0 ? <EmptyState title={courses.length ? "No courses match" : "Build your first course"} description={courses.length ? "Try changing the search or status filter." : "Create a draft course and begin organizing units and lessons."} action={canEditDrafts && !courses.length ? <Button icon="plus" onClick={() => { setFormErrorMessage(null); setFormState({ mode: "create" }); }}>Create course</Button> : undefined} />
+      {isLoading ? <div role="status" className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">{[1, 2, 3, 4, 5, 6].map((item) => <Card key={item} className="p-6"><LoadingSkeleton className="h-12 w-12" /><LoadingSkeleton className="mt-5 h-6 w-2/3" /><LoadingSkeleton className="mt-3 h-16" /><LoadingSkeleton className="mt-5 h-10" /></Card>)}<span className="sr-only">Loading courses…</span></div>
+        : visibleCourses.length === 0 ? <EmptyState title={courses.length ? "No courses match" : canEditDrafts ? "Build your first course" : "No courses yet"} description={courses.length ? "Try changing the search or status filter." : canEditDrafts ? "Create a course draft and begin organizing units and lessons." : "There are no courses available to view."} action={canEditDrafts && !courses.length ? <Button icon="plus" onClick={() => { setFormErrorMessage(null); setFormState({ mode: "create" }); }}>Create course</Button> : undefined} />
           : <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
             {visibleCourses.map((course) => {
               const editable = canEditDrafts && course.status === "draft";

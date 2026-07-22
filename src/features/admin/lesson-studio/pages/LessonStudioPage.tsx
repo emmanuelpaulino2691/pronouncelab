@@ -53,11 +53,6 @@ function parseId(value: string | undefined) {
     : null;
 }
 
-function errorMessage(error: unknown) {
-  void error;
-  return "Lesson Studio could not complete this request. Refresh the page and try again.";
-}
-
 type Props = {
   courseId: number;
   unitId: number;
@@ -94,7 +89,7 @@ function Studio({
   const [error, setError] = useState<string | null>(
     null
   );
-  const [saved, setSaved] = useState("All changes saved");
+  const [saved, setSaved] = useState("Saved");
   const [isPickerOpen, setIsPickerOpen] = useState(false);
 
   useEffect(() => {
@@ -141,7 +136,8 @@ function Studio({
             active.current &&
             request === mutation.current
           ) {
-            setError(errorMessage(reason));
+            void reason;
+            setError("We couldn’t load Lesson Studio. Try again.");
           }
         }
       )
@@ -189,14 +185,15 @@ function Studio({
         request === mutation.current
       ) {
         apply(value);
-        setSaved("All changes saved");
+        setSaved("Saved");
       }
     } catch (reason) {
       if (
         active.current &&
         request === mutation.current
       ) {
-        setError(errorMessage(reason));
+        void reason;
+        setError("Your changes could not be saved. Try again.");
         setSaved("Save failed");
       }
     } finally {
@@ -259,7 +256,7 @@ function Studio({
 
       setActivities((current) => [...current, created]);
       setSelectedId(created.id);
-      setSaved("All changes saved");
+      setSaved("Saved");
       setIsPickerOpen(false);
       window.requestAnimationFrame(() => editorRef.current?.focus());
     } catch (reason) {
@@ -310,25 +307,29 @@ function Studio({
       <PageHeader
         eyebrow="Lesson Studio"
         title={`${lesson.title} Studio`}
-        description={version ? `Version ${version.versionNumber} · ${saved}` : "No lesson version exists yet."}
+        description={version ? `Version ${version.versionNumber} · ${saved}` : "This lesson has not been started yet."}
         breadcrumbs={[{ label: "Courses", to: "/admin/courses" }, { label: course.title, to: `/admin/courses/${courseId}` }, { label: unit.title, to: `/admin/courses/${courseId}/units/${unitId}` }, { label: lesson.title }]}
         meta={<Badge tone={(version?.status ?? lesson.status) === "draft" ? "draft" : "success"}>{version?.status ?? lesson.status}</Badge>}
-        actions={<><ButtonLink icon="arrow-left" variant="secondary" to={`/admin/courses/${courseId}/units/${unitId}`}>Back to lessons</ButtonLink><Button type="button" disabled title="Student preview is coming later" variant="secondary">Preview · Coming later</Button></>}
+        actions={<><ButtonLink icon="arrow-left" variant="secondary" to={`/admin/courses/${courseId}/units/${unitId}`}>Back to lessons</ButtonLink><Button type="button" disabled title="Student preview is not available yet" variant="secondary">Preview · Coming later</Button></>}
       />
+      <span role="status" aria-live="polite" className="sr-only">{saved}</span>
 
-      {!editable && version && <div className="mt-4"><Alert tone="info"><strong>Read-only studio.</strong> This lesson is sealed or your role does not include draft editing.</Alert></div>}
+      {!editable && version && <div className="mt-4"><Alert tone="info"><strong>View-only lesson.</strong> You can review this lesson, but editing is unavailable because the lesson is no longer an editable draft or your role does not allow changes.</Alert></div>}
       {error && (
         <p role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">
           {error}
         </p>
       )}
 
-      {!version && canEditDrafts && lesson.status === "draft" ? (
+      {!version ? (
         <div className="mt-6 rounded-2xl border border-dashed border-blue-300 bg-blue-50 p-8 text-center">
           <h2 className="font-semibold text-blue-950">
-            Start authoring this lesson
+            {canEditDrafts && course.status === "draft" && unit.status === "draft" && lesson.status === "draft" ? "Start authoring this lesson" : "No lesson draft to view"}
           </h2>
-          <Button isLoading={busy} icon="sparkle"
+          <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-blue-900">
+            {canEditDrafts && course.status === "draft" && unit.status === "draft" && lesson.status === "draft" ? "Start the lesson draft before adding activities." : "A lesson draft has not been started, and editing is unavailable for this lesson."}
+          </p>
+          {canEditDrafts && course.status === "draft" && unit.status === "draft" && lesson.status === "draft" && <Button isLoading={busy} icon="sparkle"
             onClick={() =>
               void run(
                 () =>
@@ -341,8 +342,8 @@ function Studio({
             }
             className="mt-4"
           >
-            Create draft version
-          </Button>
+            {busy ? "Saving…" : "Start lesson draft"}
+          </Button>}
         </div>
       ) : (
         <div className="mt-6 grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
@@ -361,7 +362,7 @@ function Studio({
             )}
             {activities.length === 0 ? (
               <p className="mt-5 rounded-xl bg-slate-50 p-4 text-sm text-slate-500">
-                No activities yet.
+                {editable ? "No activities yet. Choose Add Activity to begin the learning sequence." : "This lesson does not contain any activities to view."}
               </p>
             ) : (
               <ol className="mt-4 space-y-2">

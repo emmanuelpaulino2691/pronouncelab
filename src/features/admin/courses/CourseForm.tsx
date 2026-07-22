@@ -122,7 +122,7 @@ function CourseForm({
         Cancel
       </Button>
       <Button type="submit" form={formId} isLoading={isSaving} disabled={isSaving}>
-        {course ? "Save course changes" : "Create draft course"}
+        {isSaving ? "Saving…" : course ? "Save course changes" : "Create draft course"}
       </Button>
     </>
   );
