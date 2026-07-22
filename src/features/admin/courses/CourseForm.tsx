@@ -1,58 +1,111 @@
 import {
+  useId,
+  useRef,
   useState,
   type FormEvent,
 } from "react";
 
-import type {
-  AdminCourse,
-  CourseInput,
-} from "./adminCourseService";
+import {
+  Alert,
+  Button,
+  Dialog,
+  FormField,
+  StatusBadge,
+  TextArea,
+  TextInput,
+  shouldProceedWithClose,
+} from "../ui";
+import type { AdminCourse, CourseInput } from "./adminCourseService";
+import { EmojiSelector } from "./EmojiSelector";
+import {
+  areCourseInputsEqual,
+  createCourseSlugState,
+  resetSlugToTitle,
+  setManualSlug,
+  updateSlugForTitle,
+} from "./courseFormState";
+import { buildCourseUrlPreview } from "./courseFormUtils";
 
 type CourseFormProps = {
   course: AdminCourse | null;
   nextPosition: number;
   isSaving: boolean;
+  errorMessage?: string | null;
   onCancel: () => void;
   onSubmit: (input: CourseInput) => void;
 };
 
-const emptyInput: CourseInput = {
-  slug: "",
-  title: "",
-  description: "",
-  level: "",
-  emoji: "",
-  position: 0,
-};
+const fallbackEmoji = "📘";
+const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+function getInitialInput(course: AdminCourse | null, nextPosition: number): CourseInput {
+  return course
+    ? {
+        slug: course.slug,
+        title: course.title,
+        description: course.description,
+        level: course.level,
+        emoji: course.emoji,
+        position: course.position,
+      }
+    : {
+        slug: "",
+        title: "",
+        description: "",
+        level: "",
+        emoji: fallbackEmoji,
+        position: nextPosition,
+      };
+}
 
 function CourseForm({
   course,
   nextPosition,
   isSaving,
+  errorMessage,
   onCancel,
   onSubmit,
 }: CourseFormProps) {
-  const [input, setInput] =
-    useState<CourseInput>(() =>
-      course
-        ? {
-            slug: course.slug,
-            title: course.title,
-            description: course.description,
-            level: course.level,
-            emoji: course.emoji,
-            position: course.position,
-          }
-        : {
-            ...emptyInput,
-            position: nextPosition,
-          }
-    );
+  const formId = useId();
+  const titleRef = useRef<HTMLInputElement>(null);
+  const [initialInput] = useState(() => getInitialInput(course, nextPosition));
+  const [input, setInput] = useState(initialInput);
+  const [slugState, setSlugState] = useState(() =>
+    createCourseSlugState(initialInput.slug, Boolean(course))
+  );
+  const [attemptedSubmit, setAttemptedSubmit] = useState(false);
+  const [touched, setTouched] = useState({ title: false, slug: false });
 
-  function handleSubmit(
-    event: FormEvent<HTMLFormElement>
-  ) {
+  const titleError = input.title.trim() ? "" : "Add a course title.";
+  const slugError = !input.slug.trim()
+    ? "Add a course address."
+    : slugPattern.test(input.slug.trim())
+      ? ""
+      : "Use lowercase letters, numbers, and single hyphens only.";
+  const hasUnsavedChanges = !areCourseInputsEqual(input, initialInput);
+
+  function requestClose() {
+    if (
+      shouldProceedWithClose(
+        { hasUnsavedChanges },
+        () => window.confirm("Discard your unsaved course changes?")
+      )
+    ) {
+      onCancel();
+    }
+  }
+
+  function handleTitleChange(title: string) {
+    const nextSlugState = updateSlugForTitle(slugState, title);
+    setSlugState(nextSlugState);
+    setInput((current) => ({ ...current, title, slug: nextSlugState.slug }));
+  }
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setAttemptedSubmit(true);
+    if (isSaving || titleError || slugError) return;
+
     onSubmit({
       ...input,
       slug: input.slug.trim(),
@@ -63,180 +116,149 @@ function CourseForm({
     });
   }
 
-  const fieldClass =
-    "mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100";
+  const footer = (
+    <>
+      <Button type="button" variant="secondary" onClick={requestClose} disabled={isSaving}>
+        Cancel
+      </Button>
+      <Button type="submit" form={formId} isLoading={isSaving} disabled={isSaving}>
+        {course ? "Save course changes" : "Create draft course"}
+      </Button>
+    </>
+  );
 
   return (
-    <div
-      className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-slate-950/60 p-4"
-      role="presentation"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) {
-          onCancel();
-        }
-      }}
+    <Dialog
+      isOpen
+      onClose={requestClose}
+      preventClose={isSaving}
+      initialFocusRef={titleRef}
+      title={course ? `Edit ${course.title}` : "Create a course"}
+      description="Set the course identity, learning details, and address. You can continue building the curriculum after saving."
+      footer={footer}
+      className="max-w-3xl"
     >
-      <section
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="course-form-title"
-        className="my-6 w-full max-w-2xl rounded-2xl bg-white p-6 shadow-2xl sm:p-8"
-      >
-        <div className="flex items-start justify-between gap-6">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-widest text-blue-600">
-              {course ? "Edit draft" : "New course"}
-            </p>
-            <h2
-              id="course-form-title"
-              className="mt-2 text-2xl font-bold text-slate-950"
-            >
-              {course
-                ? `Edit ${course.title}`
-                : "Create a course"}
-            </h2>
+      <form id={formId} onSubmit={handleSubmit} noValidate className="space-y-7">
+        {errorMessage && <Alert tone="error">{errorMessage}</Alert>}
+
+        <section aria-labelledby={`${formId}-identity`}>
+          <div className="mb-4">
+            <h3 id={`${formId}-identity`} className="text-base font-bold text-slate-950">
+              Course identity
+            </h3>
+            <p className="mt-1 text-sm text-slate-600">Give teachers and learners a clear way to recognize the course.</p>
           </div>
-
-          <button
-            type="button"
-            onClick={onCancel}
-            aria-label="Close course form"
-            className="rounded-lg px-3 py-2 text-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
-          >
-            ×
-          </button>
-        </div>
-
-        <form
-          className="mt-7 grid gap-5 sm:grid-cols-2"
-          onSubmit={handleSubmit}
-        >
-          <label className="text-sm font-semibold text-slate-700">
-            Title
-            <input
+          <div className="space-y-5">
+            <FormField
+              label="Course title"
+              htmlFor={`${formId}-title`}
               required
-              autoFocus
-              value={input.title}
-              onChange={(event) =>
-                setInput((current) => ({
-                  ...current,
-                  title: event.target.value,
-                }))
-              }
-              className={fieldClass}
-              placeholder="English Pronunciation"
-            />
-          </label>
-
-          <label className="text-sm font-semibold text-slate-700">
-            Slug
-            <input
-              required
-              value={input.slug}
-              onChange={(event) =>
-                setInput((current) => ({
-                  ...current,
-                  slug: event.target.value,
-                }))
-              }
-              className={fieldClass}
-              pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
-              title="Use lowercase letters, numbers, and single hyphens."
-              placeholder="english-pronunciation"
-            />
-          </label>
-
-          <label className="text-sm font-semibold text-slate-700">
-            Level
-            <input
-              value={input.level}
-              onChange={(event) =>
-                setInput((current) => ({
-                  ...current,
-                  level: event.target.value,
-                }))
-              }
-              className={fieldClass}
-              placeholder="Beginner"
-            />
-          </label>
-
-          <div className="grid grid-cols-[1fr_2fr] gap-4">
-            <label className="text-sm font-semibold text-slate-700">
-              Emoji
-              <input
-                value={input.emoji}
-                onChange={(event) =>
-                  setInput((current) => ({
-                    ...current,
-                    emoji: event.target.value,
-                  }))
-                }
-                className={fieldClass}
-                maxLength={8}
-                placeholder="🎙️"
-              />
-            </label>
-
-            <label className="text-sm font-semibold text-slate-700">
-              Position
-              <input
+              hint="Use a short, specific title that describes the learning focus."
+              error={(attemptedSubmit || touched.title) ? titleError : undefined}
+            >
+              <TextInput
+                ref={titleRef}
+                id={`${formId}-title`}
                 required
-                type="number"
-                min={0}
-                value={input.position}
-                onChange={(event) =>
-                  setInput((current) => ({
-                    ...current,
-                    position: Number(
-                      event.target.value
-                    ),
-                  }))
-                }
-                className={fieldClass}
+                value={input.title}
+                onBlur={() => setTouched((current) => ({ ...current, title: true }))}
+                onChange={(event) => handleTitleChange(event.target.value)}
+                aria-invalid={Boolean((attemptedSubmit || touched.title) && titleError)}
+                placeholder="English Pronunciation"
               />
-            </label>
-          </div>
-
-          <label className="text-sm font-semibold text-slate-700 sm:col-span-2">
-            Description
-            <textarea
-              value={input.description}
-              onChange={(event) =>
-                setInput((current) => ({
-                  ...current,
-                  description: event.target.value,
-                }))
-              }
-              className={`${fieldClass} min-h-28 resize-y`}
-              placeholder="What learners will achieve in this course."
+            </FormField>
+            <EmojiSelector
+              value={input.emoji}
+              onChange={(emoji) => setInput((current) => ({ ...current, emoji }))}
+              disabled={isSaving}
             />
-          </label>
-
-          <div className="flex flex-col-reverse gap-3 border-t border-slate-200 pt-5 sm:col-span-2 sm:flex-row sm:justify-end">
-            <button
-              type="button"
-              onClick={onCancel}
-              disabled={isSaving}
-              className="rounded-xl border border-slate-300 px-5 py-2.5 font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSaving}
-              className="rounded-xl bg-blue-600 px-5 py-2.5 font-semibold text-white transition hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {isSaving
-                ? "Saving…"
-                : course
-                  ? "Save changes"
-                  : "Create draft"}
-            </button>
           </div>
-        </form>
-      </section>
-    </div>
+        </section>
+
+        <section className="border-t border-slate-200 pt-6" aria-labelledby={`${formId}-details`}>
+          <div className="mb-4">
+            <h3 id={`${formId}-details`} className="text-base font-bold text-slate-950">Course details</h3>
+            <p className="mt-1 text-sm text-slate-600">Describe the learning experience and its intended level.</p>
+          </div>
+          <div className="grid gap-5 sm:grid-cols-2">
+            <FormField label="Description" htmlFor={`${formId}-description`} hint="Explain what learners will understand or practise.">
+              <TextArea
+                id={`${formId}-description`}
+                value={input.description}
+                onChange={(event) => setInput((current) => ({ ...current, description: event.target.value }))}
+                placeholder="What learners will achieve in this course."
+              />
+            </FormField>
+            <FormField label="Level" htmlFor={`${formId}-level`} hint="For example: Beginner, Intermediate, or All levels.">
+              <TextInput
+                id={`${formId}-level`}
+                value={input.level}
+                onChange={(event) => setInput((current) => ({ ...current, level: event.target.value }))}
+                placeholder="Beginner"
+              />
+            </FormField>
+          </div>
+        </section>
+
+        <section className="border-t border-slate-200 pt-6" aria-labelledby={`${formId}-address`}>
+          <div className="mb-4">
+            <h3 id={`${formId}-address`} className="text-base font-bold text-slate-950">Course address</h3>
+            <p className="mt-1 text-sm text-slate-600">Choose the readable path that will identify this course.</p>
+          </div>
+          <FormField
+            label="Course address"
+            htmlFor={`${formId}-slug`}
+            required
+            hint="Use lowercase letters, numbers, and hyphens."
+            error={(attemptedSubmit || touched.slug) ? slugError : undefined}
+          >
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <TextInput
+                id={`${formId}-slug`}
+                required
+                value={input.slug}
+                onBlur={() => setTouched((current) => ({ ...current, slug: true }))}
+                onChange={(event) => {
+                  const next = setManualSlug(event.target.value);
+                  setSlugState(next);
+                  setInput((current) => ({ ...current, slug: next.slug }));
+                }}
+                aria-invalid={Boolean((attemptedSubmit || touched.slug) && slugError)}
+                pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
+                placeholder="english-pronunciation"
+              />
+              <Button
+                type="button"
+                variant="secondary"
+                className="shrink-0"
+                onClick={() => {
+                  const next = resetSlugToTitle(input.title);
+                  setSlugState(next);
+                  setInput((current) => ({ ...current, slug: next.slug }));
+                }}
+              >
+                Use title
+              </Button>
+            </div>
+          </FormField>
+          <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Address preview</p>
+            <p className="mt-1 break-all font-mono text-sm text-slate-800">
+              {buildCourseUrlPreview(input.slug)}
+            </p>
+            <p className="mt-1 text-xs text-slate-500">This preview does not publish the course.</p>
+          </div>
+        </section>
+
+        <section className="flex items-center justify-between gap-4 border-t border-slate-200 pt-6" aria-label="Course status">
+          <div>
+            <p className="text-sm font-semibold text-slate-800">Status</p>
+            <p className="mt-1 text-xs text-slate-500">Publishing is managed separately from saving course details.</p>
+          </div>
+          <StatusBadge status={course?.status ?? "draft"} />
+        </section>
+      </form>
+    </Dialog>
   );
 }
 

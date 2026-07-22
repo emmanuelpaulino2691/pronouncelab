@@ -17,6 +17,23 @@ function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Something went wrong. Please try again.";
 }
 
+function getCourseSaveErrorMessage(error: unknown) {
+  const message = getErrorMessage(error).toLowerCase();
+  if (message.includes("duplicate") || message.includes("unique") || message.includes("slug")) {
+    return "That course address is already in use. Choose a different address.";
+  }
+  if (message.includes("jwt") || message.includes("session") || message.includes("sign in")) {
+    return "Your session has expired. Sign in again before saving.";
+  }
+  if (message.includes("permission") || message.includes("policy") || message.includes("row-level")) {
+    return "You do not have permission to save this course.";
+  }
+  if (message.includes("draft") || message.includes("editable") || message.includes("sealed")) {
+    return "This course is no longer editable. Close the form and refresh the course list.";
+  }
+  return "The course could not be saved. Your changes are still here. Please try again.";
+}
+
 function AdminCoursesPage() {
   const { canEditDrafts } = useAdminPermissions();
   const [searchParams] = useSearchParams();
@@ -25,6 +42,7 @@ function AdminCoursesPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [deletingCourseId, setDeletingCourseId] = useState<number | null>(null);
   const [formState, setFormState] = useState<FormState>(() => canEditDrafts && searchParams.get("create") === "1" ? { mode: "create" } : { mode: "closed" });
+  const [formErrorMessage, setFormErrorMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<"all" | CourseStatus>("all");
@@ -63,7 +81,7 @@ function AdminCoursesPage() {
   async function handleSave(input: CourseInput) {
     if (isSaving) return;
     setIsSaving(true);
-    setErrorMessage(null);
+    setFormErrorMessage(null);
     try {
       if (formState.mode === "edit") {
         const updated = await updateAdminCourse(formState.course.id, input);
@@ -73,7 +91,7 @@ function AdminCoursesPage() {
         setCourses((current) => [...current, created]);
       }
       setFormState({ mode: "closed" });
-    } catch (error) { setErrorMessage(getErrorMessage(error)); }
+    } catch (error) { setFormErrorMessage(getCourseSaveErrorMessage(error)); }
     finally { setIsSaving(false); }
   }
 
@@ -93,7 +111,7 @@ function AdminCoursesPage() {
         title="Courses"
         description="Shape the PronounceLab curriculum, from the first draft through its sealed learning experience."
         actions={canEditDrafts
-          ? <Button icon="plus" onClick={() => setFormState({ mode: "create" })}>Create course</Button>
+          ? <Button icon="plus" onClick={() => { setFormErrorMessage(null); setFormState({ mode: "create" }); }}>Create course</Button>
           : <span className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600">View-only access</span>}
       />
       {!canEditDrafts && <Alert>Publishers can browse all available course structures. Draft creation and editing are reserved for editors and administrators.</Alert>}
@@ -108,7 +126,7 @@ function AdminCoursesPage() {
       </Card>
 
       {isLoading ? <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">{[1, 2, 3, 4, 5, 6].map((item) => <Card key={item} className="p-6"><LoadingSkeleton className="h-12 w-12" /><LoadingSkeleton className="mt-5 h-6 w-2/3" /><LoadingSkeleton className="mt-3 h-16" /><LoadingSkeleton className="mt-5 h-10" /></Card>)}</div>
-        : visibleCourses.length === 0 ? <EmptyState title={courses.length ? "No courses match" : "Build your first course"} description={courses.length ? "Try changing the search or status filter." : "Create a draft course and begin organizing units and lessons."} action={canEditDrafts && !courses.length ? <Button icon="plus" onClick={() => setFormState({ mode: "create" })}>Create course</Button> : undefined} />
+        : visibleCourses.length === 0 ? <EmptyState title={courses.length ? "No courses match" : "Build your first course"} description={courses.length ? "Try changing the search or status filter." : "Create a draft course and begin organizing units and lessons."} action={canEditDrafts && !courses.length ? <Button icon="plus" onClick={() => { setFormErrorMessage(null); setFormState({ mode: "create" }); }}>Create course</Button> : undefined} />
           : <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
             {visibleCourses.map((course) => {
               const editable = canEditDrafts && course.status === "draft";
@@ -122,14 +140,14 @@ function AdminCoursesPage() {
                 </div>
                 <div className="flex flex-wrap gap-2 border-t border-slate-200 bg-slate-50/70 p-4">
                   <ButtonLink to={`/admin/courses/${course.id}`} className="flex-1">Open curriculum</ButtonLink>
-                  {editable && <Button variant="secondary" icon="edit" aria-label={`Edit ${course.title}`} onClick={() => setFormState({ mode: "edit", course })}>Edit</Button>}
+                  {editable && <Button variant="secondary" icon="edit" aria-label={`Edit ${course.title}`} onClick={() => { setFormErrorMessage(null); setFormState({ mode: "edit", course }); }}>Edit</Button>}
                   {editable && <Button variant="danger" icon="delete" aria-label={`Delete ${course.title}`} isLoading={deletingCourseId === course.id} onClick={() => void handleDelete(course)}>Delete</Button>}
                 </div>
               </Card>;
             })}
           </div>}
 
-      {formState.mode !== "closed" && <CourseForm course={formState.mode === "edit" ? formState.course : null} nextPosition={nextPosition} isSaving={isSaving} onCancel={() => setFormState({ mode: "closed" })} onSubmit={(input) => void handleSave(input)} />}
+      {formState.mode !== "closed" && <CourseForm course={formState.mode === "edit" ? formState.course : null} nextPosition={nextPosition} isSaving={isSaving} errorMessage={formErrorMessage} onCancel={() => { setFormErrorMessage(null); setFormState({ mode: "closed" }); }} onSubmit={(input) => void handleSave(input)} />}
     </section>
   );
 }
