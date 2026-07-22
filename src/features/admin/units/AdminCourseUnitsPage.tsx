@@ -33,16 +33,8 @@ type FormState =
   | { mode: "edit"; unit: AdminUnit };
 
 function getErrorMessage(error: unknown) {
-  if (
-    typeof error === "object" &&
-    error !== null &&
-    "message" in error &&
-    typeof error.message === "string"
-  ) {
-    return error.message;
-  }
-
-  return "Something went wrong. Please try again.";
+  void error;
+  return "The course curriculum could not be updated. Refresh the curriculum and try again.";
 }
 
 function parseId(value: string | undefined) {
@@ -246,12 +238,19 @@ function CourseUnitsContent({
 
   if (isLoading) {
     return (
-      <div role="status" className="space-y-5 py-8">
-        <LoadingSkeleton className="h-10 w-64" />
-        <LoadingSkeleton className="h-28" />
-        <LoadingSkeleton className="h-28" />
-        <span className="sr-only">Loading course hierarchy…</span>
-      </div>
+      <section className="mx-auto max-w-7xl" aria-busy="true">
+        <PageHeader
+          title="Loading curriculum"
+          description="Preparing the course and its units."
+          breadcrumbs={[{ label: "Courses", to: "/admin/courses" }, { label: "Loading curriculum" }]}
+          actions={<ButtonLink icon="arrow-left" variant="secondary" to="/admin/courses">Back to courses</ButtonLink>}
+        />
+        <div role="status" className="mt-8 space-y-5">
+          <LoadingSkeleton className="h-28" />
+          <LoadingSkeleton className="h-28" />
+          <span className="sr-only">Loading course curriculum…</span>
+        </div>
+      </section>
     );
   }
 
@@ -259,11 +258,11 @@ function CourseUnitsContent({
     <section className="mx-auto max-w-7xl">
       <PageHeader
         eyebrow="Course curriculum"
-        title={`${course?.emoji || "📘"} ${course?.title ?? "Course"}`}
+        title={`${course?.emoji || "📘"} ${course?.title ?? "Course"} curriculum`}
         description={course?.description || "Manage the ordered units in this course."}
         breadcrumbs={[{ label: "Courses", to: "/admin/courses" }, { label: course?.title ?? "Course" }]}
         meta={course ? <StatusBadge status={course.status} /> : undefined}
-        actions={canEditDrafts && course?.status === "draft" ? <Button icon="plus" onClick={() => setFormState({ mode: "create" })}>Create unit</Button> : undefined}
+        actions={<><ButtonLink icon="arrow-left" variant="secondary" to="/admin/courses">Back to courses</ButtonLink>{canEditDrafts && course?.status === "draft" && <Button icon="plus" onClick={() => setFormState({ mode: "create" })}>Create unit</Button>}</>}
       />
       {(!canEditDrafts || course?.status !== "draft") && <div className="mt-5"><Alert>{course?.status === "draft" ? "Your role has view-only access to draft units." : "This course is sealed. Its unit curriculum is read only."}</Alert></div>}
 

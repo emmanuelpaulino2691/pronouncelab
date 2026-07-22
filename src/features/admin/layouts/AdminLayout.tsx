@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 
 import AdminSidebar from "../components/AdminSidebar";
@@ -15,7 +15,13 @@ function getPageContext(pathname: string) {
 function AdminLayout() {
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const closeMenu = useCallback(() => setIsMenuOpen(false), []);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const closeMenu = useCallback(() => {
+    setIsMenuOpen(false);
+    if (isMenuOpen) {
+      window.requestAnimationFrame(() => menuButtonRef.current?.focus());
+    }
+  }, [isMenuOpen]);
 
   return (
     <div className="min-h-screen bg-[var(--pl-page)] lg:flex">
@@ -24,7 +30,7 @@ function AdminLayout() {
         <header className="sticky top-0 z-30 border-b border-slate-200/90 bg-white/95 px-4 py-3 backdrop-blur sm:px-7 lg:px-10">
           <div className="flex items-center justify-between gap-4">
             <div className="flex min-w-0 items-center gap-3">
-              <button type="button" aria-label="Open navigation" onClick={() => setIsMenuOpen(true)} className="admin-focus rounded-xl border border-slate-200 p-2.5 text-slate-700 hover:bg-slate-50 lg:hidden">
+              <button ref={menuButtonRef} type="button" aria-label="Open navigation" aria-expanded={isMenuOpen} onClick={() => setIsMenuOpen(true)} className="admin-focus rounded-xl border border-slate-200 p-2.5 text-slate-700 hover:bg-slate-50 lg:hidden">
                 <AdminIcon name="menu" className="h-5 w-5" />
               </button>
               <div className="min-w-0"><p className="truncate text-sm font-bold text-slate-900">{getPageContext(location.pathname)}</p><p className="hidden truncate text-xs text-slate-500 sm:block">Improve your English every day.</p></div>

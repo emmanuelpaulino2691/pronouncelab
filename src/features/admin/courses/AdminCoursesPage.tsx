@@ -13,12 +13,16 @@ import {
 type FormState = { mode: "closed" } | { mode: "create" } | { mode: "edit"; course: AdminCourse };
 type SortMode = "updated" | "title" | "position";
 
-function getErrorMessage(error: unknown) {
+function getErrorText(error: unknown) {
   return error instanceof Error ? error.message : "Something went wrong. Please try again.";
 }
 
+function getErrorMessage() {
+  return "The course list could not be updated. Refresh the list and try again.";
+}
+
 function getCourseSaveErrorMessage(error: unknown) {
-  const message = getErrorMessage(error).toLowerCase();
+  const message = getErrorText(error).toLowerCase();
   if (message.includes("duplicate") || message.includes("unique") || message.includes("slug")) {
     return "That course address is already in use. Choose a different address.";
   }
@@ -52,14 +56,14 @@ function AdminCoursesPage() {
     setIsLoading(true);
     setErrorMessage(null);
     try { setCourses(await listAdminCourses()); }
-    catch (error) { setCourses([]); setErrorMessage(getErrorMessage(error)); }
+    catch { setCourses([]); setErrorMessage(getErrorMessage()); }
     finally { setIsLoading(false); }
   }, []);
 
   useEffect(() => {
     let active = true;
     void listAdminCourses().then((loaded) => { if (active) setCourses(loaded); })
-      .catch((error: unknown) => { if (active) setErrorMessage(getErrorMessage(error)); })
+      .catch(() => { if (active) setErrorMessage(getErrorMessage()); })
       .finally(() => { if (active) setIsLoading(false); });
     return () => { active = false; };
   }, []);
@@ -100,7 +104,7 @@ function AdminCoursesPage() {
     setDeletingCourseId(course.id);
     setErrorMessage(null);
     try { await deleteDraftCourse(course.id); setCourses((current) => current.filter((item) => item.id !== course.id)); }
-    catch (error) { setErrorMessage(getErrorMessage(error)); }
+    catch { setErrorMessage(getErrorMessage()); }
     finally { setDeletingCourseId(null); }
   }
 
@@ -109,6 +113,7 @@ function AdminCoursesPage() {
       <PageHeader
         eyebrow="Curriculum"
         title="Courses"
+        breadcrumbs={[{ label: "Courses" }]}
         description="Shape the PronounceLab curriculum, from the first draft through its sealed learning experience."
         actions={canEditDrafts
           ? <Button icon="plus" onClick={() => { setFormErrorMessage(null); setFormState({ mode: "create" }); }}>Create course</Button>

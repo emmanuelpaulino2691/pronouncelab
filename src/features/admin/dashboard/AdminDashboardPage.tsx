@@ -112,7 +112,7 @@ function AdminDashboardPage() {
           <section>
             <SectionHeader title="Quick actions" />
             <Card className="mt-4 grid gap-2 p-3">
-              {canEditDrafts && <ButtonLink to="/admin/courses?create=1" icon="plus">Create a course</ButtonLink>}
+              {canEditDrafts && <ButtonLink to="/admin/courses?create=1" icon="plus">Create course</ButtonLink>}
               <ButtonLink to="/admin/courses" variant="secondary" icon="courses">Manage courses</ButtonLink>
               {data?.recentStudio && <ButtonLink to={`/admin/courses/${data.recentStudio.courseId}/units/${data.recentStudio.unitId}/lessons/${data.recentStudio.lessonId}/studio`} variant="secondary" icon="sparkle">Continue {data.recentStudio.lessonTitle}</ButtonLink>}
             </Card>

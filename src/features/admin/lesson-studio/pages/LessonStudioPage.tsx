@@ -4,7 +4,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 
 import { getAdminCourse } from "../../courses/adminCourseService";
 import {
@@ -42,6 +42,8 @@ import {
   Button,
   ButtonLink,
   Card,
+  LoadingSkeleton,
+  PageHeader,
   Select,
 } from "../../ui";
 
@@ -53,9 +55,8 @@ function parseId(value: string | undefined) {
 }
 
 function errorMessage(error: unknown) {
-  return error instanceof Error
-    ? error.message
-    : "Something went wrong.";
+  void error;
+  return "Lesson Studio could not complete this request. Refresh the page and try again.";
 }
 
 type Props = {
@@ -239,75 +240,46 @@ function Studio({
 
   if (loading) {
     return (
-      <p role="status" className="py-16 text-center text-slate-500">
-        Loading lesson studio…
-      </p>
+      <section className="mx-auto max-w-[1500px]" aria-busy="true">
+        <PageHeader
+          title="Loading Lesson Studio"
+          description="Preparing the lesson and its activities."
+          breadcrumbs={[{ label: "Courses", to: "/admin/courses" }, { label: "Loading Lesson Studio" }]}
+          actions={<ButtonLink icon="arrow-left" variant="secondary" to={`/admin/courses/${courseId}/units/${unitId}`}>Back to lessons</ButtonLink>}
+        />
+        <div role="status" className="mt-8 grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
+          <LoadingSkeleton className="h-72" />
+          <LoadingSkeleton className="h-96" />
+          <span className="sr-only">Loading Lesson Studio…</span>
+        </div>
+      </section>
     );
   }
 
   if (!course || !unit || !lesson) {
     return (
-      <section className="mx-auto max-w-3xl rounded-2xl border border-red-200 bg-red-50 p-6">
-        <h1 className="text-xl font-bold text-red-900">
-          Lesson studio unavailable
-        </h1>
-        <p className="mt-2 text-sm text-red-800">
-          {error ??
-            "The requested hierarchy is missing or unauthorized."}
-        </p>
+      <section className="mx-auto max-w-[1500px]">
+        <PageHeader
+          title="Lesson Studio unavailable"
+          description="The requested lesson could not be prepared."
+          breadcrumbs={[{ label: "Courses", to: "/admin/courses" }, { label: "Lesson Studio unavailable" }]}
+          actions={<ButtonLink icon="arrow-left" variant="secondary" to={`/admin/courses/${courseId}/units/${unitId}`}>Back to lessons</ButtonLink>}
+        />
+        <div className="mt-6"><Alert tone="error">{error ?? "The lesson may be unavailable or outside your access."}</Alert></div>
       </section>
     );
   }
 
   return (
     <section className="mx-auto max-w-[1500px]">
-      <nav
-        aria-label="Breadcrumb"
-        className="flex flex-wrap gap-2 text-sm text-slate-500"
-      >
-        <Link className="text-blue-700 hover:underline" to="/admin/courses">
-          Courses
-        </Link>
-        <span>/</span>
-        <Link className="text-blue-700 hover:underline" to={`/admin/courses/${courseId}`}>
-          {course.title}
-        </Link>
-        <span>/</span>
-        <Link className="text-blue-700 hover:underline" to={`/admin/courses/${courseId}/units/${unitId}`}>
-          {unit.title}
-        </Link>
-        <span>/</span>
-        <span>{lesson.title}</span>
-      </nav>
-
-      <header className="mt-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_12px_32px_rgb(15_23_42/0.06)] sm:p-6">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-bold text-slate-950 sm:text-3xl">
-                {lesson.title}
-              </h1>
-              <Badge tone={(version?.status ?? lesson.status) === "draft" ? "draft" : "success"}>{version?.status ?? lesson.status}</Badge>
-            </div>
-            <p className="mt-2 text-sm text-slate-500">
-              {version
-                ? `Version ${version.versionNumber} · ${saved}`
-                : "No lesson version exists yet."}
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <ButtonLink icon="arrow-left" variant="secondary" to={`/admin/courses/${courseId}/units/${unitId}`}>Back to lessons</ButtonLink>
-            <Button
-              type="button"
-              disabled
-              title="Student preview is coming later"
-              variant="secondary"
-            >
-              Preview · Coming later
-            </Button>
-          </div>
-        </div>
-      </header>
+      <PageHeader
+        eyebrow="Lesson Studio"
+        title={`${lesson.title} Studio`}
+        description={version ? `Version ${version.versionNumber} · ${saved}` : "No lesson version exists yet."}
+        breadcrumbs={[{ label: "Courses", to: "/admin/courses" }, { label: course.title, to: `/admin/courses/${courseId}` }, { label: unit.title, to: `/admin/courses/${courseId}/units/${unitId}` }, { label: lesson.title }]}
+        meta={<Badge tone={(version?.status ?? lesson.status) === "draft" ? "draft" : "success"}>{version?.status ?? lesson.status}</Badge>}
+        actions={<><ButtonLink icon="arrow-left" variant="secondary" to={`/admin/courses/${courseId}/units/${unitId}`}>Back to lessons</ButtonLink><Button type="button" disabled title="Student preview is coming later" variant="secondary">Preview · Coming later</Button></>}
+      />
 
       {!editable && version && <div className="mt-4"><Alert tone="info"><strong>Read-only studio.</strong> This lesson is sealed or your role does not include draft editing.</Alert></div>}
       {error && (

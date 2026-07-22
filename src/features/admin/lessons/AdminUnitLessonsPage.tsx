@@ -43,16 +43,8 @@ type LoadedHierarchy = {
 };
 
 function getErrorMessage(error: unknown) {
-  if (
-    typeof error === "object" &&
-    error !== null &&
-    "message" in error &&
-    typeof error.message === "string"
-  ) {
-    return error.message;
-  }
-
-  return "Something went wrong. Please try again.";
+  void error;
+  return "The unit lessons could not be updated. Refresh the lesson list and try again.";
 }
 
 function parseId(value: string | undefined) {
@@ -288,12 +280,19 @@ function UnitLessonsContent({
 
   if (isLoading) {
     return (
-      <div role="status" className="space-y-5 py-8">
-        <LoadingSkeleton className="h-10 w-64" />
-        <LoadingSkeleton className="h-28" />
-        <LoadingSkeleton className="h-28" />
-        <span className="sr-only">Loading unit hierarchy…</span>
-      </div>
+      <section className="mx-auto max-w-7xl" aria-busy="true">
+        <PageHeader
+          title="Loading lessons"
+          description="Preparing the unit and its lessons."
+          breadcrumbs={[{ label: "Courses", to: "/admin/courses" }, { label: "Loading lessons" }]}
+          actions={<ButtonLink icon="arrow-left" variant="secondary" to={`/admin/courses/${courseId}`}>Back to curriculum</ButtonLink>}
+        />
+        <div role="status" className="mt-8 space-y-5">
+          <LoadingSkeleton className="h-28" />
+          <LoadingSkeleton className="h-28" />
+          <span className="sr-only">Loading unit lessons…</span>
+        </div>
+      </section>
     );
   }
 
@@ -301,11 +300,11 @@ function UnitLessonsContent({
     <section className="mx-auto max-w-7xl">
       <PageHeader
         eyebrow="Unit lessons"
-        title={unit?.title ?? "Unit"}
+        title={`${unit?.title ?? "Unit"} lessons`}
         description={unit?.description || "Manage the ordered lessons and open the authoring studio."}
         breadcrumbs={[{ label: "Courses", to: "/admin/courses" }, { label: course?.title ?? "Course", to: `/admin/courses/${courseId}` }, { label: unit?.title ?? "Unit" }]}
         meta={unit ? <StatusBadge status={unit.status} /> : undefined}
-        actions={canEditDrafts && course?.status === "draft" && unit?.status === "draft" ? <Button icon="plus" onClick={() => setFormState({ mode: "create" })}>Create lesson</Button> : undefined}
+        actions={<><ButtonLink icon="arrow-left" variant="secondary" to={`/admin/courses/${courseId}`}>Back to curriculum</ButtonLink>{canEditDrafts && course?.status === "draft" && unit?.status === "draft" && <Button icon="plus" onClick={() => setFormState({ mode: "create" })}>Create lesson</Button>}</>}
       />
       {(!canEditDrafts || course?.status !== "draft" || unit?.status !== "draft") && <div className="mt-5"><Alert>{course?.status === "draft" && unit?.status === "draft" ? "Your role has view-only access to draft lessons." : "This hierarchy is sealed. Its lessons are read only."}</Alert></div>}
 
