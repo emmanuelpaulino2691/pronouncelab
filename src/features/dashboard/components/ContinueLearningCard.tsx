@@ -3,12 +3,12 @@ import ProgressBar from "../../../shared/components/ui/ProgressBar";
 import { useNavigate } from "react-router-dom";
 
 type Props = {
-  courseId: number;
+  courseId?: string;
   courseTitle: string;
   unitTitle: string;
   lessonTitle?: string;
   progress: number;
-  lessonId?: number;
+  lessonId?: string;
 };
 
 function ContinueLearningCard({
@@ -53,15 +53,15 @@ function ContinueLearningCard({
         </span>
 
         <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() =>
-              navigate(`/courses/${courseId}`)
-            }
-            className="rounded-lg border border-blue-600 px-4 py-2 text-blue-600 transition hover:bg-blue-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
-          >
-            View Course
-          </button>
+          {courseId && (
+            <button
+              type="button"
+              onClick={() => navigate(`/courses/${courseId}`)}
+              className="rounded-lg border border-blue-600 px-4 py-2 text-blue-600 transition hover:bg-blue-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+            >
+              View Course
+            </button>
+          )}
 
           <button
             type="button"

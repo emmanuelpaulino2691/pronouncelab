@@ -76,7 +76,7 @@ Feature folders own page-specific services and components. Shared folders contai
 
 | Route | Responsibility |
 | --- | --- |
-| `/` | Local learner dashboard |
+| `/` | Learner dashboard backed by the published catalog |
 | `/courses` | Course catalog |
 | `/courses/:courseId` | Units |
 | `/units/:unitId` | Lessons |
@@ -94,24 +94,22 @@ Feature folders own page-specific services and components. Shared folders contai
 
 ## Learner content and rendering
 
-`localContentProvider` implements the content provider interface using `courseRegistry` and static lesson arrays. Shared services resolve course, unit, lesson summaries, playable lesson data, and local progress. This abstraction is the intended future seam for a Supabase learner provider.
+Learner routes use the asynchronous `LearnerContentProvider` contract. The active composition is `supabaseLearnerContentProvider`, which reads the published catalog and one published lesson through learner-safe RPC projections. The static provider remains only as an explicit compatibility adapter for fixtures and focused tests; it is not the runtime learner source.
 
-`LessonData` contains an ordered `activities` array and subtype collections. `ActivityRenderer` resolves the activity component through `activityRegistry` and passes the current activity alongside the lesson. AI missions carry their owning `activityId`, so a renderer selects the mission for the current activity rather than relying on array order.
+Published learner DTOs contain an ordered activity union. `ActivityRenderer` consumes that answer-safe union directly and reuses the existing Lesson Player shell. Quiz and listening projections omit correctness and explanations, so the browser can record response completion but cannot reveal answer keys. Public media paths are resolved through the existing Supabase Storage client.
 
 ```mermaid
 sequenceDiagram
   participant Page as LessonPage
-  participant Engine as courseEngineService
-  participant Provider as localContentProvider
+  participant Provider as Supabase learner provider
+  participant RPC as Published RPC projections
   participant Player as LessonPlayer
-  participant Registry as activityRegistry
-
-  Page->>Engine: Resolve route lesson
-  Engine->>Provider: Load static summary/data
-  Provider-->>Page: LessonData
+  Page->>Provider: Load published lesson
+  Provider->>RPC: get_published_lesson
+  RPC-->>Provider: Answer-safe current published version
+  Provider-->>Page: LearnerLesson DTO
   Page->>Player: lesson + return context
-  Player->>Registry: Render activity.type
-  Registry-->>Player: Type-specific renderer
+  Player->>Player: Render activity.type
 ```
 
 Lesson Player shows one primary step while keeping activity renderers mounted and hidden. That preserves quiz and interactive component state when a learner goes backward. Details are in [Student Experience](STUDENT_EXPERIENCE.md).
@@ -163,7 +161,7 @@ The learner side retains older shared components plus the newer lesson shell sty
 
 ## Extension points
 
-- Add a learner Supabase content provider behind the existing provider contract.
+- Add a cache/revalidation policy only if production traffic requires it; provider requests currently return the newest published revision without client caching.
 - Add activity types through the enum/schema, authoring RPC, Studio types/editor, learner `LessonActivity` type, subtype data, and registry together.
 - Add server progress through a secure account/enrollment/attempt model while retaining the Lesson Player state interface.
 - Persist AI mission results using the existing future journal type after identity and RLS are designed.
@@ -174,7 +172,7 @@ The learner side retains older shared components plus the newer lesson shell sty
 
 These are current facts, not proposals:
 
-- Admin-authored content does not feed learner routes.
+- Learner progress remains device-local and is not synchronized to an account.
 - Focused Vitest utility tests are configured, but browser and database integration tests are not.
 - Learner progress is device-local and not user-namespaced.
 - The repository contains both `activityRegistry.ts` and `activityRegistry.tsx`; the TSX module is the active registry import path and the duplication should be resolved carefully.

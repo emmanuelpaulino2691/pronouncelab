@@ -8,7 +8,7 @@ const defaultProgress: UserProgress = {
   activitiesCompleted: [],
 };
 
-function uniqueNumbers(value: unknown): number[] {
+function uniqueIds(value: unknown): string[] {
   if (!Array.isArray(value)) {
     return [];
   }
@@ -16,10 +16,11 @@ function uniqueNumbers(value: unknown): number[] {
   return [
     ...new Set(
       value.filter(
-        (item): item is number =>
-          typeof item === "number" &&
-          Number.isFinite(item)
+        (item): item is string | number =>
+          (typeof item === "string" && item.trim().length > 0) ||
+          (typeof item === "number" && Number.isSafeInteger(item) && item >= 0)
       )
+      .map(String)
     ),
   ];
 }
@@ -34,7 +35,7 @@ function normalizeProgress(
       : {};
 
   const activitiesByLesson =
-    new Map<number, Set<number>>();
+    new Map<string, Set<number>>();
 
   if (Array.isArray(stored.activitiesCompleted)) {
     stored.activitiesCompleted.forEach((item) => {
@@ -49,25 +50,25 @@ function normalizeProgress(
         item as Record<string, unknown>;
 
       if (
-        typeof activityProgress.lessonId !==
-        "number"
+        !["number", "string"].includes(typeof activityProgress.lessonId)
       ) {
         return;
       }
 
       const activities =
         activitiesByLesson.get(
-          activityProgress.lessonId
+          String(activityProgress.lessonId)
         ) ?? new Set<number>();
 
-      uniqueNumbers(
+      uniqueIds(
         activityProgress.activities
-      ).forEach((activity) =>
-        activities.add(activity)
-      );
+      ).forEach((activity) => {
+        const index = Number(activity);
+        if (Number.isSafeInteger(index) && index >= 0) activities.add(index);
+      });
 
       activitiesByLesson.set(
-        activityProgress.lessonId,
+        String(activityProgress.lessonId),
         activities
       );
     });
@@ -75,9 +76,9 @@ function normalizeProgress(
 
   return {
     lessonsStarted:
-      uniqueNumbers(stored.lessonsStarted),
+      uniqueIds(stored.lessonsStarted),
     lessonsCompleted:
-      uniqueNumbers(stored.lessonsCompleted),
+      uniqueIds(stored.lessonsCompleted),
     activitiesCompleted: [
       ...activitiesByLesson.entries(),
     ].map(([lessonId, activities]) => ({

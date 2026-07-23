@@ -7,10 +7,10 @@ import { sdkLearnerSupabaseGateway } from "./gateways/sdkLearnerSupabaseGateway"
 import { createSupabaseLearnerContentProvider } from "./providers/supabaseLearnerContentProvider";
 
 export const learnerContentSource =
-  "local" satisfies ContentSource;
+  "supabase" satisfies ContentSource;
 
-// Prepared for explicit Supabase provider construction; the default remains
-// local until the learner route migration phase.
+// Published Supabase projections are the active learner source. The local
+// provider remains available only for focused compatibility tests.
 export const learnerApiService =
   createLearnerApiService(
     sdkLearnerSupabaseGateway

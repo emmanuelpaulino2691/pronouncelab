@@ -8,7 +8,6 @@ import {
 } from "../errors/contentErrors";
 import type { LearnerInfrastructureError } from "../infrastructure/learnerInfrastructureErrors";
 import {
-  courseSummaryFromPublished,
   mapPublishedCatalog,
   mapPublishedLesson,
 } from "../mappers/publishedContentMapper";
@@ -81,9 +80,7 @@ export function createSupabaseLearnerContentProvider(
       if (!result.ok) return result;
       return contentSuccess(
         copyResult(
-          result.value.courses.map(
-            courseSummaryFromPublished
-          )
+          result.value.courses
         ),
         result.revision
       );

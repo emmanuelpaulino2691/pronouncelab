@@ -9,14 +9,12 @@ import { staticLearnerContentProvider } from "./providers/staticLearnerContentPr
 import type { LearnerApiService } from "./api/LearnerApiService";
 
 describe("learner content composition", () => {
-  it("keeps the local static provider active", () => {
-    expect(learnerContentSource).toBe("local");
-    expect(learnerContentProvider).toBe(
-      staticLearnerContentProvider
-    );
+  it("keeps the published Supabase provider active", () => {
+    expect(learnerContentSource).toBe("supabase");
+    expect(learnerContentProvider).not.toBe(staticLearnerContentProvider);
   });
 
-  it("constructs local and Supabase providers explicitly without changing the default", () => {
+  it("retains the local provider only as an explicit compatibility source", () => {
     const fakeApi = {} as LearnerApiService;
     expect(
       composeLearnerContentProvider(
@@ -30,9 +28,7 @@ describe("learner content composition", () => {
         fakeApi
       )
     ).not.toBe(staticLearnerContentProvider);
-    expect(learnerContentSource).toBe("local");
-    expect(learnerContentProvider).toBe(
-      staticLearnerContentProvider
-    );
+    expect(learnerContentSource).toBe("supabase");
+    expect(learnerContentProvider).not.toBe(staticLearnerContentProvider);
   });
 });

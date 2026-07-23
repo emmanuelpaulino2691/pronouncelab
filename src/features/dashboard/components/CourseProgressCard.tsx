@@ -1,13 +1,8 @@
 ﻿import Card from "../../../shared/components/ui/Card";
 import ProgressBar from "../../../shared/components/ui/ProgressBar";
-import { useGlobalProgress } from "../../../shared/hooks/useGlobalProgress";
+type Props = { lessonsStarted: number; lessonsCompleted: number; completionRate: number };
 
-function CourseProgressCard() {
-  const {
-    lessonsStarted,
-    lessonsCompleted,
-    completionRate,
-  } = useGlobalProgress();
+function CourseProgressCard({ lessonsStarted, lessonsCompleted, completionRate }: Props) {
 
   return (
     <Card title="Course Progress">

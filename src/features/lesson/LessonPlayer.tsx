@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import ActivityRenderer from "../activities/shared/ActivityRenderer";
 import { useLessonState } from "../../shared/hooks/useLessonState";
 import { useUserProgress } from "../../shared/hooks/useUserProgress";
-import type { LessonData } from "../../shared/types/LessonData";
+import type { LearnerLesson } from "../../shared/content/contracts/learnerContent";
 import LessonNavigator from "./LessonNavigator";
 import ActivityErrorBoundary from "./components/ActivityErrorBoundary";
 import LessonHeader from "./components/LessonHeader";
@@ -13,11 +13,11 @@ import {
   getActivityDetails, getCompletionMessage,
 } from "./studentExperience";
 
-type Props = { lesson: LessonData; returnPath?: string; contextLabel?: string };
+type Props = { lesson: LearnerLesson; returnPath?: string; contextLabel?: string };
 type TransitionState = { completedIndex: number; nextIndex: number } | null;
 
 export default function LessonPlayer({ lesson, returnPath = "/courses", contextLabel }: Props) {
-  const activities = Array.isArray(lesson.activities) ? lesson.activities : [];
+  const activities = lesson.activities;
   const {
     progress: userProgress, startLesson, completeLesson,
     completeActivity: saveActivityProgress, resetLessonProgress,
@@ -45,7 +45,11 @@ export default function LessonPlayer({ lesson, returnPath = "/courses", contextL
   const details = activity ? getActivityDetails(activity.type) : null;
   const remainingMinutes = estimateRemainingMinutes(activities, current);
   const totalMinutes = estimateTotalMinutes(activities);
-  const requiresResponse = activity && ["listening", "practice", "quiz"].includes(activity.type);
+  const requiresResponse = activity?.type === "quiz"
+    ? activity.assessments.some((assessment) => assessment.questions.length > 0)
+    : activity?.type === "listening"
+      ? activity.items.some((item) => item.questions.length > 0)
+      : false;
   const canCompleteCurrent = Boolean(activity) && (completedSet.has(current) || !requiresResponse || activityReadiness[current]);
 
   const handleReadyChange = useCallback((index: number, ready: boolean) => {
@@ -126,7 +130,7 @@ export default function LessonPlayer({ lesson, returnPath = "/courses", contextL
 
           {activities.map((item, index) => <div key={item.id} hidden={index !== current}>
             <ActivityErrorBoundary activityTitle={item.title}>
-              <ActivityRenderer activity={item} lesson={lesson} onReadyChange={(ready) => handleReadyChange(index, ready)} />
+              <ActivityRenderer activity={item} onReadyChange={(ready) => handleReadyChange(index, ready)} />
             </ActivityErrorBoundary>
           </div>)}
 
@@ -149,7 +153,7 @@ function TransitionPanel({ message, isAiNext, onContinue }: { message: string; i
 }
 
 function CompletionScreen({ lesson, completed, total, totalMinutes, returnPath, onReview, onRestart }: {
-  lesson: LessonData; completed: number; total: number; totalMinutes: number | null;
+  lesson: LearnerLesson; completed: number; total: number; totalMinutes: number | null;
   returnPath: string; onReview: () => void; onRestart: () => void;
 }) {
   return <section className="mx-auto max-w-3xl rounded-3xl border border-emerald-200 bg-white p-7 text-center shadow-lg sm:p-12">

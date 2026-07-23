@@ -1,13 +1,8 @@
-import { useGlobalProgress } from "../../../shared/hooks/useGlobalProgress";
 import StatCard from "../../../shared/components/ui/StatCard";
 
-function ProgressStats() {
-  const {
-    lessonsStarted,
-    lessonsCompleted,
-    completionRate,
-    completedActivities,
-  } = useGlobalProgress();
+type Props = { lessonsStarted: number; lessonsCompleted: number; completionRate: number; completedActivities: number };
+
+function ProgressStats({ lessonsStarted, lessonsCompleted, completionRate, completedActivities }: Props) {
 
   return (
     <>

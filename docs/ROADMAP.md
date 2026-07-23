@@ -61,6 +61,25 @@ Before the numbered visual/product sprints, the repository established Supabase 
 
 ## Current milestone
 
+### Sprint 37 — Published Content Delivery
+
+**Status:** In progress.
+
+**Delivered in this increment:** The learner content composition now selects
+the Supabase provider. Dashboard and hierarchy routes load the published
+catalog, Lesson Player loads only the current published lesson version, and
+published activity DTOs render inside the existing learner shell. Continue
+Learning and completion remain device-local and accept published string IDs.
+
+**Security boundary:** Learner routes call only the answer-safe published RPCs;
+draft hierarchy content, superseded versions, quiz correctness, and
+explanations are excluded. A pending forward migration exposes the structured
+pronunciation block fields without changing those publication gates.
+
+**Remaining work:** browser QA against representative published content and
+deployment of the reviewed forward migration. Server-side assessment scoring,
+synchronized progress, enrollment, and learner accounts remain future work.
+
 The current milestone remains **foundation hardening and convergence**:
 
 - validate new forward migrations through the authorized workflow before deployment;
@@ -125,9 +144,11 @@ management, or AI history.
 
 ### Published content delivery
 
+**Status:** Implemented locally in Sprint 37; deployment and browser QA remain.
+
 **Goal:** Serve learner routes from safe published Supabase projections.
 
-**Reason:** Admin-authored content currently does not reach students.
+**Reason:** Teachers need reviewed published content to reach students without a code deployment.
 
 **Dependencies:** stable learner DTOs, public answer-safe RPCs for all activities, media URLs, migration of static IDs/fixtures, caching/error strategy.
 

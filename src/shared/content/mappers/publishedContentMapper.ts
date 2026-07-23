@@ -22,13 +22,13 @@ import type {
   LearnerLesson,
   LearnerLessonSummary,
   LearnerUnit,
-  LearnerUnitSummary,
 } from "../contracts/learnerContent";
 import {
   contentFailure,
   contentSuccess,
   type ContentResult,
 } from "../errors/contentErrors";
+import { resolvePublishedMediaUrl } from "../publishedMediaUrl";
 
 export type PublishedLearnerCatalog = {
   readonly courses: readonly LearnerCourse[];
@@ -76,7 +76,7 @@ function mapMedia(
     ? {
         id: contentId(media.id),
         kind: media.kind,
-        url: media.publicPath,
+        url: resolvePublishedMediaUrl(media.publicPath),
         mimeType: media.mimeType,
         altText: media.altText,
       }
@@ -244,7 +244,7 @@ function mapCatalogEnvelope(
   const courses = ordered(envelope.courses).map(
     (course): LearnerCourse => {
       const units = ordered(course.units).map(
-        (unit): LearnerUnitSummary => {
+        (unit): LearnerUnit => {
           const lessons = ordered(
             unit.lessons
           ).map(

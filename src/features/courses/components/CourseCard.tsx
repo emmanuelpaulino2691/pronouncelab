@@ -4,7 +4,7 @@ import Card from "../../../shared/components/ui/Card";
 import ProgressBar from "../../../shared/components/ui/ProgressBar";
 
 type Props = {
-  id: number;
+  id: string;
   title: string;
   level: string;
   units: number;
@@ -50,6 +50,7 @@ function CourseCard({
           </span>
 
           <button
+            type="button"
             onClick={() => navigate(`/courses/${id}`)}
             className="rounded-lg bg-blue-600 px-4 py-2 text-white transition hover:bg-blue-700"
           >

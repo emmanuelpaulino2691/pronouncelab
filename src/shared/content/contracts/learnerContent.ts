@@ -39,7 +39,7 @@ export type LearnerCourseSummary = {
 };
 
 export type LearnerCourse = LearnerCourseSummary & {
-  readonly units: readonly LearnerUnitSummary[];
+  readonly units: readonly LearnerUnit[];
 };
 
 export type LearnerUnitSummary = {

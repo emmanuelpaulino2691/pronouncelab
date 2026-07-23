@@ -11,7 +11,7 @@ export function useUserProgress() {
   );
 
   const startLesson = useCallback(
-    (lessonId: number) => {
+    (lessonId: string) => {
       const latest = loadUserProgress();
 
       if (latest.lessonsStarted.includes(lessonId)) {
@@ -37,7 +37,7 @@ export function useUserProgress() {
   );
 
   const completeLesson = useCallback(
-    (lessonId: number) => {
+    (lessonId: string) => {
       const latest = loadUserProgress();
 
       if (latest.lessonsCompleted.includes(lessonId)) {
@@ -64,7 +64,7 @@ export function useUserProgress() {
 
   const completeActivity = useCallback(
     (
-      lessonId: number,
+      lessonId: string,
       activityIndex: number
     ) => {
       const latest = loadUserProgress();
@@ -123,7 +123,7 @@ export function useUserProgress() {
     []
   );
 
-  const resetLessonProgress = useCallback((lessonId: number) => {
+  const resetLessonProgress = useCallback((lessonId: string) => {
     const latest = loadUserProgress();
     const updated = {
       lessonsStarted: latest.lessonsStarted.filter((id) => id !== lessonId),

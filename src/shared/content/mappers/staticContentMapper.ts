@@ -850,7 +850,7 @@ export function mapStaticContent(
     if (!courseId.ok) return courseId;
     if (!courseTitle.ok) return courseTitle;
 
-    const units: LearnerUnitSummary[] = [];
+    const units: LearnerUnit[] = [];
     const referencedUnitIds = new Set<number>();
 
     for (
@@ -995,7 +995,7 @@ export function mapStaticContent(
         lessons,
       };
 
-      units.push(unitSummary);
+      units.push(learnerUnit);
       unitsById.set(
         unitId.value,
         learnerUnit

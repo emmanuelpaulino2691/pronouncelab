@@ -17,23 +17,39 @@
 
 ## Current sprint
 
+**Sprint 37 — Published Content Delivery.**
+
+Status: In progress. Learner Dashboard, Courses, Units, Lessons, and Lesson
+Player routes now use the published Supabase content provider. The provider
+consumes only learner-safe catalog and current published-version RPCs. Existing
+route paths and the Lesson Player shell remain unchanged, while device-local
+progress accepts published string identifiers and preserves legacy numeric
+identifier data.
+
+Published activities render through the existing learner shell. Assessment
+answer keys and explanations remain absent from browser projections. A narrow
+forward migration extends the published pronunciation projection with the Word
+List and Minimal Pairs fields; it remains pending deployment.
+
+Sprint 36 authoring increments remain delivered as documented below.
+
 **Sprint 36 — Studio authoring improvements.**
 
 Status: In progress. The first increment finalizes the Course Editor address
 workflow. New course addresses are generated automatically from the title,
 teachers can explicitly switch to manual editing, and **Use title** restores
 automatic generation. Existing course addresses remain unchanged unless a
-teacher deliberately edits or regenerates them. Sprint 36 is not complete.
+teacher deliberately edits or regenerates them.
 
 The second increment adds optional Spanish workflow instructions to AI Speaking
 Missions. English remains the default, the generated AI prompt stays separate,
 and existing missions without Spanish text remain valid. This does not add
-platform-wide localization. Sprint 36 remains in progress.
+platform-wide localization.
 
 The third increment adds teacher-managed MP3 upload, replacement, removal, and
 preview to Listening authoring, together with a clearer manual transcript
 editor and an accessible learner transcript disclosure. Automatic
-transcription is not implemented. Sprint 36 remains in progress.
+transcription is not implemented.
 
 The fourth increment introduces pronunciation-specific Word List and Minimal
 Pairs blocks. They extend the existing ordered `pronunciation_items` subtype
@@ -65,16 +81,16 @@ Status: Blueprint and ADR 0006 are complete. Phase 1 learner contracts,
 mapping foundations, asynchronous provider interface, and static provider
 compatibility are complete. Phase 2A learner delivery infrastructure is
 complete. Phase 2B migration 010, RPC mapping, and the Supabase learner
-provider are implemented locally but remain inactive. Local Docker validation
+provider are implemented and active in learner routes. Local Docker validation
 is pending because Docker Desktop is unavailable. Phase 2B.1 security and
 contract hardening is complete at the application/static-review level.
-Migrations through 202607220004 are applied remotely.
+Migrations through 202607220005 are applied remotely. Migration
+202607220006 remains local and pending deployment.
 
 ## Sprint objective
 
-Improve Studio authoring through small, contract-preserving increments. The
-current increment makes course addresses predictable without changing course
-routes, persistence, or the learner content-source boundary.
+Serve learner routes from reviewed, published Supabase content without changing
+the learner UI, route paths, or device-local progress semantics.
 
 ## Last completed sprint
 
@@ -144,8 +160,7 @@ Sprint 35 Phase 2A delivers locally:
   forbidden, and unexpected infrastructure errors;
 - end-to-end `AbortSignal` propagation through the SDK request builder;
 - dependency-injected gateway and service tests without global SDK mocking;
-- inactive infrastructure composition while the static provider remains the
-  sole active learner content provider.
+- provider composition prepared for later activation (superseded by Sprint 37).
 
 Sprint 35 Phase 2B delivers locally:
 
@@ -157,8 +172,8 @@ Sprint 35 Phase 2B delivers locally:
 - pure catalog, lesson, activity, media, and metadata projection mapping;
 - a dependency-injected Supabase learner provider with typed errors,
   cancellation, and defensive copies;
-- explicit local and Supabase provider construction while local remains the
-  application default;
+- explicit local and Supabase provider construction (the default changes to
+  Supabase in Sprint 37);
 - focused mapper, provider, composition, and SQL regression coverage.
 
 Sprint 35 Phase 2B.1 hardens that delivery boundary with:
@@ -174,33 +189,27 @@ Sprint 35 Phase 2B.1 hardens that delivery boundary with:
 
 ## Work in progress
 
-- Continue Sprint 36 Studio authoring improvements after the course address
-  increment is reviewed.
-- Complete browser and disposable-database verification for Sprint 36 media
-  authoring and publication validation.
-- Review Sprint 35 Phase 2B.1 hardening and application validation.
+- Browser-test empty, populated, error, and republished learner states against
+  the linked published-content environment.
+- Review and deploy migration 202607220006 after its dry run and SQL review.
 - Complete disposable local database execution when Docker is available.
 
 ## Pending work
 
-- Convert learner routes to asynchronous loading in a later Sprint 35 phase.
-- Implement non-destructive local progress compatibility.
 - Add browser-level and disposable-database integration coverage.
 - Implement learner identity and synchronized progress only in a future,
   separately designed milestone.
 
 ## Blockers
 
-- Admin-authored Supabase content is not connected to learner routes.
 - Learner identity, enrollment, attempts, and synchronized progress do not
   exist.
 - Media finalization still requires a trusted backend outside this repository.
 
 ## Next planned sprint
 
-Continue Sprint 36 through separately reviewed Studio increments. Server-side
-quiz evaluation and scoring remains future work and is not implemented or
-fully specified.
+Complete Sprint 37 browser and migration QA. Server-side quiz evaluation and
+scoring remains future work and is not implemented or fully specified.
 
 ## Areas that must not be modified
 

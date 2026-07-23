@@ -247,4 +247,21 @@ describe("supabaseLearnerContentProvider", () => {
       },
     });
   });
+
+  it("returns a newly published lesson revision without stale provider caching", async () => {
+    let revision = "lesson-4";
+    const fake = api();
+    fake.getPublishedLesson = async () => ({
+      ok: true,
+      value: { ...lesson, lessonRevision: revision },
+    });
+    const provider = createSupabaseLearnerContentProvider(fake);
+
+    const first = await provider.getLesson(id(3));
+    revision = "lesson-5";
+    const second = await provider.getLesson(id(3));
+
+    expect(first).toMatchObject({ ok: true, revision: "lesson-4" });
+    expect(second).toMatchObject({ ok: true, revision: "lesson-5" });
+  });
 });

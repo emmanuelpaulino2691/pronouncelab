@@ -19,7 +19,7 @@ See [ADR 0005](ADR/0005-student-experience.md).
 
 ## Lesson shell
 
-`LessonPage` resolves the static lesson and hierarchy context. `LessonPlayer` composes:
+`LessonPage` asynchronously resolves a learner-safe published lesson and its published unit context through the Supabase content provider. Draft, archived, and superseded lesson versions are not route data. `LessonPlayer` composes:
 
 - `LessonHeader` with title, description, position, percentage, remaining estimate, and exit route;
 - desktop activity outline;
@@ -43,7 +43,7 @@ Rules:
 - Progress uses completed activity count and is clamped between 0 and 100.
 - Empty arrays avoid division and render an explicit empty state.
 - A one-activity lesson follows the same explicit completion rule.
-- Listening, practice, and quiz renderers can report readiness before the completion action enables.
+- Listening and quiz questions report readiness before the completion action enables. Practice metadata remains reviewable without implying browser-side scoring.
 - AI mission result submission is optional for lesson navigation.
 
 Pure functions in `studentExperience.ts` calculate progress, time estimates, state normalization, labels, and deterministic completion messages.
@@ -79,7 +79,7 @@ Review returns to the first activity while preserving completed indicators. Rest
 
 ## Local persistence
 
-There is no secure learner progress backend. `useLessonState` persists:
+There is no secure learner progress backend. Published content identifiers are stored as strings, and legacy numeric identifiers are normalized to their decimal string form. `useLessonState` persists:
 
 - current activity index;
 - completed activity indexes.
@@ -113,4 +113,4 @@ Manual browser coverage is still necessary because the focused Vitest setup does
 
 ## Future account progress
 
-**Not implemented.** Synchronized progress requires learner authentication strategy, stable mapping from static lesson IDs to published versions, enrollment/attempt tables, RLS, conflict semantics, privacy policy, and migration of device-local state. It should replace, not silently reinterpret, local progress.
+**Not implemented.** Synchronized progress requires a learner authentication strategy, enrollment/attempt tables, RLS, conflict semantics, privacy policy, and migration of device-local state. It should replace, not silently reinterpret, local progress.

@@ -1,8 +1,4 @@
 import { courseRegistry } from "../../data/courseRegistry";
-import type {
-  LearnerCourse,
-  LearnerCourseSummary,
-} from "../contracts/learnerContent";
 import {
   contentFailure,
   contentSuccess,
@@ -15,21 +11,6 @@ import {
   type StaticLearnerCatalog,
 } from "../mappers/staticContentMapper";
 import type { LearnerContentProvider } from "./LearnerContentProvider";
-
-function courseSummary(
-  course: LearnerCourse
-): LearnerCourseSummary {
-  return {
-    id: course.id,
-    slug: course.slug,
-    title: course.title,
-    description: course.description,
-    level: course.level,
-    emoji: course.emoji,
-    position: course.position,
-    unitCount: course.unitCount,
-  };
-}
 
 function copyResult<T>(value: T): T {
   // Keep the cached DTO graph private from accidental consumer mutation.
@@ -94,9 +75,7 @@ export function createStaticLearnerContentProvider(
 
       return contentSuccess(
         copyResult(
-          catalog.value.courses.map(
-            courseSummary
-          )
+          catalog.value.courses
         ),
         staticRevision
       );

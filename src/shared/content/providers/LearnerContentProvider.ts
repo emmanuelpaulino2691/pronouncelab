@@ -1,7 +1,6 @@
 import type {
   ContentId,
   LearnerCourse,
-  LearnerCourseSummary,
   LearnerLesson,
   LearnerLessonSummary,
   LearnerUnit,
@@ -14,7 +13,7 @@ export interface LearnerContentProvider {
     signal?: AbortSignal
   ): Promise<
     ContentResult<
-      readonly LearnerCourseSummary[]
+      readonly LearnerCourse[]
     >
   >;
 

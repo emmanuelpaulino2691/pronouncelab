@@ -1,4 +1,4 @@
-import type { LessonActivity, LessonActivityType } from "../../shared/types/LessonActivity";
+import type { LessonActivityType } from "../../shared/types/LessonActivity";
 import type { LessonState } from "../../shared/types/LessonState";
 
 const activityDetails: Record<LessonActivityType, { label: string; instruction: string; minutes: number }> = {
@@ -19,12 +19,12 @@ export function calculateProgress(completedCount: number, total: number) {
   return Math.min(100, Math.max(0, Math.round((completedCount / total) * 100)));
 }
 
-export function estimateRemainingMinutes(activities: LessonActivity[], currentIndex: number) {
+export function estimateRemainingMinutes(activities: readonly { type: LessonActivityType }[], currentIndex: number) {
   if (!activities.length || currentIndex < 0 || currentIndex >= activities.length) return null;
   return activities.slice(currentIndex).reduce((total, activity) => total + getActivityDetails(activity.type).minutes, 0);
 }
 
-export function estimateTotalMinutes(activities: LessonActivity[]) {
+export function estimateTotalMinutes(activities: readonly { type: LessonActivityType }[]) {
   if (!activities.length) return null;
   return activities.reduce((total, activity) => total + getActivityDetails(activity.type).minutes, 0);
 }

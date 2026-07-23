@@ -8,7 +8,7 @@ import {
 import { normalizeLessonState } from "../../features/lesson/studentExperience";
 
 export function useLessonState(
-  lessonId: number,
+  lessonId: string,
   totalActivities: number
 ) {
   const [state, setState] = useState(() => {
