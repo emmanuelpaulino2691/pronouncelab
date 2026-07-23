@@ -17,6 +17,18 @@
 
 ## Current sprint
 
+**Sprint 38 — Teacher Experience.**
+
+Status: In progress. Draft courses, units, and lessons can be duplicated through
+controlled, atomic RPCs. Deep copies preserve ordered activities, subtype
+content, AI Speaking Mission configuration, and existing media references while
+creating new draft identities and excluding published history. Copies are
+appended to the current parent and use predictable **(Copy)** numbering.
+
+Lesson Studio supports Ctrl+S (or Command+S) for the focused editor form.
+Existing Escape dialog behavior, stable activity selection, dirty-editor state,
+and duplicate-pending guards remain in place.
+
 **Sprint 37 — Published Content Delivery.**
 
 Status: In progress. Learner Dashboard, Courses, Units, Lessons, and Lesson
@@ -84,13 +96,13 @@ complete. Phase 2B migration 010, RPC mapping, and the Supabase learner
 provider are implemented and active in learner routes. Local Docker validation
 is pending because Docker Desktop is unavailable. Phase 2B.1 security and
 contract hardening is complete at the application/static-review level.
-Migrations through 202607220005 are applied remotely. Migration
-202607220006 remains local and pending deployment.
+Migrations through 202607220006 are applied remotely. Migration
+202607220007 remains local and pending deployment.
 
 ## Sprint objective
 
-Serve learner routes from reviewed, published Supabase content without changing
-the learner UI, route paths, or device-local progress semantics.
+Reduce repetitive Studio work while preserving draft hierarchy, publication
+safety, and existing authoring contracts.
 
 ## Last completed sprint
 
@@ -189,9 +201,8 @@ Sprint 35 Phase 2B.1 hardens that delivery boundary with:
 
 ## Work in progress
 
-- Browser-test empty, populated, error, and republished learner states against
-  the linked published-content environment.
-- Review and deploy migration 202607220006 after its dry run and SQL review.
+- Execute and browser-test controlled course, unit, and lesson duplication.
+- Review migration 202607220007 after its dry run and SQL review.
 - Complete disposable local database execution when Docker is available.
 
 ## Pending work
@@ -208,8 +219,8 @@ Sprint 35 Phase 2B.1 hardens that delivery boundary with:
 
 ## Next planned sprint
 
-Complete Sprint 37 browser and migration QA. Server-side quiz evaluation and
-scoring remains future work and is not implemented or fully specified.
+Complete Sprint 38 duplication browser and database QA. Server-side quiz
+evaluation and scoring remains future work and is not implemented.
 
 ## Areas that must not be modified
 

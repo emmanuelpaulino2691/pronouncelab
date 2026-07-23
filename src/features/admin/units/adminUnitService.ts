@@ -188,3 +188,13 @@ export async function deleteDraftUnit(
     );
   }
 }
+
+export async function duplicateDraftUnit(unitId: number, expectedCourseId: number) {
+  const { data, error } = await requireSupabase().rpc(
+    "duplicate_draft_unit",
+    { requested_unit_id: unitId, expected_course_id: expectedCourseId }
+  );
+  if (error) throw error;
+  if (!data) throw new Error("The unit could not be duplicated.");
+  return toAdminUnit(data as unknown as UnitRow);
+}

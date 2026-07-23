@@ -61,6 +61,25 @@ Before the numbered visual/product sprints, the repository established Supabase 
 
 ## Current milestone
 
+### Sprint 38 — Teacher Experience
+
+**Status:** In progress.
+
+**Delivered locally:** Controlled same-parent duplication for draft courses,
+units, and lessons. Each operation runs atomically behind the hierarchy gate,
+creates new draft identities, preserves ordered subtype content and media
+references, and excludes published versions. Teacher-facing actions expose
+pending and retry states, lessons open the duplicated Studio immediately, and
+copy names increment predictably. Lesson Studio also supports Ctrl+S or
+Command+S for the focused editor form.
+
+**Boundary:** No new activity types, templates, libraries, universal blocks,
+published-history cloning, or storage-object copying are introduced.
+
+**Remaining work:** Execute the pending migration in a disposable database and
+complete browser QA for deep-copy content, keyboard save, long-operation
+feedback, permissions, and retry behavior.
+
 ### Sprint 37 — Published Content Delivery
 
 **Status:** In progress.

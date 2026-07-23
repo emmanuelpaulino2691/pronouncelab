@@ -18,6 +18,7 @@ import {
   type AdminUnit,
 } from "../../units/adminUnitService";
 import ActivityEditor from "../editors/ActivityEditor";
+import { isSaveShortcut } from "../../ui/saveShortcut";
 import ActivityPicker from "../components/ActivityPicker";
 import { getActivityPresentation } from "../activityCatalog";
 import { removeActivityAndSelectNearest } from "../activityDeletionState";
@@ -239,6 +240,20 @@ function Studio({
     unit?.status === "draft" &&
     lesson?.status === "draft" &&
     version?.status === "draft";
+
+  useEffect(() => {
+    function handleSaveShortcut(event: KeyboardEvent) {
+      if (!isSaveShortcut(event) || !editable || busy) return;
+      const active = document.activeElement;
+      if (!(active instanceof Element) || !editorRef.current?.contains(active)) return;
+      const form = active.closest("form");
+      if (!(form instanceof HTMLFormElement)) return;
+      event.preventDefault();
+      form.requestSubmit();
+    }
+    document.addEventListener("keydown", handleSaveShortcut);
+    return () => document.removeEventListener("keydown", handleSaveShortcut);
+  }, [busy, editable]);
 
   async function run<T>(
     action: () => Promise<T>,

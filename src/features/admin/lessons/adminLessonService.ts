@@ -203,3 +203,13 @@ export async function deleteDraftLesson(
     );
   }
 }
+
+export async function duplicateDraftLesson(lessonId: number, expectedUnitId: number) {
+  const { data, error } = await requireSupabase().rpc(
+    "duplicate_draft_lesson",
+    { requested_lesson_id: lessonId, expected_unit_id: expectedUnitId }
+  );
+  if (error) throw error;
+  if (!data) throw new Error("The lesson could not be duplicated.");
+  return toAdminLesson(data as unknown as LessonRow);
+}

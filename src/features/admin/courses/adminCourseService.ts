@@ -215,3 +215,13 @@ export async function deleteDraftCourse(
     );
   }
 }
+
+export async function duplicateDraftCourse(courseId: number) {
+  const { data, error } = await requireSupabase().rpc(
+    "duplicate_draft_course",
+    { requested_course_id: courseId }
+  );
+  if (error) throw error;
+  if (!data) throw new Error("The course could not be duplicated.");
+  return toAdminCourse(data as unknown as CourseRow);
+}

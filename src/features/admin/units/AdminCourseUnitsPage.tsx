@@ -30,6 +30,7 @@ import {
 import {
   createAdminUnit,
   deleteDraftUnit,
+  duplicateDraftUnit,
   listAdminUnits,
   updateAdminUnit,
   type AdminUnit,
@@ -59,6 +60,7 @@ function CourseUnitsContent({
   const isActiveRef = useRef(true);
   const saveInFlightRef = useRef(false);
   const deleteInFlightRef = useRef(false);
+  const duplicateInFlightRef = useRef(false);
   const [course, setCourse] =
     useState<AdminCourse | null>(null);
   const [units, setUnits] = useState<
@@ -70,6 +72,7 @@ function CourseUnitsContent({
     useState(false);
   const [deletingUnitId, setDeletingUnitId] =
     useState<number | null>(null);
+  const [duplicatingUnitId, setDuplicatingUnitId] = useState<number | null>(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState(
     createDeleteConfirmationState<AdminUnit>
   );
@@ -246,6 +249,22 @@ function CourseUnitsContent({
     }
   }
 
+  async function handleDuplicate(unit: AdminUnit) {
+    if (duplicateInFlightRef.current) return;
+    duplicateInFlightRef.current = true;
+    setDuplicatingUnitId(unit.id);
+    setErrorMessage(null);
+    try {
+      const duplicated = await duplicateDraftUnit(unit.id, courseId);
+      if (isActiveRef.current) setUnits((current) => [...current, duplicated].sort((a, b) => a.position - b.position));
+    } catch {
+      if (isActiveRef.current) setErrorMessage("The unit could not be duplicated. Nothing was changed. Try again.");
+    } finally {
+      duplicateInFlightRef.current = false;
+      if (isActiveRef.current) setDuplicatingUnitId(null);
+    }
+  }
+
   if (isLoading) {
     return (
       <section className="mx-auto max-w-7xl" aria-busy="true">
@@ -332,6 +351,7 @@ function CourseUnitsContent({
                           >
                             Edit
                           </button>
+                          <Button type="button" variant="secondary" isLoading={duplicatingUnitId === unit.id} disabled={duplicatingUnitId !== null} onClick={() => void handleDuplicate(unit)}>Duplicate</Button>
                           <button
                             type="button"
                             disabled={

@@ -35,6 +35,7 @@ import {
 import {
   createAdminLesson,
   deleteDraftLesson,
+  duplicateDraftLesson,
   listAdminLessons,
   updateAdminLesson,
   type AdminLesson,
@@ -88,6 +89,7 @@ function UnitLessonsContent({
   const isActiveRef = useRef(true);
   const saveInFlightRef = useRef(false);
   const deleteInFlightRef = useRef(false);
+  const duplicateInFlightRef = useRef(false);
   const creationCompletedRef = useRef(false);
   const [course, setCourse] =
     useState<AdminCourse | null>(null);
@@ -104,6 +106,7 @@ function UnitLessonsContent({
     deletingLessonId,
     setDeletingLessonId,
   ] = useState<number | null>(null);
+  const [duplicatingLessonId, setDuplicatingLessonId] = useState<number | null>(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState(
     createDeleteConfirmationState<AdminLesson>
   );
@@ -307,6 +310,25 @@ function UnitLessonsContent({
     }
   }
 
+  async function handleDuplicate(lesson: AdminLesson) {
+    if (duplicateInFlightRef.current) return;
+    duplicateInFlightRef.current = true;
+    setDuplicatingLessonId(lesson.id);
+    setErrorMessage(null);
+    try {
+      const duplicated = await duplicateDraftLesson(lesson.id, unitId);
+      if (isActiveRef.current) {
+        setLessons((current) => [...current, duplicated].sort((a, b) => a.position - b.position));
+        navigate(`/admin/courses/${courseId}/units/${unitId}/lessons/${duplicated.id}/studio`);
+      }
+    } catch {
+      if (isActiveRef.current) setErrorMessage("The lesson could not be duplicated. Nothing was changed. Try again.");
+    } finally {
+      duplicateInFlightRef.current = false;
+      if (isActiveRef.current) setDuplicatingLessonId(null);
+    }
+  }
+
   if (isLoading) {
     return (
       <section className="mx-auto max-w-7xl" aria-busy="true">
@@ -407,6 +429,7 @@ function UnitLessonsContent({
                             >
                               Edit
                             </button>
+                            <Button type="button" variant="secondary" isLoading={duplicatingLessonId === lesson.id} disabled={duplicatingLessonId !== null} onClick={() => void handleDuplicate(lesson)}>Duplicate</Button>
                             <button
                               type="button"
                               disabled={

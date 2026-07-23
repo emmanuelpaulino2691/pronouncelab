@@ -16,7 +16,7 @@ import CourseForm from "./CourseForm";
 import { getCourseSaveErrorMessage } from "./courseSaveErrors";
 import { shouldRenderCourseForm } from "./courseFormState";
 import {
-  createAdminCourse, deleteDraftCourse, listAdminCourses, updateAdminCourse,
+  createAdminCourse, deleteDraftCourse, duplicateDraftCourse, listAdminCourses, updateAdminCourse,
   type AdminCourse, type CourseInput, type CourseStatus,
 } from "./adminCourseService";
 
@@ -26,11 +26,13 @@ type SortMode = "updated" | "title" | "position";
 function AdminCoursesPage() {
   const { canEditDrafts } = useAdminPermissions();
   const deleteInFlightRef = useRef(false);
+  const duplicateInFlightRef = useRef(false);
   const [searchParams] = useSearchParams();
   const [courses, setCourses] = useState<AdminCourse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [deletingCourseId, setDeletingCourseId] = useState<number | null>(null);
+  const [duplicatingCourseId, setDuplicatingCourseId] = useState<number | null>(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState(
     createDeleteConfirmationState<AdminCourse>
   );
@@ -99,6 +101,22 @@ function AdminCoursesPage() {
     finally { deleteInFlightRef.current = false; setDeletingCourseId(null); }
   }
 
+  async function handleDuplicate(course: AdminCourse) {
+    if (duplicateInFlightRef.current) return;
+    duplicateInFlightRef.current = true;
+    setDuplicatingCourseId(course.id);
+    setErrorMessage(null);
+    try {
+      const duplicated = await duplicateDraftCourse(course.id);
+      setCourses((current) => [...current, duplicated]);
+    } catch {
+      setErrorMessage("The course could not be duplicated. Nothing was changed. Try again.");
+    } finally {
+      duplicateInFlightRef.current = false;
+      setDuplicatingCourseId(null);
+    }
+  }
+
   return (
     <section className="mx-auto max-w-7xl space-y-7">
       <PageHeader
@@ -137,6 +155,7 @@ function AdminCoursesPage() {
                 <div className="flex flex-wrap gap-2 border-t border-slate-200 bg-slate-50/70 p-4">
                   <ButtonLink to={`/admin/courses/${course.id}`} className="flex-1">Open curriculum</ButtonLink>
                   {editable && <Button variant="secondary" icon="edit" aria-label={`Edit ${course.title}`} onClick={() => { setFormErrorMessage(null); setFormState({ mode: "edit", course }); }}>Edit</Button>}
+                  {editable && <Button type="button" variant="secondary" aria-label={`Duplicate ${course.title}`} isLoading={duplicatingCourseId === course.id} disabled={duplicatingCourseId !== null} onClick={() => void handleDuplicate(course)}>Duplicate</Button>}
                   {editable && <Button type="button" variant="danger" icon="delete" aria-label={`Delete ${course.title}`} isLoading={deletingCourseId === course.id} onClick={() => { setErrorMessage(null); setDeleteConfirmation(openDeleteConfirmation(course)); }}>Delete</Button>}
                 </div>
               </Card>;
