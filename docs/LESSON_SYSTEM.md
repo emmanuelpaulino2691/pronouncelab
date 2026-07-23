@@ -39,6 +39,7 @@ They are conceptually aligned but there is no implemented projection from publis
 | `pronunciation` | Ordered `pronunciation_items`: backward-compatible display-text items or pronunciation-specific `word_list` / `minimal_pairs` blocks with structured entries and optional audio | Legacy word/phrase practice plus responsive Word List and Minimal Pairs presentation |
 | `practice` | Activity metadata only in the current Studio; no dedicated database subtype | Static practice exercise data |
 | `quiz` | `assessment_sets`, questions, and answer options | Static quiz interactions |
+| `interactive_practice` | Staff-only exercise configuration for Multiple Choice, True / False, Match, or Fill in the Blank | **Not implemented.** Learner projections and renderers intentionally omit this type in Sprint 39A |
 | `ai_speaking_mission` | One JSON configuration row per activity | Structured external-AI mission card |
 
 The student static models can be richer than the current admin subtype schema. For example, static theory/practice types are not a direct serialization of `theory_blocks`.
@@ -75,6 +76,15 @@ Forms use explicit saves rather than per-keystroke autosave. They reset when act
 
 Quiz question saves are atomic and use the loaded `updated_at` as an optimistic concurrency token. A conflict rejects the stale save and reloads authoritative content.
 
+Interactive Practice uses one staff-only subtype row per activity. Its mode
+selects the exercise contract, while its JSON configuration keeps the four
+initial authoring shapes together without introducing a universal block model.
+Correctness data and private explanations are not included in learner
+projections. Draft saves allow incomplete work; publication requires a complete
+exercise for the selected mode. During the authoring-only Sprint 39A boundary,
+publication then stops before release because the learner projection and
+renderer do not support this activity yet.
+
 ## Learner rendering
 
 The ordered `LessonData.activities` list is the learner source of truth. `ActivityRenderer` uses `activityRegistry` to select:
@@ -87,6 +97,10 @@ The ordered `LessonData.activities` list is the learner source of truth. `Activi
 - `AiSpeakingMissionActivity`
 
 Renderers receive the full lesson because subtype content is stored in separate arrays. The Lesson Player also provides a readiness callback for interactions that should be completed before continuing.
+
+Sprint 39A does not add an Interactive Practice learner renderer. Published
+learner RPCs continue to omit `interactive_practice` and all of its private
+configuration. Existing Practice and Quiz rendering is unchanged.
 
 See [Student Experience](STUDENT_EXPERIENCE.md).
 

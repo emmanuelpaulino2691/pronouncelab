@@ -84,6 +84,17 @@ export const activityCatalog = [
     canCreate: true,
     future: false,
   },
+  {
+    type: "interactive_practice",
+    title: "Interactive Practice",
+    description:
+      "Author multiple-choice, true/false, matching, or fill-in-the-blank practice.",
+    icon: "practice",
+    category: "Assessment",
+    allowsMultiple: true,
+    canCreate: true,
+    future: false,
+  },
 ] as const satisfies readonly ActivityPresentation[];
 
 export function getActivityPresentation(type: ActivityType): ActivityPresentation {

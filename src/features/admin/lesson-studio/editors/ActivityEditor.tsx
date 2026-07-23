@@ -5,6 +5,7 @@ import ListeningEditor from "./ListeningEditor";
 import PronunciationEditor from "./PronunciationEditor";
 import QuizEditor from "./QuizEditor";
 import TheoryEditor from "./TheoryEditor";
+import InteractivePracticeEditor from "./InteractivePracticeEditor";
 
 const AiSpeakingMissionEditor = lazy(
   () => import("./AiSpeakingMissionEditor")
@@ -74,6 +75,13 @@ export default function ActivityEditor({
       )}
       {activity.type === "quiz" && (
         <QuizEditor
+          key={activity.id}
+          activityId={activity.id}
+          editable={editable}
+        />
+      )}
+      {activity.type === "interactive_practice" && (
+        <InteractivePracticeEditor
           key={activity.id}
           activityId={activity.id}
           editable={editable}

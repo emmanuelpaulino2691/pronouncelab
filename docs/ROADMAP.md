@@ -61,6 +61,27 @@ Before the numbered visual/product sprints, the repository established Supabase 
 
 ## Current milestone
 
+### Sprint 39A — Interactive Practice Foundation
+
+**Status:** Implemented locally; migration deployment and browser QA are
+pending.
+
+**Delivered locally:** A new `interactive_practice` draft activity, a focused
+Studio editor for Multiple Choice, True / False, Match, and Fill in the Blank,
+optimistic-concurrency saving, controlled create and duplicate operations, and
+publication completeness validation.
+
+**Security boundary:** Answer keys, accepted answers, matching data, and
+private explanations are stored behind staff-only RLS. Learner RPCs and
+published projections are unchanged, so Sprint 39A does not deliver this
+content to learner clients.
+
+**Boundary:** Existing `practice` and `quiz` activities are not migrated,
+renamed, removed, or changed. Learner rendering, answer checking, and scoring
+remain future work for Sprint 39B or later. Publication validates completeness
+but does not release Interactive Practice content until that answer-safe learner
+delivery contract exists.
+
 ### Sprint 38 — Teacher Experience
 
 **Status:** In progress.

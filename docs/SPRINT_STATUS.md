@@ -17,6 +17,21 @@
 
 ## Current sprint
 
+**Sprint 39A — Interactive Practice Foundation.**
+
+Status: Implemented locally; database deployment and browser QA are pending.
+Lesson Studio can create and edit the new `interactive_practice` activity with
+Multiple Choice, True / False, Match, and Fill in the Blank modes. Draft
+exercises may be incomplete, while the controlled publication operation rejects
+incomplete exercise content.
+
+Correct answers, accepted answers, matching pairs, and private explanations
+remain in a staff-only subtype table. Sprint 39A does not change learner RPCs,
+published learner projections, activity renderers, or scoring. Existing
+`practice` and `quiz` activities remain unchanged and supported.
+Complete Interactive Practice content remains blocked from publication until
+Sprint 39B provides an answer-safe learner delivery contract and renderer.
+
 **Sprint 38 — Teacher Experience.**
 
 Status: In progress. Draft courses, units, and lessons can be duplicated through

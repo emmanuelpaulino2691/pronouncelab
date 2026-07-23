@@ -31,6 +31,11 @@ See [ADR 0005](ADR/0005-student-experience.md).
 
 `MainLayout` uses an immersive mode for lessons so the global learner shell does not compete with lesson controls.
 
+Interactive Practice is authoring-only in Sprint 39A. Learner projections do
+not expose its prompts, answer keys, matching data, accepted answers, or private
+explanations, and the Lesson Player has no Interactive Practice renderer yet.
+Existing Practice and Quiz behavior remains unchanged.
+
 ## Navigation and progress
 
 The student explicitly selects **Complete Activity** (or **Complete Lesson** on the last step). Rendering alone does not complete an activity.

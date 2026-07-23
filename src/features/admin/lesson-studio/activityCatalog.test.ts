@@ -46,6 +46,19 @@ describe("activityCatalog", () => {
     });
   });
 
+  it("makes Interactive Practice available for new authoring", () => {
+    const interactivePractice = activityCatalog.find(
+      (activity) =>
+        activity.type === "interactive_practice"
+    );
+
+    expect(interactivePractice).toMatchObject({
+      title: "Interactive Practice",
+      canCreate: true,
+      future: false,
+    });
+  });
+
   it("keeps AI Speaking Mission available for creation", () => {
     const aiMission = activityCatalog.find(
       (activity) =>

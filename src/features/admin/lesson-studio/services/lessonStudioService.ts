@@ -102,6 +102,18 @@ export async function createActivity(
   type: ActivityType,
   title: string
 ) {
+  if (type === "interactive_practice") {
+    const { data, error } = await client().rpc(
+      "create_draft_interactive_practice",
+      {
+        requested_lesson_version_id:
+          lessonVersionId,
+        requested_title: title,
+      }
+    );
+    if (error) throw error;
+    return toActivity(data as unknown as ActivityRow);
+  }
   if (type === "ai_speaking_mission") {
     const { data, error } = await client().rpc(
       "create_draft_ai_speaking_mission",
@@ -180,6 +192,18 @@ export async function duplicateActivity(
   expectedLessonVersionId: number,
   type: ActivityType
 ) {
+  if (type === "interactive_practice") {
+    const { data, error } = await client().rpc(
+      "duplicate_draft_interactive_practice",
+      {
+        requested_activity_id: activityId,
+        expected_lesson_version_id:
+          expectedLessonVersionId,
+      }
+    );
+    if (error) throw error;
+    return toActivity(data as unknown as ActivityRow);
+  }
   if (type === "ai_speaking_mission") {
     const { data, error } = await client().rpc(
       "duplicate_draft_ai_speaking_mission",

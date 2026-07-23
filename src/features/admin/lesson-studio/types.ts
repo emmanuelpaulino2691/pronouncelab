@@ -4,6 +4,7 @@ export const activityTypes = [
   "pronunciation",
   "practice",
   "quiz",
+  "interactive_practice",
   "ai_speaking_mission",
 ] as const;
 
@@ -19,6 +20,7 @@ export const activityTypeLabels: Record<
   pronunciation: "Pronunciation",
   practice: "Practice",
   quiz: "Quiz",
+  interactive_practice: "Interactive Practice",
   ai_speaking_mission: "AI Speaking Mission",
 };
 
