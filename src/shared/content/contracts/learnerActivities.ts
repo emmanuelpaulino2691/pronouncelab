@@ -98,6 +98,9 @@ export type LearnerPronunciationActivity =
       title: string;
       instructions: string | null;
       displayText: string;
+      blockType?: "word_list" | "minimal_pairs";
+      spellingPattern?: string | null;
+      entries?: readonly (string | { readonly left: string; readonly right: string })[];
       audio: LearnerMedia | null;
     }[];
   };

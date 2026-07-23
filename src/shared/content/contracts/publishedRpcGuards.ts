@@ -49,6 +49,7 @@ const aiMissionConfigKeys = new Set([
   "resultFormatVersion",
   "teacherInstructions",
   "studentInstructions",
+  "studentInstructionsEs",
 ]);
 
 function isRecord(
@@ -226,12 +227,22 @@ function isListeningItem(value: unknown) {
 
 function isPronunciationItem(value: unknown) {
   if (!isRecord(value)) return false;
+  const hasBlock = value.blockType === "word_list" || value.blockType === "minimal_pairs";
+  const validEntries = !hasBlock || (
+    Array.isArray(value.entries) && value.entries.every((entry) =>
+      value.blockType === "word_list"
+        ? typeof entry === "string" && entry.trim().length > 0
+        : isRecord(entry) && isText(entry.left) && isText(entry.right)
+    )
+  );
   return (
     isDecimalContentId(value.id) &&
     isText(value.title) &&
     isPosition(value.position) &&
     isNullableText(value.instructions) &&
     isText(value.displayText) &&
+    validEntries &&
+    (!hasBlock || value.spellingPattern === null || value.spellingPattern === undefined || isText(value.spellingPattern)) &&
     isNullableMedia(value.audio) &&
     (value.audio === null ||
       value.audio.kind === "audio")
@@ -264,8 +275,8 @@ function isAiMissionConfig(
 ): value is PublishedRpcAiMissionConfig {
   return (
     isRecord(value) &&
-    Object.keys(value).length ===
-      aiMissionConfigKeys.size &&
+    Object.keys(value).length >=
+      aiMissionConfigKeys.size - 1 &&
     Object.keys(value).every((key) =>
       aiMissionConfigKeys.has(key)
     ) &&

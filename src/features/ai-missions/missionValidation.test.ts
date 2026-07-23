@@ -59,4 +59,42 @@ describe("validateAiSpeakingMission", () => {
       },
     });
   });
+
+  it("keeps existing configurations without Spanish instructions valid", () => {
+    const legacy = { ...defaultAiSpeakingMission };
+    delete legacy.studentInstructionsEs;
+    expect(validateAiSpeakingMission(legacy)).toMatchObject({ ok: true });
+  });
+
+  it("accepts and trims optional Spanish instructions", () => {
+    expect(
+      validateAiSpeakingMission({
+        ...defaultAiSpeakingMission,
+        studentInstructionsEs: "  Sigue estos pasos.  ",
+      })
+    ).toMatchObject({
+      ok: true,
+      value: { studentInstructionsEs: "Sigue estos pasos." },
+    });
+  });
+
+  it("treats whitespace-only Spanish instructions as absent", () => {
+    const result = validateAiSpeakingMission({
+      ...defaultAiSpeakingMission,
+      studentInstructionsEs: "   ",
+    });
+    expect(result).toMatchObject({ ok: true });
+    if (result.ok) {
+      expect(result.value.studentInstructionsEs).toBeUndefined();
+    }
+  });
+
+  it("rejects a non-text Spanish instruction value", () => {
+    expect(
+      validateAiSpeakingMission({
+        ...defaultAiSpeakingMission,
+        studentInstructionsEs: 42,
+      })
+    ).toMatchObject({ ok: false });
+  });
 });

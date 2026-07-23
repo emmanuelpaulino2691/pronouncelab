@@ -200,20 +200,16 @@ export async function updateAdminCourse(
 export async function deleteDraftCourse(
   courseId: number
 ) {
-  const client = requireSupabase();
-  const { data, error } = await client
-    .from("courses")
-    .delete()
-    .eq("id", courseId)
-    .eq("status", "draft")
-    .select("id")
-    .maybeSingle();
+  const { data, error } = await requireSupabase().rpc(
+    "delete_draft_course",
+    { requested_course_id: courseId }
+  );
 
   if (error) {
     throw error;
   }
 
-  if (!data) {
+  if (data !== courseId) {
     throw new Error(
       "Only draft courses can be deleted."
     );

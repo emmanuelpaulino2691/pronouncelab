@@ -8,6 +8,10 @@ import type {
   TheoryBlock,
   TheoryBlockType,
 } from "../types";
+import {
+  getListeningTranscriptError,
+  normalizeListeningTranscript,
+} from "../listeningValidation";
 
 function client() {
   if (!supabase) {
@@ -220,13 +224,15 @@ export async function saveListeningItem(
   if (!item.title.trim()) {
     throw new Error("Item title is required.");
   }
+  const transcriptError = getListeningTranscriptError(item.transcript);
+  if (transcriptError) throw new Error(transcriptError);
   const { data, error } = await client()
     .from("listening_items")
     .update({
       title: item.title.trim(),
       instructions:
         item.instructions?.trim() || null,
-      transcript: item.transcript?.trim() || null,
+      transcript: normalizeListeningTranscript(item.transcript),
       audio_asset_id: item.audioAssetId,
     })
     .eq("id", item.id)
@@ -260,6 +266,9 @@ type PronunciationRow = {
   title: string;
   instructions: string | null;
   display_text: string;
+  block_type: "word_list" | "minimal_pairs" | null;
+  spelling_pattern: string | null;
+  entries: Array<string | { left: string; right: string }>;
   audio_asset_id: string | null;
   position: number;
   updated_at: string;
@@ -271,7 +280,7 @@ export async function listPronunciationItems(
   const { data, error } = await client()
     .from("pronunciation_items")
     .select(
-      "id,activity_id,title,instructions,display_text,audio_asset_id,position,updated_at"
+      "id,activity_id,title,instructions,display_text,block_type,spelling_pattern,entries,audio_asset_id,position,updated_at"
     )
     .eq("activity_id", activityId)
     .order("position");
@@ -285,6 +294,9 @@ export async function listPronunciationItems(
       title: row.title,
       instructions: row.instructions,
       displayText: row.display_text,
+      blockType: row.block_type,
+      spellingPattern: row.spelling_pattern,
+      entries: row.entries,
       audioAssetId: row.audio_asset_id,
       position: row.position,
       updatedAt: row.updated_at,
@@ -311,7 +323,7 @@ export async function savePronunciationItem(
     .eq("id", item.id)
     .eq("activity_id", expectedActivityId)
     .select(
-      "id,activity_id,title,instructions,display_text,audio_asset_id,position,updated_at"
+      "id,activity_id,title,instructions,display_text,block_type,spelling_pattern,entries,audio_asset_id,position,updated_at"
     )
     .maybeSingle();
   if (error) throw error;
@@ -320,17 +332,72 @@ export async function savePronunciationItem(
       "Pronunciation item is stale, unavailable, or no longer belongs to this activity."
     );
   }
-  const row = data as unknown as PronunciationRow;
+  return mapPronunciationRow(data as unknown as PronunciationRow);
+}
+
+export async function createPronunciationBlock(
+  activityId: number,
+  blockType: "word_list" | "minimal_pairs",
+  title: string
+) {
+  const { data, error } = await client().rpc("create_draft_pronunciation_block", {
+    expected_activity_id: activityId,
+    requested_block_type: blockType,
+    requested_title: title,
+  });
+  if (error) throw error;
+  return mapPronunciationRow(data as unknown as PronunciationRow);
+}
+
+export async function savePronunciationBlock(
+  item: PronunciationItem,
+  expectedActivityId: number
+) {
+  const { data, error } = await client().rpc("save_draft_pronunciation_block", {
+    requested_item_id: item.id,
+    expected_activity_id: expectedActivityId,
+    expected_updated_at: item.updatedAt,
+    requested_title: item.title,
+    requested_instructions: item.instructions ?? "",
+    requested_spelling_pattern: item.spellingPattern ?? "",
+    requested_audio_asset_id: item.audioAssetId,
+    requested_entries: item.entries,
+  });
+  if (error) throw error;
+  return mapPronunciationRow(data as unknown as PronunciationRow);
+}
+
+export async function deletePronunciationBlock(itemId: number, expectedActivityId: number) {
+  const { error } = await client().rpc("delete_draft_pronunciation_block", {
+    requested_item_id: itemId,
+    expected_activity_id: expectedActivityId,
+  });
+  if (error) throw error;
+}
+
+export async function reorderPronunciationBlocks(activityId: number, itemIds: number[]) {
+  const { data, error } = await client().rpc("reorder_draft_pronunciation_blocks", {
+    expected_activity_id: activityId,
+    ordered_item_ids: itemIds,
+  });
+  if (error) throw error;
+  return (data as unknown as PronunciationRow[]).map(mapPronunciationRow);
+}
+
+function mapPronunciationRow(row: PronunciationRow): PronunciationItem {
   return {
     id: row.id,
     activityId: row.activity_id,
     title: row.title,
     instructions: row.instructions,
     displayText: row.display_text,
+    blockType: row.block_type,
+    spellingPattern: row.spelling_pattern,
+    entries: row.entries,
     audioAssetId: row.audio_asset_id,
     position: row.position,
     updatedAt: row.updated_at,
-  } satisfies PronunciationItem;
+  };
 }
 
 export async function getAssessment(

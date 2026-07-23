@@ -40,7 +40,13 @@ See [ADR 0004](ADR/0004-ai-speaking-mission.md).
 - sentence array and reading text;
 - supported providers (`ChatGPT`, `Gemini`);
 - prompt and feedback languages;
-- optional teacher and student instructions.
+- optional teacher instructions, English student instructions, and optional
+  Spanish student instructions.
+
+English remains the default learner instruction language. Spanish instructions
+support learners who need help understanding the external copy, voice, and
+paste workflow. They do not translate or alter the generated AI prompt, and no
+platform-wide localization model is introduced.
 
 The prompt is derived from this source of truth. It is never stored as the only mission representation.
 
@@ -100,10 +106,12 @@ Mission saves use `save_draft_ai_speaking_mission` with the loaded `updated_at` 
 ## Learner workflow
 
 1. Read the mission, goal, sound focus, counts, and provider choices.
-2. Copy the generated prompt using the Clipboard API or safe text-area fallback.
-3. Open an external supported voice experience manually and practice.
-4. Copy the final structured text back into PronounceLab.
-5. Parse it, inspect warnings and preview cards, then explicitly confirm.
+2. Read the English workflow instructions or, when the teacher supplied them,
+   switch to the optional Spanish instructions.
+3. Copy the generated prompt using the Clipboard API or safe text-area fallback.
+4. Open an external supported voice experience manually and practice.
+5. Copy the final structured text back into PronounceLab.
+6. Parse it, inspect warnings and preview cards, then explicitly confirm.
 
 Confirmation remains component state only. It does not create progress, an attempt, or a journal entry. The Lesson Player does not require an AI result before navigation.
 
@@ -118,10 +126,13 @@ Confirmation remains component state only. It does not create progress, an attem
 
 ## Known limitations
 
-- Migration 009 contains the database hardening contract but is not applied by this sprint task.
+- Migration 009 provides the applied database hardening contract. The optional
+  Spanish-instruction extension is also applied.
 - AI result confirmation remains component state only.
 - The parser can validate structure, not the truth or quality of external feedback.
 - No browser UI or disposable-database integration tests are configured.
+- Spanish support is limited to optional AI Speaking Mission workflow
+  instructions; the application and AI prompt are not localized.
 - Native AI, audio assessment, and provider APIs remain intentionally absent.
 
 ## Future journal

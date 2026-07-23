@@ -24,6 +24,7 @@ export type AiSpeakingMissionData = {
   resultFormatVersion: number;
   teacherInstructions: string;
   studentInstructions: string;
+  studentInstructionsEs?: string;
 };
 
 export type AiSpeakingMission =

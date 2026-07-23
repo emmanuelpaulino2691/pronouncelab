@@ -69,6 +69,7 @@ export type PublishedRpcAiMissionConfig = {
   resultFormatVersion: 1;
   teacherInstructions: string;
   studentInstructions: string;
+  studentInstructionsEs?: string;
 };
 
 export type PublishedRpcQuestion = {
@@ -115,6 +116,9 @@ export type PublishedRpcActivity =
         position: number;
         instructions: string | null;
         displayText: string;
+        blockType?: "word_list" | "minimal_pairs";
+        spellingPattern?: string | null;
+        entries?: readonly (string | { readonly left: string; readonly right: string })[];
         audio: PublishedRpcMedia | null;
       }[];
     })

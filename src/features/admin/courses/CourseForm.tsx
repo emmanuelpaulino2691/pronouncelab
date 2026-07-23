@@ -19,7 +19,11 @@ import type { AdminCourse, CourseInput } from "./adminCourseService";
 import { EmojiSelector } from "./EmojiSelector";
 import {
   areCourseInputsEqual,
+  buildCourseSubmissionInput,
+  canSubmitCourseForm,
   createCourseSlugState,
+  enableManualSlugEditing,
+  getCourseSlugError,
   resetSlugToTitle,
   setManualSlug,
   updateSlugForTitle,
@@ -36,8 +40,6 @@ type CourseFormProps = {
 };
 
 const fallbackEmoji = "📘";
-const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-
 function getInitialInput(course: AdminCourse | null, nextPosition: number): CourseInput {
   return course
     ? {
@@ -68,20 +70,18 @@ function CourseForm({
 }: CourseFormProps) {
   const formId = useId();
   const titleRef = useRef<HTMLInputElement>(null);
+  const slugRef = useRef<HTMLInputElement>(null);
   const [initialInput] = useState(() => getInitialInput(course, nextPosition));
   const [input, setInput] = useState(initialInput);
   const [slugState, setSlugState] = useState(() =>
     createCourseSlugState(initialInput.slug, Boolean(course))
   );
+  const [isSlugEditing, setIsSlugEditing] = useState(false);
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
   const [touched, setTouched] = useState({ title: false, slug: false });
 
   const titleError = input.title.trim() ? "" : "Add a course title.";
-  const slugError = !input.slug.trim()
-    ? "Add a course address."
-    : slugPattern.test(input.slug.trim())
-      ? ""
-      : "Use lowercase letters, numbers, and single hyphens only.";
+  const slugError = getCourseSlugError(input.slug);
   const showTitleError = Boolean((attemptedSubmit || touched.title) && titleError);
   const showSlugError = Boolean((attemptedSubmit || touched.slug) && slugError);
   const hasUnsavedChanges = !areCourseInputsEqual(input, initialInput);
@@ -106,16 +106,9 @@ function CourseForm({
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setAttemptedSubmit(true);
-    if (isSaving || titleError || slugError) return;
+    if (!canSubmitCourseForm(isSaving, titleError, slugError)) return;
 
-    onSubmit({
-      ...input,
-      slug: input.slug.trim(),
-      title: input.title.trim(),
-      description: input.description.trim(),
-      level: input.level.trim(),
-      emoji: input.emoji.trim(),
-    });
+    onSubmit(buildCourseSubmissionInput(input));
   }
 
   const footer = (
@@ -214,13 +207,17 @@ function CourseForm({
             label="Course address"
             htmlFor={`${formId}-slug`}
             required
-            hint="Use lowercase letters, numbers, and hyphens."
+            hint={slugState.ownership === "automatic"
+              ? "Used in the course URL. Generated automatically from the title."
+              : "Used in the course URL. Custom course address; use lowercase letters, numbers, and hyphens."}
             error={showSlugError ? slugError : undefined}
           >
             <div className="flex flex-col gap-2 sm:flex-row">
               <TextInput
+                ref={slugRef}
                 id={`${formId}-slug`}
                 required
+                readOnly={!isSlugEditing}
                 value={input.slug}
                 onBlur={() => setTouched((current) => ({ ...current, slug: true }))}
                 onChange={(event) => {
@@ -237,13 +234,22 @@ function CourseForm({
                 type="button"
                 variant="secondary"
                 className="shrink-0"
+                disabled={isSaving}
                 onClick={() => {
+                  if (!isSlugEditing) {
+                    setSlugState((current) => enableManualSlugEditing(current));
+                    setIsSlugEditing(true);
+                    window.requestAnimationFrame(() => slugRef.current?.focus());
+                    return;
+                  }
+
                   const next = resetSlugToTitle(input.title);
                   setSlugState(next);
+                  setIsSlugEditing(false);
                   setInput((current) => ({ ...current, slug: next.slug }));
                 }}
               >
-                Use title
+                {isSlugEditing ? "Use title" : "Edit address"}
               </Button>
             </div>
           </FormField>

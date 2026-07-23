@@ -2,35 +2,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import AiSpeakingMissionCard from "../../../ai-missions/AiSpeakingMissionCard";
 import { cefrLevels, copyPlainText, generateAiMissionPrompt, validateAiSpeakingMission, type AiSpeakingMissionData } from "../../../ai-missions";
+import { normalizeAiSpeakingMission } from "../../../ai-missions/missionNormalization";
 import { Alert, Button, Card, FormField, Select, TextArea, TextInput } from "../../ui";
 import {
   AiMissionConflictError,
   getAiMission,
   saveAiMission,
 } from "../services/aiMissionService";
-
-function normalizeMission(data: AiSpeakingMissionData): AiSpeakingMissionData {
-  const clean = (items: string[]) => items.map((item) => item.trim()).filter(Boolean);
-  return {
-    ...data,
-    missionTitle: data.missionTitle.trim(),
-    missionLabel: data.missionLabel.trim(),
-    goal: data.goal.trim(),
-    primarySoundLabel: data.primarySoundLabel.trim(),
-    primarySoundIpa: data.primarySoundIpa.trim(),
-    secondarySoundLabel: data.secondarySoundLabel.trim(),
-    secondarySoundIpa: data.secondarySoundIpa.trim(),
-    primaryWords: clean(data.primaryWords),
-    secondaryWords: clean(data.secondaryWords),
-    sentences: clean(data.sentences),
-    readingText: data.readingText.trim(),
-    promptLanguage: data.promptLanguage.trim(),
-    feedbackLanguage: data.feedbackLanguage.trim(),
-    difficultyLabel: data.difficultyLabel.trim(),
-    teacherInstructions: data.teacherInstructions.trim(),
-    studentInstructions: data.studentInstructions.trim(),
-  };
-}
 
 export default function AiSpeakingMissionEditor({ activityId, editable }: { activityId: number; editable: boolean }) {
   const active = useRef(true);
@@ -62,7 +40,7 @@ export default function AiSpeakingMissionEditor({ activityId, editable }: { acti
 
   async function save() {
     if (!data || !missionId || !updatedAt || busy) return;
-    const normalized = normalizeMission(data);
+    const normalized = normalizeAiSpeakingMission(data);
     const validation =
       validateAiSpeakingMission(normalized);
     if (!validation.ok) {
@@ -173,12 +151,13 @@ export default function AiSpeakingMissionEditor({ activityId, editable }: { acti
         </fieldset>
         <FormField label="Instruction language" htmlFor="prompt-language"><TextInput id="prompt-language" disabled={!editable || busy} value={data.promptLanguage} onChange={(e) => patch({ promptLanguage: e.target.value })} /></FormField>
         <FormField label="Feedback language" htmlFor="feedback-language"><TextInput id="feedback-language" disabled={!editable || busy} value={data.feedbackLanguage} onChange={(e) => patch({ feedbackLanguage: e.target.value })} /></FormField>
-        <div className="sm:col-span-2"><FormField label="Student instructions" htmlFor="student-instructions"><TextArea id="student-instructions" disabled={!editable || busy} value={data.studentInstructions} onChange={(e) => patch({ studentInstructions: e.target.value })} /></FormField></div>
+        <div className="sm:col-span-2"><FormField label="Student instructions — English" htmlFor="student-instructions" hint="Explain how the student should complete the external voice practice."><TextArea id="student-instructions" disabled={!editable || busy} value={data.studentInstructions} onChange={(e) => patch({ studentInstructions: e.target.value })} /></FormField></div>
+        <div className="sm:col-span-2"><FormField label="Student instructions — Spanish (optional)" htmlFor="student-instructions-es" hint="Support students who may not understand the English workflow. The AI prompt does not need to be translated."><TextArea id="student-instructions-es" maxLength={5000} disabled={!editable || busy} value={data.studentInstructionsEs ?? ""} onChange={(e) => patch({ studentInstructionsEs: e.target.value })} /></FormField></div>
         <div className="sm:col-span-2"><FormField label="Teacher note" htmlFor="teacher-instructions"><TextArea id="teacher-instructions" disabled={!editable || busy} value={data.teacherInstructions} onChange={(e) => patch({ teacherInstructions: e.target.value })} /></FormField></div>
       </div>
     </Card>
     <Card className="p-5 sm:p-6">
-      <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-lg font-bold">Prompt preview</h2><p className="text-sm text-slate-500">Generated deterministically from the structured mission.</p></div><Button variant="secondary" onClick={() => void copyPlainText(prompt).then(() => setCopyStatus("Prompt copied.")).catch(() => setCopyStatus("Copy failed."))}>Copy Prompt</Button></div>
+      <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-lg font-bold">AI prompt</h2><p className="text-sm text-slate-500">Generated from the mission configuration and kept separate from student instructions.</p></div><Button variant="secondary" onClick={() => void copyPlainText(prompt).then(() => setCopyStatus("Prompt copied.")).catch(() => setCopyStatus("Copy failed."))}>Copy Prompt</Button></div>
       {copyStatus && <p role="status" className="mt-3 text-sm text-blue-700">{copyStatus}</p>}
       <pre className="mt-4 max-h-96 overflow-auto whitespace-pre-wrap rounded-xl bg-slate-950 p-4 text-xs leading-6 text-slate-100">{prompt}</pre>
     </Card>

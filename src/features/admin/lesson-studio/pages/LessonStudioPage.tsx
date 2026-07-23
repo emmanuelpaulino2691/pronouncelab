@@ -1,10 +1,11 @@
 import {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
-import { useParams } from "react-router-dom";
+import { useBlocker, useParams, useSearchParams } from "react-router-dom";
 
 import { getAdminCourse } from "../../courses/adminCourseService";
 import {
@@ -19,6 +20,16 @@ import {
 import ActivityEditor from "../editors/ActivityEditor";
 import ActivityPicker from "../components/ActivityPicker";
 import { getActivityPresentation } from "../activityCatalog";
+import { removeActivityAndSelectNearest } from "../activityDeletionState";
+import { canDiscardDirtyEditor, reconcileSelectedActivityId, shouldWarnBeforeUnload } from "../studioSelectionState";
+import {
+  beginDeleteConfirmation,
+  cancelDeleteConfirmation,
+  completeDeleteConfirmation,
+  createDeleteConfirmationState,
+  failDeleteConfirmation,
+  openDeleteConfirmation,
+} from "../../ui/deleteConfirmationState";
 import {
   createActivity,
   createDraftVersion,
@@ -42,6 +53,7 @@ import {
   Button,
   ButtonLink,
   Card,
+  ConfirmDeleteDialog,
   LoadingSkeleton,
   PageHeader,
 } from "../../ui";
@@ -71,6 +83,7 @@ function Studio({
   const activityCreationRef = useRef(false);
   const mutationInFlightRef = useRef(false);
   const editorRef = useRef<HTMLElement>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
   const [course, setCourse] =
     useState<AdminCourse | null>(null);
   const [unit, setUnit] =
@@ -84,7 +97,11 @@ function Studio({
   >([]);
   const [selectedId, setSelectedId] = useState<
     number | null
-  >(null);
+  >(() => parseId(searchParams.get("activity") ?? undefined));
+  const selectedIdRef = useRef(selectedId);
+  const [editorDirty, setEditorDirty] = useState(false);
+  const editorDirtyRef = useRef(false);
+  const [editorRevision, setEditorRevision] = useState(0);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(
@@ -92,6 +109,60 @@ function Studio({
   );
   const [saved, setSaved] = useState("Saved");
   const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState(
+    createDeleteConfirmationState<LessonActivity>
+  );
+
+  const selectActivity = useCallback((activityId: number | null, discardDirty = true) => {
+    selectedIdRef.current = activityId;
+    setSelectedId(activityId);
+    if (discardDirty) {
+      editorDirtyRef.current = false;
+      setEditorDirty(false);
+    }
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      if (activityId === null) next.delete("activity");
+      else next.set("activity", String(activityId));
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
+
+  function requestActivitySelection(activityId: number) {
+    if (activityId === selectedIdRef.current) return;
+    if (!canDiscardDirtyEditor(editorDirty, () => window.confirm("Discard unsaved changes and open another activity?"))) return;
+    selectActivity(activityId);
+  }
+
+  function reportEditorDirty(dirty: boolean) {
+    editorDirtyRef.current = dirty;
+    setEditorDirty(dirty);
+  }
+
+  const navigationBlocker = useBlocker(({ currentLocation, nextLocation }) =>
+    editorDirtyRef.current &&
+    (currentLocation.pathname !== nextLocation.pathname || currentLocation.search !== nextLocation.search)
+  );
+
+  useEffect(() => {
+    if (navigationBlocker.state !== "blocked") return;
+    if (window.confirm("Discard unsaved changes and leave this activity?")) {
+      editorDirtyRef.current = false;
+      navigationBlocker.proceed();
+    } else {
+      navigationBlocker.reset();
+    }
+  }, [navigationBlocker]);
+
+  useEffect(() => {
+    function handleBeforeUnload(event: BeforeUnloadEvent) {
+      if (!shouldWarnBeforeUnload(editorDirty)) return;
+      event.preventDefault();
+      event.returnValue = "";
+    }
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [editorDirty]);
 
   useEffect(() => {
     active.current = true;
@@ -128,9 +199,7 @@ function Studio({
           setLesson(result.nextLesson);
           setVersion(result.nextVersion);
           setActivities(result.nextActivities);
-          setSelectedId(
-            result.nextActivities[0]?.id ?? null
-          );
+          selectActivity(reconcileSelectedActivityId(selectedIdRef.current, result.nextActivities), false);
         },
         (reason: unknown) => {
           if (
@@ -155,7 +224,7 @@ function Studio({
       active.current = false;
       mutation.current += 1;
     };
-  }, [courseId, lessonId, unitId]);
+  }, [courseId, lessonId, selectActivity, unitId]);
 
   const selected = useMemo(
     () =>
@@ -175,7 +244,7 @@ function Studio({
     action: () => Promise<T>,
     apply: (value: T) => void
   ) {
-    if (mutationInFlightRef.current) return;
+    if (mutationInFlightRef.current) return false;
     mutationInFlightRef.current = true;
     const request = mutation.current;
     setBusy(true);
@@ -189,16 +258,19 @@ function Studio({
       ) {
         apply(value);
         setSaved("Saved");
+        return true;
       }
+      return false;
     } catch (reason) {
       if (
         active.current &&
         request === mutation.current
       ) {
         void reason;
-        setError("Your changes could not be saved. Try again.");
+        setError("The action could not be completed. Your content is unchanged. Try again.");
         setSaved("Save failed");
       }
+      return false;
     } finally {
       mutationInFlightRef.current = false;
       if (
@@ -259,7 +331,7 @@ function Studio({
       if (!active.current || request !== mutation.current) return;
 
       setActivities((current) => [...current, created]);
-      setSelectedId(created.id);
+      selectActivity(created.id);
       setSaved("Saved");
       setIsPickerOpen(false);
       window.requestAnimationFrame(() => editorRef.current?.focus());
@@ -383,9 +455,7 @@ function Studio({
                     <button
                       type="button"
                       aria-pressed={selectedId === activity.id}
-                      onClick={() =>
-                        setSelectedId(activity.id)
-                      }
+                      onClick={() => requestActivitySelection(activity.id)}
                       className="admin-focus min-h-11 w-full rounded-lg text-left"
                     >
                       <span className="text-xs font-semibold uppercase text-blue-600">
@@ -439,7 +509,7 @@ function Studio({
                                     (first, second) => first.position - second.position
                                   )
                                 );
-                                setSelectedId(created.id);
+                                selectActivity(created.id);
                                 window.requestAnimationFrame(() => editorRef.current?.focus());
                               }
                             );
@@ -453,31 +523,8 @@ function Studio({
                           aria-label={`Delete ${activity.title}`}
                           disabled={busy || !version}
                           onClick={() => {
-                            if (
-                              !version ||
-                              !window.confirm(
-                                `Delete "${activity.title}"?`
-                              )
-                            )
-                              return;
-                            void run(
-                              () =>
-                                deleteActivity(
-                                  activity.id,
-                                  version.id
-                                ),
-                              () => {
-                                const remaining =
-                                  activities.filter(
-                                    (item) =>
-                                      item.id !== activity.id
-                                  );
-                                setActivities(remaining);
-                                if (selectedId === activity.id) {
-                                  setSelectedId(remaining[0]?.id ?? null);
-                                }
-                              }
-                            );
+                            setError(null);
+                            setDeleteConfirmation(openDeleteConfirmation(activity));
                           }}
                           className="admin-focus min-h-10 rounded-lg border border-red-200 px-3 py-2 text-xs text-red-700"
                         >
@@ -493,11 +540,14 @@ function Studio({
 
           <main ref={editorRef} tabIndex={-1} aria-label="Activity editor" className="admin-focus min-w-0 rounded-2xl">
             {selected && version ? (
+              <div className="space-y-4">
+              {editorDirty && editable && <div className="flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3"><p className="text-sm font-medium text-amber-900">Unsaved changes</p><Button type="button" variant="secondary" onClick={() => { if (window.confirm("Discard the unsaved changes in this activity?")) { reportEditorDirty(false); setEditorRevision((value) => value + 1); } }}>Discard changes</Button></div>}
               <ActivityEditor
-                key={selected.id}
+                key={`${selected.id}:${editorRevision}`}
                 activity={selected}
                 editable={editable}
                 busy={busy}
+                onDirtyChange={reportEditorDirty}
                 onSaveMetadata={async (input) => {
                   await run(
                     () =>
@@ -517,6 +567,7 @@ function Studio({
                   );
                 }}
               />
+              </div>
             ) : (
               <Card className="border-dashed p-12 text-center"><AdminIcon name="sparkle" className="mx-auto h-8 w-8 text-blue-500" /><p className="mt-3 text-sm text-slate-500">Select or add an activity to begin.</p></Card>
             )}
@@ -530,6 +581,37 @@ function Studio({
           onCreate={handleCreateActivity}
         />
       )}
+      <ConfirmDeleteDialog
+        isOpen={deleteConfirmation.target !== null}
+        title="Delete activity"
+        description={deleteConfirmation.target ? `Delete “${deleteConfirmation.target.title}” from this lesson draft?` : ""}
+        isDeleting={deleteConfirmation.pending}
+        errorMessage={deleteConfirmation.target ? error : null}
+        onCancel={() => setDeleteConfirmation((current) => cancelDeleteConfirmation(current))}
+        onConfirm={() => {
+          const activity = deleteConfirmation.target;
+          if (!activity || !version || deleteConfirmation.pending) return;
+          setDeleteConfirmation((current) => beginDeleteConfirmation(current));
+          void run(
+            () => deleteActivity(activity.id, version.id),
+            () => {
+              const next = removeActivityAndSelectNearest(
+                activities,
+                activity.id,
+                selectedId
+              );
+              setActivities(next.activities);
+              selectActivity(next.selectedActivityId);
+            }
+          ).then((succeeded) => {
+            setDeleteConfirmation((current) =>
+              succeeded
+                ? completeDeleteConfirmation()
+                : failDeleteConfirmation(current)
+            );
+          });
+        }}
+      />
     </section>
   );
 }

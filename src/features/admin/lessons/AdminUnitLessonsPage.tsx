@@ -19,7 +19,15 @@ import {
   type AdminCourse,
 } from "../courses/adminCourseService";
 import { useAdminPermissions } from "../permissions/useAdminPermissions";
-import { Alert, Badge, Button, ButtonLink, Card, EmptyState, LoadingSkeleton, PageHeader, StatusBadge } from "../ui";
+import { Alert, Badge, Button, ButtonLink, Card, ConfirmDeleteDialog, EmptyState, LoadingSkeleton, PageHeader, StatusBadge } from "../ui";
+import {
+  beginDeleteConfirmation,
+  cancelDeleteConfirmation,
+  completeDeleteConfirmation,
+  createDeleteConfirmationState,
+  failDeleteConfirmation,
+  openDeleteConfirmation,
+} from "../ui/deleteConfirmationState";
 import {
   getAdminUnit,
   type AdminUnit,
@@ -96,6 +104,9 @@ function UnitLessonsContent({
     deletingLessonId,
     setDeletingLessonId,
   ] = useState<number | null>(null);
+  const [deleteConfirmation, setDeleteConfirmation] = useState(
+    createDeleteConfirmationState<AdminLesson>
+  );
   const [formState, setFormState] =
     useState<FormState>({ mode: "closed" });
   const [errorMessage, setErrorMessage] =
@@ -265,15 +276,8 @@ function UnitLessonsContent({
     lesson: AdminLesson
   ) {
     if (deleteInFlightRef.current) return;
-    if (
-      !window.confirm(
-        `Delete the draft lesson "${lesson.title}"? This cannot be undone.`
-      )
-    ) {
-      return;
-    }
-
     deleteInFlightRef.current = true;
+    setDeleteConfirmation((current) => beginDeleteConfirmation(current));
     setDeletingLessonId(lesson.id);
     setErrorMessage(null);
 
@@ -288,10 +292,12 @@ function UnitLessonsContent({
             (item) => item.id !== lesson.id
           )
         );
+        setDeleteConfirmation(completeDeleteConfirmation());
       }
     } catch {
       if (isActiveRef.current) {
-        setErrorMessage("The lesson could not be deleted. Refresh the lesson list and try again.");
+        setErrorMessage("The lesson could not be deleted. It is still available. Try again.");
+        setDeleteConfirmation((current) => failDeleteConfirmation(current));
       }
     } finally {
       deleteInFlightRef.current = false;
@@ -408,9 +414,7 @@ function UnitLessonsContent({
                                 lesson.id
                               }
                               onClick={() =>
-                                void handleDelete(
-                                  lesson
-                                )
+                                { setErrorMessage(null); setDeleteConfirmation(openDeleteConfirmation(lesson)); }
                               }
                               className="rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:cursor-not-allowed disabled:opacity-40"
                             >
@@ -465,6 +469,15 @@ function UnitLessonsContent({
           }
         />
       )}
+      <ConfirmDeleteDialog
+        isOpen={deleteConfirmation.target !== null}
+        title="Delete lesson"
+        description={deleteConfirmation.target ? `Delete “${deleteConfirmation.target.title}” and its draft content?` : ""}
+        isDeleting={deleteConfirmation.pending}
+        errorMessage={deleteConfirmation.target ? errorMessage : null}
+        onCancel={() => setDeleteConfirmation((current) => cancelDeleteConfirmation(current))}
+        onConfirm={() => { if (deleteConfirmation.target) void handleDelete(deleteConfirmation.target); }}
+      />
     </section>
   );
 }

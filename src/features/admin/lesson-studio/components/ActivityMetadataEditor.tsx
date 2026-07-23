@@ -10,6 +10,7 @@ type Props = {
   onSave: (
     input: Pick<LessonActivity, "title" | "required">
   ) => Promise<void>;
+  onDirtyChange: (dirty: boolean) => void;
 };
 
 export default function ActivityMetadataEditor({
@@ -17,6 +18,7 @@ export default function ActivityMetadataEditor({
   editable,
   busy,
   onSave,
+  onDirtyChange,
 }: Props) {
   const [title, setTitle] = useState(
     activity.title
@@ -47,7 +49,7 @@ export default function ActivityMetadataEditor({
           value={title}
           disabled={!editable || busy}
           onChange={(event) =>
-            setTitle(event.target.value)
+            { const value = event.target.value; setTitle(value); onDirtyChange(value !== activity.title || required !== activity.required); }
           }
           required
           className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2.5 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100"
@@ -59,7 +61,7 @@ export default function ActivityMetadataEditor({
           checked={required}
           disabled={!editable || busy}
           onChange={(event) =>
-            setRequired(event.target.checked)
+            { const value = event.target.checked; setRequired(value); onDirtyChange(title !== activity.title || value !== activity.required); }
           }
           className="h-4 w-4 rounded border-slate-300"
         />

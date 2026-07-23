@@ -172,6 +172,11 @@ function mapActivity(
             title: item.title,
             instructions: item.instructions,
             displayText: item.displayText,
+            ...(item.blockType ? {
+              blockType: item.blockType,
+              spellingPattern: item.spellingPattern ?? null,
+              entries: structuredClone(item.entries ?? []),
+            } : {}),
             audio: mapMedia(item.audio),
           })
         ),

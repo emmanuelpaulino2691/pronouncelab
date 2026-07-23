@@ -160,18 +160,15 @@ export async function deleteActivity(
   activityId: number,
   expectedLessonVersionId: number
 ) {
-  const { data, error } = await client()
-    .from("lesson_activities")
-    .delete()
-    .eq("id", activityId)
-    .eq(
-      "lesson_version_id",
-      expectedLessonVersionId
-    )
-    .select("id")
-    .maybeSingle();
+  const { data, error } = await client().rpc(
+    "delete_draft_lesson_activity",
+    {
+      requested_activity_id: activityId,
+      expected_lesson_version_id: expectedLessonVersionId,
+    }
+  );
   if (error) throw error;
-  if (!data) {
+  if (data !== activityId) {
     throw new Error(
       "Draft activity not found in the expected lesson version."
     );

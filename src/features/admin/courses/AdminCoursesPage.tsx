@@ -1,10 +1,20 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import { useAdminPermissions } from "../permissions/useAdminPermissions";
-import { Alert, Button, ButtonLink, Card, EmptyState, LoadingSkeleton, PageHeader, Select, StatusBadge, TextInput } from "../ui";
+import { Alert, Button, ButtonLink, Card, ConfirmDeleteDialog, EmptyState, LoadingSkeleton, PageHeader, Select, StatusBadge, TextInput } from "../ui";
+import {
+  beginDeleteConfirmation,
+  cancelDeleteConfirmation,
+  completeDeleteConfirmation,
+  createDeleteConfirmationState,
+  failDeleteConfirmation,
+  openDeleteConfirmation,
+} from "../ui/deleteConfirmationState";
 import { formatDate } from "../utils/format";
 import CourseForm from "./CourseForm";
+import { getCourseSaveErrorMessage } from "./courseSaveErrors";
+import { shouldRenderCourseForm } from "./courseFormState";
 import {
   createAdminCourse, deleteDraftCourse, listAdminCourses, updateAdminCourse,
   type AdminCourse, type CourseInput, type CourseStatus,
@@ -13,34 +23,17 @@ import {
 type FormState = { mode: "closed" } | { mode: "create" } | { mode: "edit"; course: AdminCourse };
 type SortMode = "updated" | "title" | "position";
 
-function getErrorText(error: unknown) {
-  return error instanceof Error ? error.message : "Something went wrong. Please try again.";
-}
-
-function getCourseSaveErrorMessage(error: unknown) {
-  const message = getErrorText(error).toLowerCase();
-  if (message.includes("duplicate") || message.includes("unique") || message.includes("slug")) {
-    return "That course address is already in use. Choose a different address.";
-  }
-  if (message.includes("jwt") || message.includes("session") || message.includes("sign in")) {
-    return "Your session has expired. Sign in again before saving.";
-  }
-  if (message.includes("permission") || message.includes("policy") || message.includes("row-level")) {
-    return "You do not have permission to save this course.";
-  }
-  if (message.includes("draft") || message.includes("editable") || message.includes("sealed")) {
-    return "This course is no longer editable. Close the form and refresh the course list.";
-  }
-  return "Your course changes could not be saved. Review the fields and try again.";
-}
-
 function AdminCoursesPage() {
   const { canEditDrafts } = useAdminPermissions();
+  const deleteInFlightRef = useRef(false);
   const [searchParams] = useSearchParams();
   const [courses, setCourses] = useState<AdminCourse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [deletingCourseId, setDeletingCourseId] = useState<number | null>(null);
+  const [deleteConfirmation, setDeleteConfirmation] = useState(
+    createDeleteConfirmationState<AdminCourse>
+  );
   const [formState, setFormState] = useState<FormState>(() => canEditDrafts && searchParams.get("create") === "1" ? { mode: "create" } : { mode: "closed" });
   const [formErrorMessage, setFormErrorMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -96,12 +89,14 @@ function AdminCoursesPage() {
   }
 
   async function handleDelete(course: AdminCourse) {
-    if (!window.confirm(`Delete the draft course “${course.title}”? This cannot be undone.`)) return;
+    if (deleteInFlightRef.current) return;
+    deleteInFlightRef.current = true;
+    setDeleteConfirmation((current) => beginDeleteConfirmation(current));
     setDeletingCourseId(course.id);
     setErrorMessage(null);
-    try { await deleteDraftCourse(course.id); setCourses((current) => current.filter((item) => item.id !== course.id)); }
-    catch { setErrorMessage("The course could not be deleted. Refresh the course list and try again."); }
-    finally { setDeletingCourseId(null); }
+    try { await deleteDraftCourse(course.id); setCourses((current) => current.filter((item) => item.id !== course.id)); setDeleteConfirmation(completeDeleteConfirmation()); }
+    catch { setErrorMessage("The course could not be deleted. It is still available. Try again."); setDeleteConfirmation((current) => failDeleteConfirmation(current)); }
+    finally { deleteInFlightRef.current = false; setDeletingCourseId(null); }
   }
 
   return (
@@ -142,13 +137,22 @@ function AdminCoursesPage() {
                 <div className="flex flex-wrap gap-2 border-t border-slate-200 bg-slate-50/70 p-4">
                   <ButtonLink to={`/admin/courses/${course.id}`} className="flex-1">Open curriculum</ButtonLink>
                   {editable && <Button variant="secondary" icon="edit" aria-label={`Edit ${course.title}`} onClick={() => { setFormErrorMessage(null); setFormState({ mode: "edit", course }); }}>Edit</Button>}
-                  {editable && <Button variant="danger" icon="delete" aria-label={`Delete ${course.title}`} isLoading={deletingCourseId === course.id} onClick={() => void handleDelete(course)}>Delete</Button>}
+                  {editable && <Button type="button" variant="danger" icon="delete" aria-label={`Delete ${course.title}`} isLoading={deletingCourseId === course.id} onClick={() => { setErrorMessage(null); setDeleteConfirmation(openDeleteConfirmation(course)); }}>Delete</Button>}
                 </div>
               </Card>;
             })}
           </div>}
 
-      {formState.mode !== "closed" && <CourseForm course={formState.mode === "edit" ? formState.course : null} nextPosition={nextPosition} isSaving={isSaving} errorMessage={formErrorMessage} onCancel={() => { setFormErrorMessage(null); setFormState({ mode: "closed" }); }} onSubmit={(input) => void handleSave(input)} />}
+      {shouldRenderCourseForm(formState.mode !== "closed", isLoading) && <CourseForm course={formState.mode === "edit" ? formState.course : null} nextPosition={nextPosition} isSaving={isSaving} errorMessage={formErrorMessage} onCancel={() => { setFormErrorMessage(null); setFormState({ mode: "closed" }); }} onSubmit={(input) => void handleSave(input)} />}
+      <ConfirmDeleteDialog
+        isOpen={deleteConfirmation.target !== null}
+        title="Delete course"
+        description={deleteConfirmation.target ? `Delete “${deleteConfirmation.target.title}” and its draft curriculum?` : ""}
+        isDeleting={deleteConfirmation.pending}
+        errorMessage={deleteConfirmation.target ? errorMessage : null}
+        onCancel={() => setDeleteConfirmation((current) => cancelDeleteConfirmation(current))}
+        onConfirm={() => { if (deleteConfirmation.target) void handleDelete(deleteConfirmation.target); }}
+      />
     </section>
   );
 }

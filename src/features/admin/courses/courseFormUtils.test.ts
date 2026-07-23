@@ -50,6 +50,10 @@ describe("normalizeSlug", () => {
   it("returns an empty string for empty input", () => {
     expect(normalizeSlug("")).toBe("");
   });
+
+  it("returns an empty string when the title has no supported characters", () => {
+    expect(normalizeSlug("!!!")).toBe("");
+  });
 });
 
 describe("generateSlugFromTitle", () => {

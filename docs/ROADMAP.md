@@ -51,7 +51,7 @@ Before the numbered visual/product sprints, the repository established Supabase 
 
 ### Sprint 34 — AI Speaking Mission Hardening
 
-**Status:** Implemented locally; migration 009 remains unapplied.
+**Status:** Implemented; migration 009 is applied.
 
 **Goal:** Strengthen the existing AI mission system without changing its external ChatGPT/Gemini workflow.
 
@@ -63,12 +63,47 @@ Before the numbered visual/product sprints, the repository established Supabase 
 
 The current milestone remains **foundation hardening and convergence**:
 
-- review and deploy the unapplied Sprint 34 migration through the authorized workflow;
+- validate new forward migrations through the authorized workflow before deployment;
 - expand database execution validation beyond focused pure utility tests;
 - design the migration from static learner content to published Supabase projections;
 - preserve learner route compatibility during that transition.
 
 This milestone should precede analytics or commercial features because those systems need reliable content identity and learner identity.
+
+### Sprint 36 — Studio Authoring Improvements
+
+**Status:** In progress.
+
+**Current increment:** The Course Editor generates a safe course address from
+the title by default, provides an explicit manual-editing mode, allows teachers
+to return to title-based generation, and preserves existing course URLs unless
+the teacher deliberately changes them.
+
+**Boundary:** This increment does not change learner routes, course persistence
+contracts, publication behavior, or the static/Supabase content-source split.
+
+**Second increment:** AI Speaking Missions support optional Spanish student
+workflow instructions while keeping English as the default and the generated
+AI prompt unchanged. The feature is deliberately mission-specific and does not
+introduce language detection, translation, or application-wide localization.
+
+**Third increment:** Listening authoring supports MP3 upload, replacement,
+removal, draft preview, and manual transcripts. Learners receive native audio
+controls and an optional transcript hidden by default. Automatic transcription,
+captions, timestamps, highlighting, and advanced playback remain future work.
+
+**Release hardening:** Course creation waits for authoritative course ordering
+before mounting the form, and background admin-access rechecks preserve the
+current Lesson Studio activity while access remains valid.
+
+**Fourth increment:** Pronunciation activities support production-oriented
+Word List and Minimal Pairs blocks with inline editing, multi-line paste,
+keyboard-accessible ordering, optional managed audio, responsive learner
+presentation, and publication completeness checks. The data remains within
+the pronunciation subtype so this increment can validate the authoring model
+without prematurely introducing a generic block framework. Convergence into a
+Universal Block System remains future work and must preserve these structured
+entries and existing legacy pronunciation items.
 
 ### Sprint 35 — Published Supabase Content Delivery Foundation
 

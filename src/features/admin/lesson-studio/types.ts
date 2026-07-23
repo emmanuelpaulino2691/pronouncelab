@@ -82,6 +82,9 @@ export type PronunciationItem = {
   title: string;
   instructions: string | null;
   displayText: string;
+  blockType: "word_list" | "minimal_pairs" | null;
+  spellingPattern: string | null;
+  entries: Array<string | { left: string; right: string }>;
   audioAssetId: string | null;
   position: number;
   updatedAt: string;

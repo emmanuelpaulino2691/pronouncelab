@@ -35,13 +35,19 @@ They are conceptually aligned but there is no implemented projection from publis
 | Type | Admin model/editor | Learner model/renderer |
 | --- | --- | --- |
 | `theory` | Ordered `theory_blocks`: heading, paragraph, tip, example, image, audio | Theory block content |
-| `listening` | `listening_items`: title, instructions, transcript, optional draft audio reference | Listening exercises from static data |
-| `pronunciation` | `pronunciation_items`: title, instructions, display text, optional audio | Structured word/phrase pronunciation practice |
+| `listening` | `listening_items`: title, instructions, optional manual transcript, and managed audio reference | Listening exercises from static data |
+| `pronunciation` | Ordered `pronunciation_items`: backward-compatible display-text items or pronunciation-specific `word_list` / `minimal_pairs` blocks with structured entries and optional audio | Legacy word/phrase practice plus responsive Word List and Minimal Pairs presentation |
 | `practice` | Activity metadata only in the current Studio; no dedicated database subtype | Static practice exercise data |
 | `quiz` | `assessment_sets`, questions, and answer options | Static quiz interactions |
 | `ai_speaking_mission` | One JSON configuration row per activity | Structured external-AI mission card |
 
 The student static models can be richer than the current admin subtype schema. For example, static theory/practice types are not a direct serialization of `theory_blocks`.
+
+Word List and Minimal Pairs deliberately extend the pronunciation subtype
+rather than introducing a universal block table. New block mutations use
+parent-scoped RPCs, while legacy pronunciation rows remain readable and
+editable. This focused model provides a migration seam for a future Universal
+Block System without claiming that the generic system exists today.
 
 ## Lesson Studio
 

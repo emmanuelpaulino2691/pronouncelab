@@ -185,20 +185,19 @@ export async function deleteDraftLesson(
   lessonId: number,
   expectedUnitId: number
 ) {
-  const { data, error } = await requireSupabase()
-    .from("lessons")
-    .delete()
-    .eq("id", lessonId)
-    .eq("unit_id", expectedUnitId)
-    .eq("status", "draft")
-    .select("id")
-    .maybeSingle();
+  const { data, error } = await requireSupabase().rpc(
+    "delete_draft_lesson",
+    {
+      requested_lesson_id: lessonId,
+      expected_unit_id: expectedUnitId,
+    }
+  );
 
   if (error) {
     throw error;
   }
 
-  if (!data) {
+  if (data !== lessonId) {
     throw new Error(
       "Draft lesson not found in the expected unit, or it is no longer deletable."
     );

@@ -1,6 +1,11 @@
 import { useMemo, useState, type ReactNode } from "react";
 
 import { copyPlainText } from "./clipboard";
+import {
+  getStudentInstructions,
+  hasSpanishStudentInstructions,
+  type StudentInstructionLanguage,
+} from "./instructionLanguage";
 import { generateAiMissionPrompt } from "./promptGenerator";
 import { parseAiMissionResult } from "./resultParser";
 import type { AiSpeakingMissionData, ParsedAiMissionResult } from "./types";
@@ -19,6 +24,13 @@ export default function AiSpeakingMissionCard({ mission, previewOnly = false, on
   const [parsed, setParsed] = useState<ParsedAiMissionResult | null>(null);
   const [parseError, setParseError] = useState("");
   const [confirmed, setConfirmed] = useState(false);
+  const [instructionLanguage, setInstructionLanguage] =
+    useState<StudentInstructionLanguage>("en");
+  const hasSpanishInstructions = hasSpanishStudentInstructions(mission);
+  const authoredInstructions = getStudentInstructions(
+    mission,
+    instructionLanguage
+  );
 
   async function copyPrompt() {
     setCopyStatus("");
@@ -52,7 +64,29 @@ export default function AiSpeakingMissionCard({ mission, previewOnly = false, on
           <Summary label="Estimated time" value={`${mission.estimatedMinutes} minutes`} />
         </div>
         <div className="rounded-2xl bg-slate-50 p-4 text-sm leading-6 text-slate-700">
-          <strong>How it works:</strong> Copy the mission, paste it into {mission.supportedTools.join(" or ")} voice mode, complete the speaking practice, then copy its final PronounceLab result back here. PronounceLab is not connected to these services.
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <strong>{instructionLanguage === "es" ? "Cómo funciona" : "How it works"}</strong>
+            {hasSpanishInstructions && (
+              <button
+                type="button"
+                aria-pressed={instructionLanguage === "es"}
+                onClick={() =>
+                  setInstructionLanguage((current) =>
+                    current === "en" ? "es" : "en"
+                  )
+                }
+                className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              >
+                {instructionLanguage === "en"
+                  ? "Ver instrucciones en español"
+                  : "View instructions in English"}
+              </button>
+            )}
+          </div>
+          <p className="mt-2 whitespace-pre-wrap">
+            {authoredInstructions || `Copy the mission, paste it into ${mission.supportedTools.join(" or ")} voice mode, complete the speaking practice, then copy its final PronounceLab result back here.`}
+          </p>
+          <p className="mt-2 text-xs text-slate-500">PronounceLab is not connected to these services.</p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
           <button type="button" onClick={() => void copyPrompt()} className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white hover:bg-blue-700">Copy AI Mission</button>

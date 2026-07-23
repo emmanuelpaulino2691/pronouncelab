@@ -256,6 +256,28 @@ describe("published RPC guards", () => {
     ).toBe(false);
   });
 
+  it("accepts the optional Spanish student instruction field", () => {
+    const value = changed((envelope) => {
+      const mission = activity(envelope, 5);
+      mission.config = {
+        ...(mission.config as MutableObject),
+        studentInstructionsEs: "Sigue estos pasos.",
+      };
+    });
+    expect(isPublishedLessonRpcEnvelope(value)).toBe(true);
+  });
+
+  it("rejects an invalid Spanish student instruction field", () => {
+    const value = changed((envelope) => {
+      const mission = activity(envelope, 5);
+      mission.config = {
+        ...(mission.config as MutableObject),
+        studentInstructionsEs: 42,
+      };
+    });
+    expect(isPublishedLessonRpcEnvelope(value)).toBe(false);
+  });
+
   it.each([
     [
       "theory block discriminant",

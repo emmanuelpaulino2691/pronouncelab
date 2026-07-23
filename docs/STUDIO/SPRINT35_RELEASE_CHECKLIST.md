@@ -14,6 +14,24 @@ This checklist records the manual browser verification required after the Sprint
 
 Do not mark an item complete unless the behavior has been observed in a browser with the relevant role and content state.
 
+## Previous Blocker Evidence
+
+The previous browser test showed that selecting **Delete** for a course, unit, lesson, or activity produced no matching Network request. The native confirmation branch stopped the frontend flow before the page handler invoked its delete service. The checks below must be repeated with the shared confirmation dialog; none are considered passed by this code change alone.
+
+## Delete Request Retest
+
+Repeat this sequence separately for a draft course, unit, lesson, and activity:
+
+- [ ] Open browser developer tools and clear the Network log.
+- [ ] Filter Network requests by `delete`.
+- [ ] Select the entity's **Delete** control.
+- [ ] Confirm that the shared confirmation dialog names the current entity.
+- [ ] Choose **Delete** in the confirmation dialog.
+- [ ] Confirm exactly one corresponding `delete_draft_*` RPC request appears.
+- [ ] Confirm the RPC response has a successful 2xx status.
+- [ ] Confirm the item disappears immediately without refreshing.
+- [ ] Repeat with a forced request failure and confirm the dialog permits one retry with the same entity.
+
 ## Editor and Administrator Checks
 
 ### Unit Creation

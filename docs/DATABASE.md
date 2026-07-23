@@ -57,8 +57,8 @@ erDiagram
 | `lesson_versions` | Immutable release boundary; one published version per lesson |
 | `lesson_activities` | Ordered typed activity metadata within a version |
 | `theory_blocks` | Ordered theory content: heading, paragraph, tip, example, image, audio |
-| `listening_items` | Listening title, instructions, transcript, optional audio |
-| `pronunciation_items` | Pronunciation display text, instructions, optional audio |
+| `listening_items` | Listening title, instructions, optional manual transcript, and managed audio; drafts may omit audio, publication may not |
+| `pronunciation_items` | Ordered legacy display-text items or pronunciation-specific Word List / Minimal Pairs blocks; block rows store optional spelling patterns, structured JSONB entries, and optional managed audio |
 | `assessment_sets` | Quiz settings tied to an activity; optional listening context must share activity |
 | `questions` | Ordered assessment prompts, explanations, and required state |
 | `question_options` | Ordered option text and protected correctness flag |
@@ -202,6 +202,7 @@ projection.
 | `008_ai_speaking_missions` | AI enum, configuration table, policies, create/duplicate RPCs |
 | `009_ai_speaking_mission_hardening` | Complete mission validation, RPC-only activity creation, clock-based optimistic save revisions, publication completeness |
 | `010_published_learner_delivery` | Learner-safe published catalog and current lesson RPC projections |
+| `202607220005_pronunciation_block_foundation` | Backward-compatible Word List and Minimal Pairs data, controlled block mutations, duplication support, and publication completeness validation |
 
 ## Migration rules
 

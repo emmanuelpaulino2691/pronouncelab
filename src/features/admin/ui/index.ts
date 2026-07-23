@@ -3,6 +3,7 @@ export type { AdminIconName } from "./AdminIcon";
 export { Button, ButtonLink, Spinner } from "./Button";
 export { Dialog } from "./Dialog";
 export type { DialogProps } from "./Dialog";
+export { ConfirmDeleteDialog } from "./ConfirmDeleteDialog";
 export { shouldProceedWithClose } from "./closeGuard";
 export type { CloseGuardState } from "./closeGuard";
 export { Alert, Avatar, Badge, Card, EmptyState, LoadingSkeleton, StatusBadge } from "./Surface";

@@ -170,20 +170,19 @@ export async function deleteDraftUnit(
   unitId: number,
   expectedCourseId: number
 ) {
-  const { data, error } = await requireSupabase()
-    .from("units")
-    .delete()
-    .eq("id", unitId)
-    .eq("course_id", expectedCourseId)
-    .eq("status", "draft")
-    .select("id")
-    .maybeSingle();
+  const { data, error } = await requireSupabase().rpc(
+    "delete_draft_unit",
+    {
+      requested_unit_id: unitId,
+      expected_course_id: expectedCourseId,
+    }
+  );
 
   if (error) {
     throw error;
   }
 
-  if (!data) {
+  if (data !== unitId) {
     throw new Error(
       "Draft unit not found in the expected course, or it is no longer deletable."
     );

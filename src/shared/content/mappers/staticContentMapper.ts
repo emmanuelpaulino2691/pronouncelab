@@ -502,12 +502,12 @@ function mapActivities(
             item.title,
             "Pronunciation item title"
           );
-          const displayText = cleanRequiredText(
-            item.text,
-            "Pronunciation display text"
-          );
           if (!itemId.ok) return itemId;
           if (!itemTitle.ok) return itemTitle;
+
+          const displayText = "blockType" in item
+            ? { ok: true as const, value: "" }
+            : cleanRequiredText(item.text, "Pronunciation display text");
           if (!displayText.ok) return displayText;
 
           const audio = mediaFromStaticUrl(
@@ -523,6 +523,11 @@ function mapActivities(
             title: itemTitle.value,
             instructions: null,
             displayText: displayText.value,
+            ...("blockType" in item ? {
+              blockType: item.blockType,
+              spellingPattern: item.spellingPattern ?? null,
+              entries: structuredClone(item.entries),
+            } : {}),
             audio: audio.value,
           });
         }

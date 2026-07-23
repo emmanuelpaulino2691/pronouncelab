@@ -57,6 +57,14 @@ export function validateAiSpeakingMission(
 
   const mission = value as Record<string, unknown>;
   if (
+    "studentInstructionsEs" in mission &&
+    typeof mission.studentInstructionsEs !== "string"
+  ) {
+    return failure(
+      "Spanish student instructions must be text."
+    );
+  }
+  if (
     stringKeys.some(
       (key) => typeof mission[key] !== "string"
     )
@@ -175,7 +183,9 @@ export function validateAiSpeakingMission(
   }
   if (
     text.teacherInstructions.length > 5000 ||
-    text.studentInstructions.length > 5000
+    text.studentInstructions.length > 5000 ||
+    (typeof mission.studentInstructionsEs === "string" &&
+      mission.studentInstructionsEs.length > 5000)
   ) {
     return failure(
       "Teacher and student instructions must use 5,000 characters or fewer."
@@ -236,6 +246,10 @@ export function validateAiSpeakingMission(
       ),
       teacherInstructions: text.teacherInstructions,
       studentInstructions: text.studentInstructions,
+      ...(typeof mission.studentInstructionsEs === "string" &&
+      mission.studentInstructionsEs.trim()
+        ? { studentInstructionsEs: mission.studentInstructionsEs.trim() }
+        : {}),
     },
   };
 }

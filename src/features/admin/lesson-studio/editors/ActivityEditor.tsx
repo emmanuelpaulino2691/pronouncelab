@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useRef } from "react";
 import ActivityMetadataEditor from "../components/ActivityMetadataEditor";
 import type { LessonActivity } from "../types";
 import ListeningEditor from "./ListeningEditor";
@@ -17,6 +17,7 @@ type Props = {
   onSaveMetadata: (
     input: Pick<LessonActivity, "title" | "required">
   ) => Promise<void>;
+  onDirtyChange: (dirty: boolean) => void;
 };
 
 export default function ActivityEditor({
@@ -24,14 +25,21 @@ export default function ActivityEditor({
   editable,
   busy,
   onSaveMetadata,
+  onDirtyChange,
 }: Props) {
+  const dirtySources = useRef(new Map<string, boolean>());
+  function reportDirty(source: string, dirty: boolean) {
+    dirtySources.current.set(source, dirty);
+    onDirtyChange([...dirtySources.current.values()].some(Boolean));
+  }
   return (
     <div className="space-y-5">
       <ActivityMetadataEditor
         activity={activity}
         editable={editable}
         busy={busy}
-        onSave={onSaveMetadata}
+        onSave={async (input) => { await onSaveMetadata(input); reportDirty("metadata", false); }}
+        onDirtyChange={(dirty) => reportDirty("metadata", dirty)}
       />
       {activity.type === "theory" && (
         <TheoryEditor
@@ -45,6 +53,7 @@ export default function ActivityEditor({
           key={activity.id}
           activityId={activity.id}
           editable={editable}
+          onDirtyChange={(dirty) => reportDirty("listening", dirty)}
         />
       )}
       {activity.type === "pronunciation" && (
@@ -52,6 +61,7 @@ export default function ActivityEditor({
           key={activity.id}
           activityId={activity.id}
           editable={editable}
+          onDirtyChange={(dirty) => reportDirty("pronunciation", dirty)}
         />
       )}
       {activity.type === "practice" && (

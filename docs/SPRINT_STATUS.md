@@ -17,7 +17,49 @@
 
 ## Current sprint
 
-**Sprint 35 — Published Supabase Content Delivery Foundation.**
+**Sprint 36 — Studio authoring improvements.**
+
+Status: In progress. The first increment finalizes the Course Editor address
+workflow. New course addresses are generated automatically from the title,
+teachers can explicitly switch to manual editing, and **Use title** restores
+automatic generation. Existing course addresses remain unchanged unless a
+teacher deliberately edits or regenerates them. Sprint 36 is not complete.
+
+The second increment adds optional Spanish workflow instructions to AI Speaking
+Missions. English remains the default, the generated AI prompt stays separate,
+and existing missions without Spanish text remain valid. This does not add
+platform-wide localization. Sprint 36 remains in progress.
+
+The third increment adds teacher-managed MP3 upload, replacement, removal, and
+preview to Listening authoring, together with a clearer manual transcript
+editor and an accessible learner transcript disclosure. Automatic
+transcription is not implemented. Sprint 36 remains in progress.
+
+The fourth increment introduces pronunciation-specific Word List and Minimal
+Pairs blocks. They extend the existing ordered `pronunciation_items` subtype
+with an optional block discriminator, spelling pattern, and structured JSONB
+entries. Legacy pronunciation rows remain unchanged. Controlled RPCs own block
+creation, saving, deletion, and reordering, and publication rejects empty word
+lists or incomplete minimal-pair content. Managed audio reuses the Listening
+upload and preview path. This is a focused migration seam, not the Universal
+Block System; a future universal model can migrate these two proven content
+shapes after broader block requirements are established.
+
+Release-blocker hardening now waits for course positions to load before a new
+course form captures its insertion position, preserves structured Supabase save
+errors for teacher-friendly mapping, and keeps Lesson Studio mounted during
+window-focus and token-refresh permission rechecks. Closing the native audio
+file picker therefore no longer resets the selected activity.
+
+Additional focus hardening treats repeated same-user `SIGNED_IN` and
+`USER_UPDATED` events as background authorization checks. Lesson Studio keeps
+the selected activity in the `activity` search parameter, preserves valid IDs
+across same-lesson data replacement, and warns before dirty activity state is
+discarded. Genuine sign-out, identity changes, or lost permissions still close
+the protected admin content.
+
+The Sprint 35 published-content delivery work remains at its previously
+documented state:
 
 Status: Blueprint and ADR 0006 are complete. Phase 1 learner contracts,
 mapping foundations, asynchronous provider interface, and static provider
@@ -26,22 +68,20 @@ complete. Phase 2B migration 010, RPC mapping, and the Supabase learner
 provider are implemented locally but remain inactive. Local Docker validation
 is pending because Docker Desktop is unavailable. Phase 2B.1 security and
 contract hardening is complete at the application/static-review level.
-Migration 009 and migration 010 remain unapplied remotely.
+Migrations through 202607220004 are applied remotely.
 
 ## Sprint objective
 
-Establish the architecture for learner-safe published catalog and current
-lesson-version delivery through narrow RPC projections, stable DTOs, an
-asynchronous provider boundary, explicit route states, and non-destructive
-local progress compatibility.
+Improve Studio authoring through small, contract-preserving increments. The
+current increment makes course addresses predictable without changing course
+routes, persistence, or the learner content-source boundary.
 
 ## Last completed sprint
 
 **Sprint 34 — AI Speaking Mission Hardening.**
 
 Sprint 34 implementation, application validation, and disposable
-local-database validation are complete. Migration 009 remains unapplied
-remotely.
+local-database validation are complete. Migration 009 is applied remotely.
 
 ## Completed work
 
@@ -134,12 +174,15 @@ Sprint 35 Phase 2B.1 hardens that delivery boundary with:
 
 ## Work in progress
 
+- Continue Sprint 36 Studio authoring improvements after the course address
+  increment is reviewed.
+- Complete browser and disposable-database verification for Sprint 36 media
+  authoring and publication validation.
 - Review Sprint 35 Phase 2B.1 hardening and application validation.
 - Complete disposable local database execution when Docker is available.
 
 ## Pending work
 
-- Apply migration 009 only after explicit authorization.
 - Convert learner routes to asynchronous loading in a later Sprint 35 phase.
 - Implement non-destructive local progress compatibility.
 - Add browser-level and disposable-database integration coverage.
@@ -155,10 +198,9 @@ Sprint 35 Phase 2B.1 hardens that delivery boundary with:
 
 ## Next planned sprint
 
-Sprint 35 implementation follows the approved
-[Sprint 35 Blueprint](SPRINT_35_BLUEPRINT.md). Sprint 36 is expected to own
-server-side quiz evaluation and scoring; it is not implemented or fully
-specified yet.
+Continue Sprint 36 through separately reviewed Studio increments. Server-side
+quiz evaluation and scoring remains future work and is not implemented or
+fully specified.
 
 ## Areas that must not be modified
 

@@ -56,6 +56,12 @@ After explicit completion, a short deterministic transition appears. It is immed
 
 When the next activity is an AI mission, the transition says **Final Speaking Challenge** and accurately explains that the learner will use an external AI pronunciation coach. It does not imply native integration.
 
+AI Speaking Missions show English workflow instructions by default. When a
+teacher provides optional Spanish instructions, learners can switch the visible
+instructions between English and Spanish without changing the AI prompt. The
+language control is not shown when Spanish support is absent. This is targeted
+workflow support, not application-wide localization.
+
 ## Completion, review, and restart
 
 The final screen displays only real session facts:
@@ -97,6 +103,11 @@ Separate existing utilities store dashboard progress, statistics, and achievemen
 - `ActivityErrorBoundary` prevents a renderer failure from crashing the full app.
 - Unsupported activity types render a controlled fallback.
 - Long content wraps; mobile does not require a permanent sidebar.
+
+Listening activities provide an accessible native audio player. A transcript
+is optional and remains hidden by default; when present, a keyboard-accessible
+**Show transcript** control reveals one labelled transcript region and changes
+to **Hide transcript**. Empty transcripts do not create learner UI.
 
 Manual browser coverage is still necessary because the focused Vitest setup does not provide browser UI tests.
 

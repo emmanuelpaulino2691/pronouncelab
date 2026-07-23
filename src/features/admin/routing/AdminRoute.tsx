@@ -16,6 +16,7 @@ import {
 } from "../../../shared/lib/supabaseClient";
 import type { AdminPermissions } from "../permissions/AdminPermissionsContext";
 import AdminPermissionsProvider from "../permissions/AdminPermissionsProvider";
+import { shouldPreserveAdminContent } from "./adminAccessRecheck";
 
 type AccessState =
   | "checking"
@@ -36,6 +37,7 @@ function AdminRoute() {
     useState<AdminPermissions | null>(null);
   const isMountedRef = useRef(false);
   const authorizationCheckRef = useRef(0);
+  const authorizedUserIdRef = useRef<string | null>(null);
 
   const checkAccess = useCallback(
     async (
@@ -45,12 +47,13 @@ function AdminRoute() {
             typeof supabase
           >["auth"]["getSession"]
         >
-      >["data"]["session"]
+      >["data"]["session"],
+      preserveContent = false
     ) => {
       const checkId =
         ++authorizationCheckRef.current;
 
-      if (isMountedRef.current) {
+      if (isMountedRef.current && !preserveContent) {
         setPermissions(null);
         setAccessState("checking");
       }
@@ -85,6 +88,7 @@ function AdminRoute() {
       }
 
       if (sessionError || !session) {
+        authorizedUserIdRef.current = null;
         setPermissions(null);
         setAccessState("signed-out");
         return;
@@ -106,6 +110,7 @@ function AdminRoute() {
       }
 
       if (userError || !user) {
+        authorizedUserIdRef.current = null;
         setPermissions(null);
         setAccessState("signed-out");
         return;
@@ -146,6 +151,8 @@ function AdminRoute() {
         canPublish: publishResult.data === true,
       };
 
+      authorizedUserIdRef.current = user.id;
+
       setPermissions(nextPermissions);
       setAccessState(
         nextPermissions.canAccessAdmin
@@ -180,12 +187,12 @@ function AdminRoute() {
     } = supabase.auth.onAuthStateChange(
       (event, session) => {
         authorizationCheckRef.current += 1;
-        setPermissions(null);
 
         if (
           event === "SIGNED_OUT" ||
           !session
         ) {
+          authorizedUserIdRef.current = null;
           setAccessState("signed-out");
           return;
         }
@@ -196,11 +203,26 @@ function AdminRoute() {
           event === "USER_UPDATED" ||
           event === "INITIAL_SESSION"
         ) {
-          setAccessState("checking");
+          const trigger = event === "TOKEN_REFRESHED"
+            ? "token-refresh"
+            : event === "SIGNED_IN"
+              ? "signed-in"
+              : event === "USER_UPDATED"
+                ? "user-updated"
+                : "initial";
+          const preserveContent = shouldPreserveAdminContent(
+            trigger,
+            authorizedUserIdRef.current === session.user.id
+          );
+
+          if (!preserveContent) {
+            setPermissions(null);
+            setAccessState("checking");
+          }
 
           window.setTimeout(() => {
             if (isMountedRef.current) {
-              void checkAccess(session);
+              void checkAccess(session, preserveContent);
             }
           }, 0);
         }
@@ -208,7 +230,10 @@ function AdminRoute() {
     );
 
     function handleWindowFocus() {
-      void checkAccess();
+      void checkAccess(
+        undefined,
+        shouldPreserveAdminContent("window-focus")
+      );
     }
 
     window.addEventListener(

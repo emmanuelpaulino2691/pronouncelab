@@ -18,7 +18,15 @@ import {
   type AdminCourse,
 } from "../courses/adminCourseService";
 import { useAdminPermissions } from "../permissions/useAdminPermissions";
-import { Alert, Badge, Button, ButtonLink, Card, EmptyState, LoadingSkeleton, PageHeader, StatusBadge } from "../ui";
+import { Alert, Badge, Button, ButtonLink, Card, ConfirmDeleteDialog, EmptyState, LoadingSkeleton, PageHeader, StatusBadge } from "../ui";
+import {
+  beginDeleteConfirmation,
+  cancelDeleteConfirmation,
+  completeDeleteConfirmation,
+  createDeleteConfirmationState,
+  failDeleteConfirmation,
+  openDeleteConfirmation,
+} from "../ui/deleteConfirmationState";
 import {
   createAdminUnit,
   deleteDraftUnit,
@@ -62,6 +70,9 @@ function CourseUnitsContent({
     useState(false);
   const [deletingUnitId, setDeletingUnitId] =
     useState<number | null>(null);
+  const [deleteConfirmation, setDeleteConfirmation] = useState(
+    createDeleteConfirmationState<AdminUnit>
+  );
   const [formState, setFormState] =
     useState<FormState>({ mode: "closed" });
   const [errorMessage, setErrorMessage] =
@@ -207,15 +218,8 @@ function CourseUnitsContent({
 
   async function handleDelete(unit: AdminUnit) {
     if (deleteInFlightRef.current) return;
-    if (
-      !window.confirm(
-        `Delete the draft unit "${unit.title}"? This also removes its draft descendants.`
-      )
-    ) {
-      return;
-    }
-
     deleteInFlightRef.current = true;
+    setDeleteConfirmation((current) => beginDeleteConfirmation(current));
     setDeletingUnitId(unit.id);
     setErrorMessage(null);
 
@@ -227,10 +231,12 @@ function CourseUnitsContent({
             (item) => item.id !== unit.id
           )
         );
+        setDeleteConfirmation(completeDeleteConfirmation());
       }
     } catch {
       if (isActiveRef.current) {
-        setErrorMessage("The unit could not be deleted. Refresh the curriculum and try again.");
+        setErrorMessage("The unit could not be deleted. It is still available. Try again.");
+        setDeleteConfirmation((current) => failDeleteConfirmation(current));
       }
     } finally {
       deleteInFlightRef.current = false;
@@ -332,7 +338,7 @@ function CourseUnitsContent({
                               deletingUnitId === unit.id
                             }
                             onClick={() =>
-                              void handleDelete(unit)
+                              { setErrorMessage(null); setDeleteConfirmation(openDeleteConfirmation(unit)); }
                             }
                             className="rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:cursor-not-allowed disabled:opacity-40"
                           >
@@ -370,6 +376,15 @@ function CourseUnitsContent({
           }
         />
       )}
+      <ConfirmDeleteDialog
+        isOpen={deleteConfirmation.target !== null}
+        title="Delete unit"
+        description={deleteConfirmation.target ? `Delete “${deleteConfirmation.target.title}” and its draft lessons?` : ""}
+        isDeleting={deleteConfirmation.pending}
+        errorMessage={deleteConfirmation.target ? errorMessage : null}
+        onCancel={() => setDeleteConfirmation((current) => cancelDeleteConfirmation(current))}
+        onConfirm={() => { if (deleteConfirmation.target) void handleDelete(deleteConfirmation.target); }}
+      />
     </section>
   );
 }
