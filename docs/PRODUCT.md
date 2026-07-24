@@ -1,5 +1,9 @@
 # Product
 
+## Course publication
+
+PronounceLab Studio provides a course-level **Publish Course** workflow. It validates the complete course before changing learner-facing content, reports all known issues together, and publishes eligible draft lesson versions as one controlled operation. A published course may still contain newer private drafts, so teachers can continue improving it safely.
+
 ## Contents
 
 - [Product model](#product-model)
@@ -28,7 +32,11 @@ An authorized content manager:
 8. saves structured subtype content;
 9. uses publisher-controlled workflows for release.
 
-Editors and administrators can edit drafts. Publishers can enter the Content Studio and review content but do not receive draft CRUD controls. Publishers and administrators have publication permission. Database RLS and RPC authorization remain authoritative.
+Teachers can edit and publish their own course hierarchy. Administrators can
+manage every course. Publishers can enter the Content Studio, review content,
+and retain cross-course publication authority without draft CRUD controls.
+Legacy editors remain owner-scoped draft authors. Database ownership checks,
+RLS, and RPC authorization remain authoritative.
 
 The UI does not currently expose a complete end-to-end course publication experience, and browser clients cannot safely finalize media publication.
 
@@ -87,7 +95,7 @@ No AI API, audio transfer, or server result persistence is implemented. See [AI 
 
 Lesson-version publication is a controlled database operation:
 
-1. authorize publisher or administrator;
+1. authorize the owning teacher, a publisher, or an administrator;
 2. acquire the same transaction advisory hierarchy gate used by authoring;
 3. lock and re-read the version hierarchy;
 4. validate hierarchy consistency and all referenced public media;

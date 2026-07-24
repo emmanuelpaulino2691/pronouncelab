@@ -25,7 +25,8 @@ The slogan—**Improve your English every day.**—describes the desired habit: 
 
 The current experience is designed primarily for adult English learners. Lesson data includes CEFR language levels, and AI Speaking Missions adapt their coaching prompt to the configured level. The interface favors professional, calm language and mobile usability.
 
-Teachers and content staff are the second audience. The Content Studio supports distinct editor, publisher, and administrator responsibilities.
+Teachers and content staff are the second audience. The Content Studio supports
+owner-scoped teachers, legacy editors, publishers, and administrators.
 
 ## Teaching philosophy
 
@@ -94,7 +95,7 @@ Admin content is not yet the learner content source. This is the most important 
 | Lesson experience | Sequential navigation, local completion, transitions, restart/review |
 | Activity rendering | Theory, listening, pronunciation, practice, quiz, AI mission registry |
 | Staff authentication | Supabase password login, session restoration, logout |
-| Authorization | `editor`, `publisher`, `admin`; RPC permission checks plus RLS |
+| Authorization | `teacher`, `editor`, `publisher`, `admin`; course-root ownership, RPC permission checks, and RLS |
 | Admin CMS | Dashboard, course/unit/lesson CRUD, Lesson Studio |
 | Versioned content | Draft/published/archived lesson versions; sealed descendants |
 | Quiz authoring | Questions/options through transactional RPCs with concurrency control |

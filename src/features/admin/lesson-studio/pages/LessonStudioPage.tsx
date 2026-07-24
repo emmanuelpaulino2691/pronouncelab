@@ -38,9 +38,11 @@ import {
   duplicateActivity,
   listActivities,
   loadLessonVersion,
+  publishLessonVersion,
   reorderActivities,
   updateActivity,
 } from "../services/lessonStudioService";
+import { canOfferLessonPublication } from "../publicationState";
 import {
   type ActivityType,
   type LessonActivity,
@@ -77,7 +79,7 @@ function Studio({
   unitId,
   lessonId,
 }: Props) {
-  const { canEditDrafts } =
+  const { canEditDrafts, canPublish } =
     useAdminPermissions();
   const active = useRef(true);
   const mutation = useRef(0);
@@ -236,10 +238,14 @@ function Studio({
   );
   const editable =
     canEditDrafts &&
-    course?.status === "draft" &&
-    unit?.status === "draft" &&
-    lesson?.status === "draft" &&
     version?.status === "draft";
+  const publishable = canOfferLessonPublication({
+    canPublish,
+    courseStatus: course?.status ?? null,
+    unitStatus: unit?.status ?? null,
+    lessonStatus: lesson?.status ?? null,
+    versionStatus: version?.status ?? null,
+  });
 
   useEffect(() => {
     function handleSaveShortcut(event: KeyboardEvent) {
@@ -302,6 +308,47 @@ function Studio({
   ) {
     const rows = await listActivities(versionId);
     return rows;
+  }
+
+  function handlePublish() {
+    if (!version || !publishable || busy) return;
+    if (editorDirtyRef.current) {
+      setError(
+        "Save or discard the current activity changes before publishing."
+      );
+      return;
+    }
+    if (
+      !window.confirm(
+        "Publish this lesson version? Published versions become read-only."
+      )
+    ) {
+      return;
+    }
+
+    void run(
+      () => publishLessonVersion(version.id),
+      (published) => {
+        setVersion(published);
+        setSaved("Published");
+      }
+    );
+  }
+
+  function handleCreateDraftVersion() {
+    if (!lesson || !canEditDrafts || busy) return;
+    void run(
+      () => createDraftVersion(lesson.id, unitId),
+      async (created) => {
+        const nextActivities = await listActivities(created.id);
+        setVersion(created);
+        setActivities(nextActivities);
+        selectActivity(
+          reconcileSelectedActivityId(null, nextActivities),
+          false
+        );
+      }
+    );
   }
 
   function move(activityId: number, offset: -1 | 1) {
@@ -401,11 +448,11 @@ function Studio({
         description={version ? `Version ${version.versionNumber} · ${saved}` : "This lesson has not been started yet."}
         breadcrumbs={[{ label: "Courses", to: "/admin/courses" }, { label: course.title, to: `/admin/courses/${courseId}` }, { label: unit.title, to: `/admin/courses/${courseId}/units/${unitId}` }, { label: lesson.title }]}
         meta={<Badge tone={(version?.status ?? lesson.status) === "draft" ? "draft" : "success"}>{version?.status ?? lesson.status}</Badge>}
-        actions={<><ButtonLink icon="arrow-left" variant="secondary" to={`/admin/courses/${courseId}/units/${unitId}`}>Back to lessons</ButtonLink><Button type="button" disabled title="Student preview is not available yet" variant="secondary">Preview · Coming later</Button></>}
+        actions={<><ButtonLink icon="arrow-left" variant="secondary" to={`/admin/courses/${courseId}/units/${unitId}`}>Back to lessons</ButtonLink>{publishable && <Button type="button" icon="check" isLoading={busy} onClick={handlePublish}>{busy ? "Publishing…" : "Publish lesson version"}</Button>}{version?.status === "published" && canEditDrafts && <Button type="button" icon="edit" isLoading={busy} onClick={handleCreateDraftVersion}>{busy ? "Creating draft…" : "Create draft version"}</Button>}<Button type="button" disabled title="Student preview is not available yet" variant="secondary">Preview · Coming later</Button></>}
       />
       <span role="status" aria-live="polite" className="sr-only">{saved}</span>
 
-      {!editable && version && <div className="mt-4"><Alert tone="info"><strong>View-only lesson.</strong> You can review this lesson, but editing is unavailable because the lesson is no longer an editable draft or your role does not allow changes.</Alert></div>}
+      {!editable && version && <div className="mt-4"><Alert tone="info"><strong>Published version.</strong> This version is read-only. Create a draft version to continue improving the lesson.</Alert></div>}
       {error && (
         <p role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">
           {error}

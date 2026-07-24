@@ -61,6 +61,39 @@ Before the numbered visual/product sprints, the repository established Supabase 
 
 ## Current milestone
 
+### Sprint 41 — Publishing and Versioning Experience
+
+**Status:** Partial; implemented locally, with specialist-RPC hardening and
+course-wide publication validation still future work.
+
+**Delivered locally:** Published Lesson Studio versions are read-only, a new
+draft can be created from the current published version, copied activity trees
+open automatically, and the existing controlled publication path remains
+available.
+
+**Boundary:** Published learner content remains active while a new draft is
+edited. A consolidated course publication report and all-lesson atomic release
+remain future work until every specialist mutation RPC supports drafts beneath
+published parent metadata.
+
+### Sprint 40 — Teacher Ownership Foundation
+
+**Status:** Implemented locally; migration execution and browser QA are
+pending.
+
+**Delivered locally:** A first-class `teacher` role, immutable course-root
+ownership, deterministic backfill for existing courses, owner-derived
+hierarchy RLS, ownership enforcement inside controlled mutations, teacher
+publication checks, and owner-scoped **My Courses** presentation.
+
+**Compatibility:** Administrators retain global authority, publishers retain
+cross-course read/publication authority, and legacy editors retain
+owner-scoped draft editing. Published learner RPCs, anonymous learner routes,
+and device-local progress are unchanged.
+
+**Boundary:** Classes, enrollment, student accounts, sharing, assignments,
+analytics, and Interactive Practice learner delivery remain future work.
+
 ### Sprint 39A — Interactive Practice Foundation
 
 **Status:** Implemented locally; migration deployment and browser QA are
@@ -263,3 +296,6 @@ management, or AI history.
 **Dependencies:** identity, entitlements, billing provider, legal/privacy terms, customer support, robust published delivery.
 
 **Expected user value:** dependable access to maintained curricula and future services.
+## Course-wide publication
+
+Course-wide validation and atomic publication are now part of the Studio direction. The workflow is intentionally separate from future classes, assignments, and enrollment: publishing controls learner-facing content, while those systems will later control who receives it.

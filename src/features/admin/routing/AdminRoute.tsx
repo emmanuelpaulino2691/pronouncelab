@@ -17,6 +17,10 @@ import {
 import type { AdminPermissions } from "../permissions/AdminPermissionsContext";
 import AdminPermissionsProvider from "../permissions/AdminPermissionsProvider";
 import { shouldPreserveAdminContent } from "./adminAccessRecheck";
+import {
+  isMissingAuthorizationRpcError,
+  legacyOwnershipPermissions,
+} from "./adminAuthorizationCompatibility";
 
 type AccessState =
   | "checking"
@@ -38,6 +42,9 @@ function AdminRoute() {
   const isMountedRef = useRef(false);
   const authorizationCheckRef = useRef(0);
   const authorizedUserIdRef = useRef<string | null>(null);
+  const ownershipRpcSupportRef = useRef<
+    "unknown" | "available" | "legacy"
+  >("unknown");
 
   const checkAccess = useCallback(
     async (
@@ -116,6 +123,14 @@ function AdminRoute() {
         return;
       }
 
+      const ownershipChecks =
+        ownershipRpcSupportRef.current === "legacy"
+          ? null
+          : Promise.all([
+              supabase.rpc("can_view_all_courses"),
+              supabase.rpc("is_platform_admin"),
+            ]);
+
       const [
         accessResult,
         editResult,
@@ -125,6 +140,9 @@ function AdminRoute() {
         supabase.rpc("can_edit_drafts"),
         supabase.rpc("can_publish_content"),
       ]);
+      const ownershipResults = ownershipChecks
+        ? await ownershipChecks
+        : null;
 
       if (
         !isMountedRef.current ||
@@ -144,11 +162,59 @@ function AdminRoute() {
         return;
       }
 
+      let ownershipPermissions:
+        Pick<
+          AdminPermissions,
+          "canViewAllCourses" | "isAdmin"
+        >;
+      if (!ownershipResults) {
+        ownershipPermissions =
+          legacyOwnershipPermissions(
+            accessResult.data === true
+          );
+      } else {
+        const [viewAllResult, adminResult] =
+          ownershipResults;
+        const viewAllMissing =
+          isMissingAuthorizationRpcError(
+            viewAllResult.error
+          );
+        const adminMissing =
+          isMissingAuthorizationRpcError(
+            adminResult.error
+          );
+
+        if (
+          (viewAllResult.error && !viewAllMissing) ||
+          (adminResult.error && !adminMissing)
+        ) {
+          setPermissions(null);
+          setAccessState("unavailable");
+          return;
+        }
+
+        if (viewAllMissing || adminMissing) {
+          ownershipRpcSupportRef.current = "legacy";
+          ownershipPermissions =
+            legacyOwnershipPermissions(
+              accessResult.data === true
+            );
+        } else {
+          ownershipRpcSupportRef.current = "available";
+          ownershipPermissions = {
+            canViewAllCourses:
+              viewAllResult.data === true,
+            isAdmin: adminResult.data === true,
+          };
+        }
+      }
+
       const nextPermissions: AdminPermissions = {
         canAccessAdmin:
           accessResult.data === true,
         canEditDrafts: editResult.data === true,
         canPublish: publishResult.data === true,
+        ...ownershipPermissions,
       };
 
       authorizedUserIdRef.current = user.id;

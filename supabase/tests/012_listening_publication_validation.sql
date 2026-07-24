@@ -6,6 +6,16 @@ create extension if not exists pgtap
 set local search_path = public, extensions, pg_catalog;
 select plan(2);
 
+insert into auth.users (id)
+values ('91200000-0000-4000-8000-000000000099');
+insert into public.user_roles (user_id, role)
+values (
+  '91200000-0000-4000-8000-000000000099',
+  'admin'
+);
+set local request.jwt.claim.sub =
+  '91200000-0000-4000-8000-000000000099';
+
 insert into public.courses (
   id, slug, title, description, level, emoji, position, status
 ) values (

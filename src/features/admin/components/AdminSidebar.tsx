@@ -17,11 +17,23 @@ type Props = {
 
 function AdminSidebar({ isOpen, onClose }: Props) {
   const navigate = useNavigate();
-  const { canEditDrafts, canPublish } = useAdminPermissions();
+  const {
+    canEditDrafts,
+    canPublish,
+    isAdmin,
+  } = useAdminPermissions();
   const [email, setEmail] = useState("Content manager");
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState<string | null>(null);
-  const roleLabel = canEditDrafts && canPublish ? "Administrator" : canEditDrafts ? "Editor" : canPublish ? "Publisher" : "Content manager";
+  const roleLabel = isAdmin
+    ? "Administrator"
+    : canEditDrafts && canPublish
+      ? "Teacher"
+      : canEditDrafts
+        ? "Editor"
+        : canPublish
+          ? "Publisher"
+          : "Content manager";
 
   useEffect(() => {
     let active = true;

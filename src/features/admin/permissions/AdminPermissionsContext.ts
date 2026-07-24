@@ -4,6 +4,8 @@ export type AdminPermissions = {
   canAccessAdmin: boolean;
   canEditDrafts: boolean;
   canPublish: boolean;
+  canViewAllCourses: boolean;
+  isAdmin: boolean;
 };
 
 export const AdminPermissionsContext =

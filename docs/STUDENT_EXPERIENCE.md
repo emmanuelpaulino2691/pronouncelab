@@ -119,3 +119,6 @@ Manual browser coverage is still necessary because the focused Vitest setup does
 ## Future account progress
 
 **Not implemented.** Synchronized progress requires a learner authentication strategy, enrollment/attempt tables, RLS, conflict semantics, privacy policy, and migration of device-local state. It should replace, not silently reinterpret, local progress.
+## Course publication
+
+Students see a course only after the teacher or authorised publisher completes the course publication workflow. Publication validates the whole hierarchy first, so an incomplete lesson cannot create a partially updated learner experience. Existing published versions remain active when a lesson has no replacement draft.

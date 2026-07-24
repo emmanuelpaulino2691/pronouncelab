@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import { useAdminPermissions } from "../permissions/useAdminPermissions";
-import { Alert, Button, ButtonLink, Card, ConfirmDeleteDialog, EmptyState, LoadingSkeleton, PageHeader, Select, StatusBadge, TextInput } from "../ui";
+import { Alert, Button, ButtonLink, Card, ConfirmDeleteDialog, Dialog, EmptyState, LoadingSkeleton, PageHeader, Select, StatusBadge, TextInput } from "../ui";
 import {
   beginDeleteConfirmation,
   cancelDeleteConfirmation,
@@ -15,16 +15,21 @@ import { formatDate } from "../utils/format";
 import CourseForm from "./CourseForm";
 import { getCourseSaveErrorMessage } from "./courseSaveErrors";
 import { shouldRenderCourseForm } from "./courseFormState";
+import { publicationErrorLabel } from "./coursePublicationState";
 import {
-  createAdminCourse, deleteDraftCourse, duplicateDraftCourse, listAdminCourses, updateAdminCourse,
-  type AdminCourse, type CourseInput, type CourseStatus,
+  createAdminCourse, deleteDraftCourse, duplicateDraftCourse, listAdminCourses, publishAdminCourse, updateAdminCourse,
+  type AdminCourse, type CourseInput, type CoursePublicationError, type CourseStatus,
 } from "./adminCourseService";
 
 type FormState = { mode: "closed" } | { mode: "create" } | { mode: "edit"; course: AdminCourse };
 type SortMode = "updated" | "title" | "position";
 
 function AdminCoursesPage() {
-  const { canEditDrafts } = useAdminPermissions();
+  const {
+    canEditDrafts,
+    canPublish,
+    canViewAllCourses,
+  } = useAdminPermissions();
   const deleteInFlightRef = useRef(false);
   const duplicateInFlightRef = useRef(false);
   const [searchParams] = useSearchParams();
@@ -33,6 +38,10 @@ function AdminCoursesPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [deletingCourseId, setDeletingCourseId] = useState<number | null>(null);
   const [duplicatingCourseId, setDuplicatingCourseId] = useState<number | null>(null);
+  const [publishingCourseId, setPublishingCourseId] = useState<number | null>(null);
+  const [publicationErrors, setPublicationErrors] = useState<CoursePublicationError[]>([]);
+  const [publicationSummary, setPublicationSummary] = useState<string | null>(null);
+  const [publishConfirmation, setPublishConfirmation] = useState<AdminCourse | null>(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState(
     createDeleteConfirmationState<AdminCourse>
   );
@@ -117,11 +126,34 @@ function AdminCoursesPage() {
     }
   }
 
+  async function handlePublish(course: AdminCourse) {
+    if (publishingCourseId !== null) return;
+    setPublishingCourseId(course.id);
+    setPublicationErrors([]);
+    setPublicationSummary(null);
+    try {
+      const result = await publishAdminCourse(course.id);
+      if (!result.ok) {
+        setPublicationErrors(result.errors);
+        return;
+      }
+      setCourses((current) => current.map((item) => item.id === course.id ? { ...item, status: "published", updatedAt: result.publishedAt } : item));
+      setPublicationSummary(`${course.title} was published. ${result.publishedLessons} lesson${result.publishedLessons === 1 ? "" : "s"} updated; ${result.unchangedLessons} unchanged.`);
+      setPublishConfirmation(null);
+    } catch {
+      setPublicationErrors([{ category: "course", courseId: course.id, courseTitle: course.title, message: "The course could not be published. Try again." }]);
+    } finally {
+      setPublishingCourseId(null);
+    }
+  }
+
   return (
     <section className="mx-auto max-w-7xl space-y-7">
       <PageHeader
         eyebrow="Curriculum"
-        title="Courses"
+        title={
+          canViewAllCourses ? "Courses" : "My Courses"
+        }
         breadcrumbs={[{ label: "Courses" }]}
         description="Organize courses, units, and lessons into clear learning experiences."
         actions={canEditDrafts
@@ -130,6 +162,15 @@ function AdminCoursesPage() {
       />
       {!canEditDrafts && <Alert>You can view courses, but your role does not allow creating or editing course drafts.</Alert>}
       {errorMessage && <Alert tone="error" action={<Button variant="secondary" onClick={() => void loadCourses()}>Try again</Button>}>{errorMessage}</Alert>}
+      {publicationSummary && <Alert>{publicationSummary}</Alert>}
+      {publicationErrors.length > 0 && <Alert tone="error" action={<Button variant="secondary" onClick={() => setPublicationErrors([])}>Dismiss</Button>}>
+        <p className="font-semibold">Course cannot be published.</p>
+        <ul className="mt-2 list-disc space-y-1 pl-5">
+          {publicationErrors.map((item, index) => <li key={`${item.activityId ?? item.lessonId ?? item.unitId ?? item.courseId}-${index}`}>
+            {publicationErrorLabel(item)} {item.message}
+          </li>)}
+        </ul>
+      </Alert>}
 
       <Card className="p-4">
         <div className="grid gap-3 md:grid-cols-[minmax(15rem,1fr)_12rem_12rem]">
@@ -156,6 +197,7 @@ function AdminCoursesPage() {
                   <ButtonLink to={`/admin/courses/${course.id}`} className="flex-1">Open curriculum</ButtonLink>
                   {editable && <Button variant="secondary" icon="edit" aria-label={`Edit ${course.title}`} onClick={() => { setFormErrorMessage(null); setFormState({ mode: "edit", course }); }}>Edit</Button>}
                   {editable && <Button type="button" variant="secondary" aria-label={`Duplicate ${course.title}`} isLoading={duplicatingCourseId === course.id} disabled={duplicatingCourseId !== null} onClick={() => void handleDuplicate(course)}>Duplicate</Button>}
+                  {canPublish && course.status !== "archived" && <Button type="button" variant="primary" isLoading={publishingCourseId === course.id} disabled={publishingCourseId !== null} onClick={() => setPublishConfirmation(course)}>{course.status === "published" ? "Publish updates" : "Publish Course"}</Button>}
                   {editable && <Button type="button" variant="danger" icon="delete" aria-label={`Delete ${course.title}`} isLoading={deletingCourseId === course.id} onClick={() => { setErrorMessage(null); setDeleteConfirmation(openDeleteConfirmation(course)); }}>Delete</Button>}
                 </div>
               </Card>;
@@ -172,6 +214,16 @@ function AdminCoursesPage() {
         onCancel={() => setDeleteConfirmation((current) => cancelDeleteConfirmation(current))}
         onConfirm={() => { if (deleteConfirmation.target) void handleDelete(deleteConfirmation.target); }}
       />
+      <Dialog
+        isOpen={publishConfirmation !== null}
+        onClose={() => { if (publishingCourseId === null) setPublishConfirmation(null); }}
+        title="Publish Course"
+        description={publishConfirmation ? `Review and publish “${publishConfirmation.title}”. The complete course will be validated before any learner-facing content changes.` : undefined}
+        preventClose={publishingCourseId !== null}
+        footer={<><Button type="button" variant="secondary" disabled={publishingCourseId !== null} onClick={() => setPublishConfirmation(null)}>Cancel</Button><Button type="button" isLoading={publishingCourseId !== null} onClick={() => { if (publishConfirmation) void handlePublish(publishConfirmation); }}>Publish Course</Button></>}
+      >
+        <p className="text-sm text-slate-600">All units, lessons, activities, and draft versions must be complete. If anything is missing, you will receive the full list of issues and nothing will be published.</p>
+      </Dialog>
     </section>
   );
 }

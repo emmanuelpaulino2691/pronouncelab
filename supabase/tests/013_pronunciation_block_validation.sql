@@ -4,6 +4,16 @@ create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions, pg_catalog;
 select plan(6);
 
+insert into auth.users (id)
+values ('91300000-0000-4000-8000-000000000099');
+insert into public.user_roles (user_id, role)
+values (
+  '91300000-0000-4000-8000-000000000099',
+  'admin'
+);
+set local request.jwt.claim.sub =
+  '91300000-0000-4000-8000-000000000099';
+
 select ok(public.pronunciation_entries_are_valid('word_list', '["cat", "cake"]'::jsonb, true), 'word list entries are valid');
 select ok(public.pronunciation_entries_are_valid('minimal_pairs', '[{"left":"cat","right":"cut"}]'::jsonb, true), 'minimal-pair entries are valid');
 select isnt(public.pronunciation_entries_are_valid('minimal_pairs', '[{"left":"cat","right":""}]'::jsonb, true), true, 'incomplete pairs are invalid');

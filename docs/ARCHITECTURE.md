@@ -7,6 +7,7 @@
 - [Routing and layouts](#routing-and-layouts)
 - [Learner content and rendering](#learner-content-and-rendering)
 - [Admin architecture](#admin-architecture)
+- [Ownership model](#ownership-model)
 - [TypeScript and state](#typescript-and-state)
 - [Lazy loading](#lazy-loading)
 - [Design system](#design-system)
@@ -129,10 +130,53 @@ Permissions are typed as:
 - `canAccessAdmin`
 - `canEditDrafts`
 - `canPublish`
+- `canViewAllCourses`
+- `isAdmin`
 
 These values improve the UI. RLS and internal RPC authorization decide access.
 
-Lesson Studio uses direct RLS-protected exact-row writes for simple subtype updates and security-definer RPCs for atomic creation, duplication, reordering, version creation, and quiz compound writes.
+During the Sprint 40 migration window, `AdminRoute` detects only structured
+missing-function responses for the new ownership helpers and falls back to the
+pre-ownership `can_manage_content()` surface. The result is cached for the
+current route mount to avoid repeated missing-RPC requests. Other authorization
+or network failures remain fail-closed. A reload automatically probes the new
+helpers again after deployment.
+
+Lesson Studio uses direct RLS-protected exact-row writes for simple subtype
+updates and security-definer RPCs for atomic creation, duplication, reordering,
+version creation, publication, and quiz compound writes. Authorized teachers,
+publishers, and administrators receive an explicit lesson-version publication
+action; the RPC remains the authorization and validation boundary.
+
+When a published lesson is selected, the Studio presents the published version
+as read-only. `create_lesson_draft_version` creates the next draft version by
+copying the published activity tree and specialist content. Learners continue
+to resolve the current published version until the draft is published.
+
+Draft-version mutation authorization is centralized in
+`can_edit_lesson_version(version_id)`: the target version must be draft and its
+course must be editable by the authenticated owner or administrator. Parent
+hierarchy lifecycle status does not determine draft editability.
+
+## Ownership model
+
+Course ownership is the root authorization boundary for private educational
+content. Every course stores one immutable `owner_user_id` referencing the
+authenticated user who created it. Units, lessons, versions, activities, and
+activity subtype rows derive ownership through their existing parent chain;
+they do not duplicate owner columns.
+
+Teachers can see, author, duplicate, and publish their own hierarchy.
+Administrators can access and manage every hierarchy. Publishers retain
+cross-course read and publication authority for future editorial workflows,
+while legacy editors remain owner-scoped draft authors and cannot publish.
+Published learner projections remain public and do not expose ownership.
+
+RLS controls browser visibility and simple writes. An ownership trigger applies
+the same course-root check inside existing security-definer mutation RPCs, so
+an RPC cannot bypass teacher isolation. The Studio labels owner-scoped course
+catalogs as **My Courses**; administrators and publishers receive the
+cross-course view.
 
 ## TypeScript and state
 
@@ -177,3 +221,6 @@ These are current facts, not proposals:
 - Learner progress is device-local and not user-namespaced.
 - The repository contains both `activityRegistry.ts` and `activityRegistry.tsx`; the TSX module is the active registry import path and the duplication should be resolved carefully.
 - Migration 009 hardens AI configuration, creation, concurrency, and publication locally; it must be reviewed and applied before the linked database has those guarantees.
+## Course-wide publication
+
+Course publication is handled by the controlled `public.publish_course(bigint)` RPC. It locks the hierarchy, validates courses, units, lessons, draft versions, activities, and specialist content, and returns structured errors without writes when validation fails. When validation succeeds, eligible draft lesson versions are published through the existing lesson-version lifecycle and the hierarchy is activated. Published versions remain immutable; lessons without a new draft continue serving their current published version.

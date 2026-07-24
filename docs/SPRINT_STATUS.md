@@ -17,6 +17,38 @@
 
 ## Current sprint
 
+**Sprint 40 — Teacher Ownership Foundation.**
+
+Status: Implemented locally; migrations and SQL ownership tests are pending
+database execution. Every course has one immutable authenticated owner.
+Teachers receive owner-scoped private hierarchy visibility, draft authoring,
+duplication, and publication. Administrators retain global access, publishers
+retain cross-course read/publication authority, and legacy editors remain
+owner-scoped draft authors.
+
+Ownership is stored once on the course and inherited through the existing
+hierarchy. RLS protects browser access, while an ownership trigger protects
+existing security-definer mutations. Learner projections and anonymous
+published-content delivery are unchanged. Classes, enrollment, sharing, and
+student accounts are not implemented.
+
+The Lesson Studio release blocker is resolved locally: authorized users now
+receive an explicit **Publish lesson version** action backed exclusively by
+`publish_lesson_version`. Administrators and publishers retain global
+publication authority, teachers remain owner-scoped, and editors and learners
+do not receive the action. Browser QA and local SQL execution remain pending.
+
+Sprint 41 adds the first continuous-improvement workflow locally. Published
+versions remain read-only; teachers can request a new draft version that copies
+the published activity tree, then publish the draft as the next release.
+Course-wide validation and a consolidated **Publish Course** operation remain
+future work until every specialist mutation RPC accepts draft versions beneath
+published parent metadata.
+
+Sprint 41B adds `can_edit_lesson_version(version_id)` and removes parent-status
+requirements from specialist draft mutation paths. Published hierarchy rows
+remain sealed while their draft lesson versions are privately editable.
+
 **Sprint 39A — Interactive Practice Foundation.**
 
 Status: Implemented locally; database deployment and browser QA are pending.
@@ -31,6 +63,10 @@ published learner projections, activity renderers, or scoring. Existing
 `practice` and `quiz` activities remain unchanged and supported.
 Complete Interactive Practice content remains blocked from publication until
 Sprint 39B provides an answer-safe learner delivery contract and renderer.
+The pending migration uses the canonical `can_manage_content()` authorization
+helper for its staff-only RLS policy. The linked ledger confirms migration
+`202607220008` is not applied; deployment and SQL execution validation remain
+pending.
 
 **Sprint 38 — Teacher Experience.**
 
@@ -116,8 +152,8 @@ Migrations through 202607220006 are applied remotely. Migration
 
 ## Sprint objective
 
-Reduce repetitive Studio work while preserving draft hierarchy, publication
-safety, and existing authoring contracts.
+Establish private teacher-owned course hierarchies without changing learner
+delivery or introducing classes and enrollment.
 
 ## Last completed sprint
 
@@ -259,3 +295,6 @@ git diff --check
 ```
 
 Do not commit, push, or apply migrations unless explicitly requested.
+## Sprint 41C — Course publication
+
+In progress. The Studio now has the foundation for a course-level publication action, aggregated validation feedback, draft-version selection, and published-with-private-changes semantics. Remote migrations and browser release validation remain pending.

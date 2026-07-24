@@ -6,6 +6,7 @@
 - [Entity model](#entity-model)
 - [Entity purposes](#entity-purposes)
 - [Roles and RLS](#roles-and-rls)
+- [Ownership model](#ownership-model)
 - [Versioning and immutability](#versioning-and-immutability)
 - [RPC philosophy](#rpc-philosophy)
 - [Publication and media](#publication-and-media)
@@ -50,7 +51,7 @@ erDiagram
 | Entity | Purpose and notable invariants |
 | --- | --- |
 | `profiles` | Optional staff display name keyed to `auth.users` |
-| `user_roles` | Many roles per auth user; enum is `editor`, `publisher`, `admin` |
+| `user_roles` | Many roles per auth user; enum is `teacher`, `editor`, `publisher`, `admin` |
 | `courses` | Ordered catalog root with slug, title, level, description, lifecycle |
 | `units` | Ordered course children; child creation requires a draft course |
 | `lessons` | Ordered unit children; points to the current published lesson version |
@@ -74,9 +75,11 @@ Helper functions centralize authorization:
 | Helper | Effective role semantics |
 | --- | --- |
 | `has_admin_role(role)` | Tests one role for current authenticated user |
-| `can_manage_content()` | Editor, publisher, or administrator |
-| `can_edit_drafts()` | Editor or administrator |
-| `can_publish_content()` | Publisher or administrator |
+| `can_manage_content()` | Teacher, legacy editor, publisher, or administrator |
+| `can_edit_drafts()` | Teacher, legacy editor, or administrator; course ownership still applies |
+| `can_publish_content()` | Teacher, publisher, or administrator; teacher publication is owner-scoped |
+| `can_edit_course(course_id)` | Course owner with teacher/editor capability, or administrator |
+| `can_publish_course(course_id)` | Owning teacher, publisher, or administrator |
 
 RLS is enabled on every content and identity table. General policy shape:
 
@@ -89,9 +92,43 @@ RLS is enabled on every content and identity table. General policy shape:
 
 The application does not duplicate role strings across pages; `AdminRoute` calls the helpers and provides typed permission values.
 
+## Ownership model
+
+`courses.owner_user_id` is a non-null foreign key to `auth.users.id`. New
+course inserts assign `auth.uid()` in the database, and ownership is immutable.
+Course positions are unique within an owner rather than across the entire
+platform, allowing independent teacher catalogs to begin at position zero.
+The migration backfills a course from its existing editor/administrator
+`created_by` value when possible and otherwise uses the earliest existing
+administrator. Migration stops instead of creating ownerless content when no
+administrator is available.
+
+Ownership is stored only on the course. The database resolves each descendant
+through course → unit → lesson → version → activity and the relevant subtype
+relationship. Owner-scoped RLS prevents teachers from reading or mutating
+another teacher's private hierarchy. The same resolution runs in a trigger for
+direct writes and security-definer RPC writes.
+
+Administrators bypass course ownership. Publishers can inspect private
+hierarchies and retain global publication authority but cannot author drafts.
+Legacy editors keep draft-authoring compatibility for courses they own.
+Anonymous and authenticated learners retain access only through published
+content rules and learner-safe RPC projections.
+
 ## Versioning and immutability
 
 The lesson version is the release unit. A transaction-level advisory hierarchy gate serializes publication with all descendant authoring.
+
+Published lesson versions are immutable. The version-drafting RPC creates a
+new draft identity and copies activity and specialist rows while preserving
+the published version and its media references. Publication archives the prior
+published version, activates the new lesson pointer, and keeps the operation
+behind the existing validation and hierarchy gate.
+
+`can_edit_lesson_version(version_id)` is the shared mutation gate for draft
+content. It requires a draft target version and owner/administrator authority;
+the course, unit, and lesson may remain published while learners continue to
+use the active published version.
 
 Authoring RPC order is:
 
@@ -145,7 +182,12 @@ Functions schema-qualify objects, set an empty search path when security-definer
 
 ### Lesson versions
 
-`publish_lesson_version(version_id)` is the supported release path. Direct status promotion is rejected by the lifecycle trigger. The RPC validates that every referenced media row is published, is in the correct public bucket, and has a matching Storage object. It locks referenced media/Storage rows while publishing.
+`publish_lesson_version(version_id)` is the supported release path. Lesson
+Studio calls this RPC directly for authorized publication; it never performs a
+browser-side status update. Direct status promotion is rejected by the
+lifecycle trigger. The RPC validates course-scoped publication permission and
+content completeness, including referenced media. It locks referenced
+media/Storage rows while publishing.
 
 Assessment listening references use a composite foreign key so the listening item belongs to the same activity.
 
@@ -203,6 +245,9 @@ projection.
 | `009_ai_speaking_mission_hardening` | Complete mission validation, RPC-only activity creation, clock-based optimistic save revisions, publication completeness |
 | `010_published_learner_delivery` | Learner-safe published catalog and current lesson RPC projections |
 | `202607220005_pronunciation_block_foundation` | Backward-compatible Word List and Minimal Pairs data, controlled block mutations, duplication support, and publication completeness validation |
+| `202607220008_interactive_practice_foundation` | Staff-only Interactive Practice authoring data, controlled mutations, RLS, and publication gating; pending deployment |
+| `202607230001_add_teacher_role` | Adds the first-class `teacher` staff role in a transaction separate from its first use |
+| `202607230002_teacher_ownership_foundation` | Adds course-root ownership, backfill, owner-aware helpers/RLS/RPC protection, and teacher Studio permissions |
 
 ## Migration rules
 
@@ -223,3 +268,6 @@ Never duplicate migration SQL in documentation. Read the effective object across
 - Media finalization requires a trusted backend that is not in this repository.
 
 These are hardening opportunities, not implemented guarantees.
+## Course publication lifecycle
+
+`public.publish_course(bigint)` is the transaction boundary for course-wide publication. It is available only to authenticated users with administrator, publisher, or owner-teacher publication authority. Validation is aggregated before any status, pointer, or archive update. The operation prefers the newest draft lesson version, otherwise retains the active published version, and never republishes archived history. Learner queries therefore observe only the newly activated published hierarchy after a successful transaction.

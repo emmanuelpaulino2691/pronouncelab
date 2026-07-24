@@ -38,7 +38,7 @@ create policy "staff read interactive practice"
   on public.interactive_practice_exercises
   for select
   to authenticated
-  using (public.can_access_admin());
+  using (public.can_manage_content());
 
 create or replace function
   public.interactive_practice_is_complete(
@@ -385,8 +385,8 @@ begin
     raise exception 'Draft editing permission is required';
   end if;
 
-  select activity, exercise
-  into source_activity, source_exercise
+  select activity.*
+  into source_activity
   from public.lesson_activities activity
   join public.interactive_practice_exercises exercise
     on exercise.activity_id = activity.id
@@ -418,6 +418,11 @@ begin
     raise exception
       'The expected draft Interactive Practice is unavailable';
   end if;
+
+  select *
+  into strict source_exercise
+  from public.interactive_practice_exercises
+  where activity_id = source_activity.id;
 
   perform 1
   from public.lesson_activities

@@ -83,6 +83,19 @@ export async function createDraftVersion(
   return toVersion(data as unknown as VersionRow);
 }
 
+export async function publishLessonVersion(
+  lessonVersionId: number
+) {
+  const { data, error } = await client().rpc(
+    "publish_lesson_version",
+    {
+      requested_lesson_version_id: lessonVersionId,
+    }
+  );
+  if (error) throw error;
+  return toVersion(data as unknown as VersionRow);
+}
+
 export async function listActivities(
   lessonVersionId: number
 ) {

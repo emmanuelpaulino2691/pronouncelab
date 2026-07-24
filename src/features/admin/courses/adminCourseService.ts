@@ -30,6 +30,24 @@ export type CourseInput = {
   position: number;
 };
 
+export type CoursePublicationError = {
+  courseId?: number;
+  courseTitle?: string;
+  unitId?: number;
+  unitTitle?: string;
+  lessonId?: number;
+  lessonTitle?: string;
+  lessonVersionId?: number;
+  activityId?: number;
+  activityType?: string;
+  category: string;
+  message: string;
+};
+
+export type CoursePublicationResult =
+  | { ok: true; courseId: number; publishedLessons: number; unchangedLessons: number; archivedVersions: number; publishedAt: string }
+  | { ok: false; courseId: number; errors: CoursePublicationError[] };
+
 type CourseRow = {
   id: number;
   slug: string;
@@ -88,7 +106,8 @@ export async function listAdminCourses() {
   const { data, error } = await client
     .from("courses")
     .select(courseColumns)
-    .order("position", { ascending: true });
+    .order("position", { ascending: true })
+    .order("id", { ascending: true });
 
   if (error) {
     throw error;
@@ -224,4 +243,18 @@ export async function duplicateDraftCourse(courseId: number) {
   if (error) throw error;
   if (!data) throw new Error("The course could not be duplicated.");
   return toAdminCourse(data as unknown as CourseRow);
+}
+
+export async function publishAdminCourse(courseId: number): Promise<CoursePublicationResult> {
+  const { data, error } = await requireSupabase().rpc("publish_course", {
+    requested_course_id: courseId,
+  });
+  if (error) throw error;
+  if (!data || typeof data !== "object") {
+    throw new Error("The course publication response was not recognised.");
+  }
+  const result = data as CoursePublicationResult;
+  if (result.ok === false && Array.isArray(result.errors)) return result;
+  if (result.ok === true && typeof result.publishedLessons === "number") return result;
+  throw new Error("The course publication response was not recognised.");
 }
