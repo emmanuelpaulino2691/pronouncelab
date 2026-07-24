@@ -1,4 +1,5 @@
 import type { AdminPermissions } from "./permissions/AdminPermissionsContext";
+import type { PermissionContext } from "../../domain/permissions/predicates";
 
 export type WorkspaceRole = "administrator" | "teacher" | "publisher" | "editor" | "viewer";
 
@@ -12,6 +13,11 @@ export function getWorkspaceRole(permissions: Pick<AdminPermissions, "canEditDra
 
 export function getWorkspaceHeading(role: WorkspaceRole): string {
   return role === "administrator" ? "Platform overview" : "Teacher Dashboard";
+}
+
+export function permissionContextFromAdmin(permissions: Pick<AdminPermissions, "canEditDrafts" | "canPublish" | "isAdmin">): PermissionContext {
+  const role = getWorkspaceRole(permissions);
+  return { role: role === "administrator" ? "administrator" : role === "viewer" ? "student" : role };
 }
 
 export const futureWorkspaceSections = ["Classes", "Students", "Assignments"] as const;

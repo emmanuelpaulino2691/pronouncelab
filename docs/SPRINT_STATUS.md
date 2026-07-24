@@ -318,3 +318,7 @@ UI foundation only. `/admin/classes` provides a truthful My Classes empty state,
 ## Sprint 43C — Domain Layer & Backend Contracts
 
 Internal architecture only. `src/domain` now contains shared constants, domain types, permission predicates, error classes, and future service interfaces for courses, publishing, classes, assignments, enrollment, and progress. Existing feature services remain compatible; no backend calls or schema changes were introduced.
+
+## Sprint 43D — Frontend Integration Refactor
+
+The existing frontend now consumes domain-owned course status, activity type, and classroom summary types where practical. Classes uses centralized permission predicates, and explicit backend-unavailable adapters provide safe future service seams without issuing requests. Behavior and routes remain unchanged.

@@ -1,15 +1,16 @@
-export const activityTypes = [
-  "theory",
-  "listening",
-  "pronunciation",
-  "practice",
-  "quiz",
-  "interactive_practice",
-  "ai_speaking_mission",
-] as const;
+import { ActivityType as ActivityTypeValue, type ActivityType as DomainActivityType } from "../../../domain/shared/constants";
 
-export type ActivityType =
-  (typeof activityTypes)[number];
+export const activityTypes = [
+  ActivityTypeValue.Theory,
+  ActivityTypeValue.Listening,
+  ActivityTypeValue.Pronunciation,
+  ActivityTypeValue.Practice,
+  ActivityTypeValue.Quiz,
+  ActivityTypeValue.InteractivePractice,
+  ActivityTypeValue.AiSpeakingMission,
+] as const satisfies readonly DomainActivityType[];
+
+export type ActivityType = DomainActivityType;
 
 export const activityTypeLabels: Record<
   ActivityType,

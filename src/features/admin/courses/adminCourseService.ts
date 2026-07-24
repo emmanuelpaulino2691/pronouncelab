@@ -1,12 +1,9 @@
 import {
   supabase,
 } from "../../../shared/lib/supabaseClient";
+import type { CourseStatus } from "../../../domain/shared/constants";
 
-export type CourseStatus =
-  | "draft"
-  | "published"
-  | "unpublished"
-  | "archived";
+export type { CourseStatus } from "../../../domain/shared/constants";
 
 export type AdminCourse = {
   id: number;
