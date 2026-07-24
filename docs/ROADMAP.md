@@ -305,3 +305,9 @@ Course-wide validation and atomic publication are now part of the Studio directi
 The next workspace increment focuses on a role-aware dashboard and My Courses experience using existing ownership and permission data. Classes, Students, and Assignments remain future work and must not be represented as functional features until their data and authorization models are ready.
 
 Course workspaces extend this direction with a stable Overview/Curriculum split. Future classroom, assignment, and analytics areas remain placeholders until their underlying product and data models are implemented.
+
+## Sprint 43 — Classroom architecture
+
+The Classroom design phase defines the Course/Class distinction, teacher-owned classes, secure enrollment, stable published course releases, explicit update behavior, and future learner class navigation. Implementation is intentionally deferred until release snapshots, membership, progress, and RLS contracts are approved.
+
+The Classes UI foundation is the first non-data increment: it establishes reusable class cards, filters, creation form states, and workspace navigation without pretending classroom functionality exists.

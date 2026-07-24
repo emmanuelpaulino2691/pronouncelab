@@ -15,6 +15,9 @@ const AdminCoursesPage = lazy(() => import("../../features/admin/courses/AdminCo
 const AdminCourseUnitsPage = lazy(() => import("../../features/admin/units/AdminCourseUnitsPage"));
 const AdminUnitLessonsPage = lazy(() => import("../../features/admin/lessons/AdminUnitLessonsPage"));
 const LessonStudioPage = lazy(() => import("../../features/admin/lesson-studio/pages/LessonStudioPage"));
+const AdminClassesPage = lazy(() => import("../../features/admin/classes/AdminClassesPage"));
+const CreateClassForm = lazy(() => import("../../features/admin/classes/CreateClassForm").then((module) => ({ default: module.CreateClassForm })));
+const ClassWorkspaceLayout = lazy(() => import("../../features/admin/classes/ClassWorkspaceLayout").then((module) => ({ default: module.ClassWorkspaceLayout })));
 
 function LazyRoute({ children }: { children: ReactNode }) {
   return <Suspense fallback={<div role="status" className="grid min-h-64 place-items-center text-sm font-medium text-slate-500">Loading PronounceLab…</div>}>{children}</Suspense>;
@@ -55,6 +58,18 @@ export const router = createBrowserRouter([
           {
             path: "courses/:courseId/units/:unitId/lessons/:lessonId/studio",
             element: <LazyRoute><LessonStudioPage /></LazyRoute>,
+          },
+          {
+            path: "classes",
+            element: <LazyRoute><AdminClassesPage /></LazyRoute>,
+          },
+          {
+            path: "classes/new",
+            element: <LazyRoute><CreateClassForm /></LazyRoute>,
+          },
+          {
+            path: "classes/:classId",
+            element: <LazyRoute><ClassWorkspaceLayout /></LazyRoute>,
           },
         ],
       },

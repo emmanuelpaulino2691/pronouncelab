@@ -271,3 +271,7 @@ These are hardening opportunities, not implemented guarantees.
 ## Course publication lifecycle
 
 `public.publish_course(bigint)` is the transaction boundary for course-wide publication. It is available only to authenticated users with administrator, publisher, or owner-teacher publication authority. Validation is aggregated before any status, pointer, or archive update. The operation prefers the newest draft lesson version, otherwise retains the active published version, and never republishes archived history. Learner queries therefore observe only the newly activated published hierarchy after a successful transaction.
+
+## Classroom model (future)
+
+The proposed classroom model is documented separately and is not present in the schema. It uses teacher-owned `classes`, many-to-many `class_members`, immutable `course_releases`, `class_course_assignments`, secure join-code records, assignments, targets, and student assignment progress. RLS will scope teachers to owned classes, students to active memberships and their own progress, administrators globally, and publishers/editors not at all by default. No migration or policy is created in this sprint.

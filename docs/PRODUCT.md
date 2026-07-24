@@ -12,6 +12,12 @@ The Content Studio is presented as a role-aware workspace. Teachers work from **
 
 Each course is now a workspace with an Overview and Curriculum tab. Overview presents truthful course metadata and future classroom placeholders; Curriculum retains the existing unit and lesson authoring flow. The course URL remains compatible with existing bookmarks.
 
+## Classroom direction
+
+**Future, not implemented.** A Class is a teacher-managed group receiving one or more published Course releases. It is not a Course and never duplicates course content. Teachers will manage their own classes, students, course assignments, assignments, and progress; administrators will manage all classes. Publishers and legacy editors do not receive classroom authority by default. See [Classroom Architecture](CLASSROOM_ARCHITECTURE.md).
+
+The first UI foundation includes a truthful My Classes page, a disabled Create Class form, and a reusable Class Workspace shell. These screens do not load or simulate classroom data.
+
 ## Contents
 
 - [Product model](#product-model)

@@ -306,3 +306,11 @@ In progress on the teacher-publishing branch. The `/admin` dashboard now present
 ## Sprint 42B — Course Workspace
 
 In progress. Course pages now provide Overview and Curriculum tabs at the existing course route, with permission-aware workspace actions and truthful future classroom placeholders. No migration or backend schema change was required.
+
+## Sprint 43A — Classroom Architecture & UX Design
+
+Design phase only. The Course/Class distinction, stable published course-release recommendation, teacher-owned class boundaries, enrollment methods, future routes, permission matrix, proposed schema, and RLS expectations are documented in [Classroom Architecture](CLASSROOM_ARCHITECTURE.md) and ADRs 0007–0008. No production classroom feature, migration, RPC, or enrollment flow exists.
+
+## Sprint 43B — Classes UI Foundation
+
+UI foundation only. `/admin/classes` provides a truthful My Classes empty state, while `/admin/classes/new` and `/admin/classes/:classId` provide clearly unavailable shells. The sidebar now opens My Classes; no classroom data, API, migration, enrollment, or student route was added.

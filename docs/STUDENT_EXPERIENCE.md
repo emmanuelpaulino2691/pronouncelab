@@ -122,3 +122,7 @@ Manual browser coverage is still necessary because the focused Vitest setup does
 ## Course publication
 
 Students see a course only after the teacher or authorised publisher completes the course publication workflow. Publication validates the whole hierarchy first, so an incomplete lesson cannot create a partially updated learner experience. Existing published versions remain active when a lesson has no replacement draft.
+
+## Classroom direction
+
+**Future, not implemented.** Learners will eventually have My Classes and class workspaces for assigned published course releases, assignments, and class-scoped progress. They will not see drafts, ownership controls, publishing actions, other students’ private progress, or teacher analytics. The current learner routes and device-local progress remain unchanged.

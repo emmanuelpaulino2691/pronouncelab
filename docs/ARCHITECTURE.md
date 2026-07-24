@@ -230,3 +230,9 @@ Course publication is handled by the controlled `public.publish_course(bigint)` 
 The current `/admin` route remains the lazy-loaded Content Studio entry point for compatibility. Its dashboard and sidebar derive visible workspace language from the existing permission context; no new role or persistence model is introduced. My Courses uses the existing RLS-visible course query. Future workspace sections are non-interactive placeholders until Classes, Students, and Assignments are implemented.
 
 Course workspace tabs use the existing `/admin/courses/:courseId` route and a query-state tab selector, so Curriculum continues to use the existing unit and Lesson Studio routes without a route migration or new RPC.
+
+## Classroom architecture (future)
+
+Classroom work is intentionally separate from the current Course Workspace. A future class assignment will reference an immutable published course release, while the existing lesson-version publication model remains the authoring and release foundation. No classroom routes, schema, enrollment, or progress synchronization are implemented yet. The design is documented in [Classroom Architecture](CLASSROOM_ARCHITECTURE.md) and ADRs 0007–0008.
+
+The UI-only foundation adds lazy-loaded `/admin/classes`, `/admin/classes/new`, and `/admin/classes/:classId` routes. Only My Classes is navigable as a data-free page; creation and the class workspace explicitly explain that backend implementation is pending.

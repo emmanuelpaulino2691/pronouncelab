@@ -105,3 +105,9 @@ Test wide desktop, laptop, tablet, and narrow mobile whenever layout changes.
 Role-aware workspace navigation uses the existing visual system: clear active links, muted disabled future sections, readable role badges, and responsive cards. Future areas must communicate “Coming later” without behaving like links or presenting fabricated data. Primary actions remain reachable at narrow widths.
 
 Course workspaces use the same card, tab, status, and action patterns as the dashboard. Overview is intentionally information-only where the current data contract does not provide counts; Curriculum remains the focused authoring surface.
+
+## Classroom design direction
+
+Future classroom screens should reuse the existing workspace shell, cards, tabs, status badges, and empty-state language. Unavailable classroom areas must say that they are coming later and must not render fake counts, members, assignments, or progress. Join-code and enrollment controls will require explicit accessible states and security explanations when implemented.
+
+The UI foundation provides reusable `ClassCard`, `ClassStatusBadge`, `EmptyClassesState`, `CreateClassForm`, and `ClassWorkspaceLayout` patterns. Production pages receive backend data only when classroom contracts exist; the current My Classes page intentionally renders an empty state.
