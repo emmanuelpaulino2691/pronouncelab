@@ -314,3 +314,7 @@ Design phase only. The Course/Class distinction, stable published course-release
 ## Sprint 43B — Classes UI Foundation
 
 UI foundation only. `/admin/classes` provides a truthful My Classes empty state, while `/admin/classes/new` and `/admin/classes/:classId` provide clearly unavailable shells. The sidebar now opens My Classes; no classroom data, API, migration, enrollment, or student route was added.
+
+## Sprint 43C — Domain Layer & Backend Contracts
+
+Internal architecture only. `src/domain` now contains shared constants, domain types, permission predicates, error classes, and future service interfaces for courses, publishing, classes, assignments, enrollment, and progress. Existing feature services remain compatible; no backend calls or schema changes were introduced.

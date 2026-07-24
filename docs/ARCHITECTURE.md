@@ -236,3 +236,7 @@ Course workspace tabs use the existing `/admin/courses/:courseId` route and a qu
 Classroom work is intentionally separate from the current Course Workspace. A future class assignment will reference an immutable published course release, while the existing lesson-version publication model remains the authoring and release foundation. No classroom routes, schema, enrollment, or progress synchronization are implemented yet. The design is documented in [Classroom Architecture](CLASSROOM_ARCHITECTURE.md) and ADRs 0007–0008.
 
 The UI-only foundation adds lazy-loaded `/admin/classes`, `/admin/classes/new`, and `/admin/classes/:classId` routes. Only My Classes is navigable as a data-free page; creation and the class workspace explicitly explain that backend implementation is pending.
+
+## Domain contracts
+
+The progressive domain layer lives under `src/domain`. It centralizes shared status and activity constants, course/class/publishing types, frontend-safe permission predicates, domain error classes, and future service interfaces. These contracts do not replace existing feature services or authorize requests; Supabase RLS and controlled RPCs remain the security boundary. Classroom and release types are intentionally descriptive until their backend contracts are implemented.

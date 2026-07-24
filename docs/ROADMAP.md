@@ -311,3 +311,5 @@ Course workspaces extend this direction with a stable Overview/Curriculum split.
 The Classroom design phase defines the Course/Class distinction, teacher-owned classes, secure enrollment, stable published course releases, explicit update behavior, and future learner class navigation. Implementation is intentionally deferred until release snapshots, membership, progress, and RLS contracts are approved.
 
 The Classes UI foundation is the first non-data increment: it establishes reusable class cards, filters, creation form states, and workspace navigation without pretending classroom functionality exists.
+
+The next internal increment standardizes domain vocabulary and backend contracts before classroom persistence work. Implementation should reuse these contracts rather than create feature-local permission, status, or error variants.

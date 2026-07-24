@@ -275,3 +275,5 @@ These are hardening opportunities, not implemented guarantees.
 ## Classroom model (future)
 
 The proposed classroom model is documented separately and is not present in the schema. It uses teacher-owned `classes`, many-to-many `class_members`, immutable `course_releases`, `class_course_assignments`, secure join-code records, assignments, targets, and student assignment progress. RLS will scope teachers to owned classes, students to active memberships and their own progress, administrators globally, and publishers/editors not at all by default. No migration or policy is created in this sprint.
+
+The frontend domain contracts under `src/domain` describe these future records without asserting that they exist in Postgres. Service interfaces document expected authorization and result boundaries; they do not issue requests or create a parallel data access layer.

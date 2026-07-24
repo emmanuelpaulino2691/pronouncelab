@@ -18,6 +18,8 @@ Each course is now a workspace with an Overview and Curriculum tab. Overview pre
 
 The first UI foundation includes a truthful My Classes page, a disabled Create Class form, and a reusable Class Workspace shell. These screens do not load or simulate classroom data.
 
+The domain layer now names shared product concepts consistently—Course, Class, Release, Assignment, Enrollment, and Progress—while keeping future concepts explicitly unimplemented.
+
 ## Contents
 
 - [Product model](#product-model)
