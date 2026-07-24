@@ -322,3 +322,7 @@ Internal architecture only. `src/domain` now contains shared constants, domain t
 ## Sprint 43D — Frontend Integration Refactor
 
 The existing frontend now consumes domain-owned course status, activity type, and classroom summary types where practical. Classes uses centralized permission predicates, and explicit backend-unavailable adapters provide safe future service seams without issuing requests. Behavior and routes remain unchanged.
+
+## Sprint 44.0 — Classroom Database Blueprint
+
+Design package only. `CLASSROOM_DATABASE_BLUEPRINT.md` specifies the future classroom tables, RLS, RPC boundaries, migration dependency graph, validation rules, integrations, and sequence diagrams. No SQL, migration, schema change, or database execution was performed.
