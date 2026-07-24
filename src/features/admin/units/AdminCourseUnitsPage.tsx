@@ -7,6 +7,8 @@ import {
 } from "react";
 import {
   Link,
+  useNavigate,
+  useSearchParams,
   useParams,
 } from "react-router-dom";
 
@@ -15,6 +17,9 @@ import HierarchyItemForm, {
 } from "../components/HierarchyItemForm";
 import {
   getAdminCourse,
+  duplicateDraftCourse,
+  isMissingCoursePublicationRpcError,
+  publishAdminCourse,
   type AdminCourse,
 } from "../courses/adminCourseService";
 import { useAdminPermissions } from "../permissions/useAdminPermissions";
@@ -55,8 +60,11 @@ type CourseUnitsContentProps = {
 function CourseUnitsContent({
   courseId,
 }: CourseUnitsContentProps) {
-  const { canEditDrafts } =
+  const { canEditDrafts, canPublish, canViewAllCourses } =
     useAdminPermissions();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get("tab") === "curriculum" ? "curriculum" : "overview";
   const isActiveRef = useRef(true);
   const saveInFlightRef = useRef(false);
   const deleteInFlightRef = useRef(false);
@@ -82,6 +90,41 @@ function CourseUnitsContent({
     useState<string | null>(null);
   const [formErrorMessage, setFormErrorMessage] =
     useState<string | null>(null);
+  const [workspaceActionMessage, setWorkspaceActionMessage] = useState<string | null>(null);
+  const [workspaceActionPending, setWorkspaceActionPending] = useState(false);
+
+  function selectTab(tab: "overview" | "curriculum") {
+    setSearchParams(tab === "overview" ? {} : { tab });
+  }
+
+  async function handleWorkspacePublish() {
+    if (!course || workspaceActionPending) return;
+    setWorkspaceActionPending(true);
+    setWorkspaceActionMessage(null);
+    try {
+      const result = await publishAdminCourse(course.id);
+      setWorkspaceActionMessage(result.ok ? "Course published successfully." : `Course cannot be published. ${result.errors.length} issue${result.errors.length === 1 ? "" : "s"} need attention.`);
+      if (result.ok) await loadHierarchy();
+    } catch (error) {
+      setWorkspaceActionMessage(isMissingCoursePublicationRpcError(error) ? "Course publishing is unavailable until the publication service is deployed." : "The course could not be published. Try again.");
+    } finally {
+      setWorkspaceActionPending(false);
+    }
+  }
+
+  async function handleWorkspaceDuplicate() {
+    if (!course || workspaceActionPending) return;
+    setWorkspaceActionPending(true);
+    setWorkspaceActionMessage(null);
+    try {
+      const duplicated = await duplicateDraftCourse(course.id);
+      navigate(`/admin/courses/${duplicated.id}`);
+    } catch {
+      setWorkspaceActionMessage("The course could not be duplicated. Try again.");
+    } finally {
+      setWorkspaceActionPending(false);
+    }
+  }
 
   const loadHierarchy = useCallback(async () => {
     setIsLoading(true);
@@ -286,13 +329,29 @@ function CourseUnitsContent({
   return (
     <section className="mx-auto max-w-7xl">
       <PageHeader
-        eyebrow="Course curriculum"
+        eyebrow="Course Workspace"
         title={`${course?.emoji || "📘"} ${course?.title ?? "Course"} curriculum`}
-        description={course?.description || "Manage the ordered units in this course."}
+        description={course?.description || "Manage this course and its learning content."}
         breadcrumbs={[{ label: "Courses", to: "/admin/courses" }, { label: course?.title ?? "Course" }]}
         meta={course ? <StatusBadge status={course.status} /> : undefined}
-        actions={<><ButtonLink icon="arrow-left" variant="secondary" to="/admin/courses">Back to courses</ButtonLink>{canEditDrafts && course?.status === "draft" && <Button icon="plus" onClick={() => { setFormErrorMessage(null); setFormState({ mode: "create" }); }}>Create unit</Button>}</>}
+        actions={<><ButtonLink icon="arrow-left" variant="secondary" to="/admin/courses">Back to courses</ButtonLink><ButtonLink variant="secondary" to={`?tab=curriculum`}>{activeTab === "curriculum" ? "Continue editing" : "Open curriculum"}</ButtonLink>{canPublish && course?.status !== "archived" && <Button type="button" isLoading={workspaceActionPending} onClick={() => void handleWorkspacePublish()}>Publish Course</Button>}{canEditDrafts && course?.status === "draft" && <Button type="button" variant="secondary" isLoading={workspaceActionPending} onClick={() => void handleWorkspaceDuplicate()}>Duplicate Course</Button>}{activeTab === "curriculum" && canEditDrafts && course?.status === "draft" && <Button icon="plus" onClick={() => { setFormErrorMessage(null); setFormState({ mode: "create" }); }}>Create unit</Button>}</>}
       />
+      {workspaceActionMessage && <div className="mt-5"><Alert tone={workspaceActionMessage.startsWith("Course published") ? "info" : "error"}>{workspaceActionMessage}</Alert></div>}
+      <nav aria-label="Course workspace" className="mt-6 flex gap-2 overflow-x-auto border-b border-slate-200">
+        <button type="button" onClick={() => selectTab("overview")} aria-current={activeTab === "overview" ? "page" : undefined} className={`admin-focus whitespace-nowrap border-b-2 px-4 py-3 text-sm font-semibold ${activeTab === "overview" ? "border-blue-600 text-blue-700" : "border-transparent text-slate-500 hover:text-slate-900"}`}>Overview</button>
+        <button type="button" onClick={() => selectTab("curriculum")} aria-current={activeTab === "curriculum" ? "page" : undefined} className={`admin-focus whitespace-nowrap border-b-2 px-4 py-3 text-sm font-semibold ${activeTab === "curriculum" ? "border-blue-600 text-blue-700" : "border-transparent text-slate-500 hover:text-slate-900"}`}>Curriculum</button>
+      </nav>
+      {activeTab === "overview" && <div className="mt-8 space-y-6">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Card className="p-5"><p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Owner</p><p className="mt-2 font-semibold text-slate-900">{canViewAllCourses ? "Platform course" : "My course"}</p></Card>
+          <Card className="p-5"><p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Status</p><div className="mt-2"><StatusBadge status={course?.status ?? "draft"} /></div></Card>
+          <Card className="p-5"><p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Units</p><p className="mt-2 text-2xl font-bold text-slate-900">{units.length}</p></Card>
+          <Card className="p-5"><p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Last updated</p><p className="mt-2 font-semibold text-slate-900">{course ? new Date(course.updatedAt).toLocaleDateString() : "—"}</p></Card>
+        </div>
+        <Card className="p-6"><h2 className="text-lg font-bold text-slate-950">Course details</h2><dl className="mt-5 grid gap-4 sm:grid-cols-2"><div><dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Description</dt><dd className="mt-1 text-sm text-slate-700">{course?.description || "No description has been added yet."}</dd></div><div><dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Course address</dt><dd className="mt-1 break-all text-sm text-slate-700">{course?.slug || "—"}</dd></div></dl></Card>
+        <section><h2 className="text-lg font-bold text-slate-950">Future course areas</h2><div className="mt-4 grid gap-4 md:grid-cols-2"><Card className="p-5"><h3 className="font-semibold text-slate-900">Classes</h3><p className="mt-2 text-sm text-slate-600">This course can be assigned to classes once the Classroom module is available.</p></Card><Card className="p-5"><h3 className="font-semibold text-slate-900">Students</h3><p className="mt-2 text-sm text-slate-600">Student enrollment will appear here.</p></Card><Card className="p-5"><h3 className="font-semibold text-slate-900">Assignments</h3><p className="mt-2 text-sm text-slate-600">Assignments will become available after the Classroom module.</p></Card><Card className="p-5"><h3 className="font-semibold text-slate-900">Analytics</h3><p className="mt-2 text-sm text-slate-600">Course analytics will appear after students begin using this course.</p></Card></div></section>
+      </div>}
+      {activeTab === "curriculum" && <>
       {(!canEditDrafts || course?.status !== "draft") && <div className="mt-5"><Alert>{course?.status === "draft" ? "You can view this curriculum, but your role does not allow editing draft units." : "You can view this curriculum, but editing is unavailable because the course is no longer a draft."}</Alert></div>}
 
       {errorMessage && (
@@ -405,6 +464,7 @@ function CourseUnitsContent({
         onCancel={() => setDeleteConfirmation((current) => cancelDeleteConfirmation(current))}
         onConfirm={() => { if (deleteConfirmation.target) void handleDelete(deleteConfirmation.target); }}
       />
+      </>}
     </section>
   );
 }

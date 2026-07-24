@@ -18,7 +18,7 @@ import { shouldRenderCourseForm } from "./courseFormState";
 import { publicationErrorLabel } from "./coursePublicationState";
 import {
   createAdminCourse, deleteDraftCourse, duplicateDraftCourse, listAdminCourses, publishAdminCourse, updateAdminCourse,
-  type AdminCourse, type CourseInput, type CoursePublicationError, type CourseStatus,
+  isMissingCoursePublicationRpcError, type AdminCourse, type CourseInput, type CoursePublicationError, type CourseStatus,
 } from "./adminCourseService";
 
 type FormState = { mode: "closed" } | { mode: "create" } | { mode: "edit"; course: AdminCourse };
@@ -140,8 +140,8 @@ function AdminCoursesPage() {
       setCourses((current) => current.map((item) => item.id === course.id ? { ...item, status: "published", updatedAt: result.publishedAt } : item));
       setPublicationSummary(`${course.title} was published. ${result.publishedLessons} lesson${result.publishedLessons === 1 ? "" : "s"} updated; ${result.unchangedLessons} unchanged.`);
       setPublishConfirmation(null);
-    } catch {
-      setPublicationErrors([{ category: "course", courseId: course.id, courseTitle: course.title, message: "The course could not be published. Try again." }]);
+    } catch (error) {
+      setPublicationErrors([{ category: "course", courseId: course.id, courseTitle: course.title, message: isMissingCoursePublicationRpcError(error) ? "Course publishing is not available until the publication service is deployed." : "The course could not be published. Try again." }]);
     } finally {
       setPublishingCourseId(null);
     }
@@ -190,11 +190,12 @@ function AdminCoursesPage() {
                   <div className="flex items-start justify-between gap-3"><span className="grid h-12 w-12 place-items-center rounded-2xl bg-blue-50 text-2xl">{course.emoji || "📘"}</span><StatusBadge status={course.status} /></div>
                   <h2 className="mt-5 text-xl font-bold text-slate-950">{course.title}</h2>
                   <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-slate-500">{course.level || "All levels"} · Position {course.position}</p>
+                  <p className="mt-2 text-xs font-medium text-slate-500">{canViewAllCourses ? "Platform course" : "My course"}</p>
                   <p className="mt-3 line-clamp-3 text-sm leading-6 text-slate-600" title={course.description}>{course.description || "No description has been added yet."}</p>
                   <p className="mt-auto pt-5 text-xs text-slate-500">Updated {formatDate(course.updatedAt)}</p>
                 </div>
                 <div className="flex flex-wrap gap-2 border-t border-slate-200 bg-slate-50/70 p-4">
-                  <ButtonLink to={`/admin/courses/${course.id}`} className="flex-1">Open curriculum</ButtonLink>
+                  <ButtonLink to={`/admin/courses/${course.id}`} className="flex-1">{editable ? "Continue editing" : "View course"}</ButtonLink>
                   {editable && <Button variant="secondary" icon="edit" aria-label={`Edit ${course.title}`} onClick={() => { setFormErrorMessage(null); setFormState({ mode: "edit", course }); }}>Edit</Button>}
                   {editable && <Button type="button" variant="secondary" aria-label={`Duplicate ${course.title}`} isLoading={duplicatingCourseId === course.id} disabled={duplicatingCourseId !== null} onClick={() => void handleDuplicate(course)}>Duplicate</Button>}
                   {canPublish && course.status !== "archived" && <Button type="button" variant="primary" isLoading={publishingCourseId === course.id} disabled={publishingCourseId !== null} onClick={() => setPublishConfirmation(course)}>{course.status === "published" ? "Publish updates" : "Publish Course"}</Button>}

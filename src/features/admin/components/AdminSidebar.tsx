@@ -4,6 +4,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { supabase } from "../../../shared/lib/supabaseClient";
 import { useAdminPermissions } from "../permissions/useAdminPermissions";
 import { AdminIcon, Avatar, Badge, Button } from "../ui";
+import { futureWorkspaceSections, getWorkspaceRole } from "../workspace";
 
 const navigationItems = [
   { label: "Dashboard", to: "/admin", icon: "dashboard" as const, end: true },
@@ -22,6 +23,7 @@ function AdminSidebar({ isOpen, onClose }: Props) {
     canPublish,
     isAdmin,
   } = useAdminPermissions();
+  const workspaceRole = getWorkspaceRole({ canEditDrafts, canPublish, isAdmin });
   const [email, setEmail] = useState("Content manager");
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState<string | null>(null);
@@ -81,7 +83,7 @@ function AdminSidebar({ isOpen, onClose }: Props) {
               <span className="grid h-10 w-10 place-items-center rounded-xl bg-blue-600 font-black shadow-lg shadow-blue-950/30">P</span>
               <div><p className="text-lg font-bold tracking-tight">PronounceLab</p><p className="text-[11px] text-slate-400">with Emmanuel Paulino</p></div>
             </div>
-            <p className="mt-5 text-xs font-bold uppercase tracking-[0.2em] text-blue-400">Content Studio</p>
+            <p className="mt-5 text-xs font-bold uppercase tracking-[0.2em] text-blue-400">{workspaceRole === "administrator" ? "Platform Admin" : "Teacher Workspace"}</p>
           </div>
           <button autoFocus={isOpen} type="button" aria-label="Close menu" onClick={onClose} className="admin-focus min-h-11 min-w-11 rounded-lg p-2 text-slate-400 hover:bg-slate-800 hover:text-white lg:hidden">
             <AdminIcon name="close" className="h-5 w-5" />
@@ -97,8 +99,14 @@ function AdminSidebar({ isOpen, onClose }: Props) {
                 onClick={onClose}
                 className={({ isActive }) => `admin-focus flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition ${isActive ? "bg-blue-600 text-white shadow-lg shadow-blue-950/25" : "text-slate-300 hover:bg-slate-900 hover:text-white"}`}
               >
-                <AdminIcon name={item.icon} className="h-5 w-5" />{item.label}
+                <AdminIcon name={item.icon} className="h-5 w-5" />{item.to === "/admin" && workspaceRole !== "administrator" ? "Overview" : item.to === "/admin/courses" && workspaceRole !== "administrator" ? "My Courses" : item.label}
               </NavLink>
+            </li>)}
+            <li className="pt-4"><p className="px-4 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500">Workspace</p></li>
+            {futureWorkspaceSections.map((label) => <li key={label}>
+              <div aria-disabled="true" className="flex items-center justify-between gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-slate-500">
+                <span className="flex items-center gap-3"><AdminIcon name="book" className="h-5 w-5" />{label}</span><span className="text-[10px] font-bold uppercase tracking-wide text-slate-600">Later</span>
+              </div>
             </li>)}
           </ul>
         </nav>

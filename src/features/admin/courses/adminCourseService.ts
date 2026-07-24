@@ -48,6 +48,14 @@ export type CoursePublicationResult =
   | { ok: true; courseId: number; publishedLessons: number; unchangedLessons: number; archivedVersions: number; publishedAt: string }
   | { ok: false; courseId: number; errors: CoursePublicationError[] };
 
+export function isMissingCoursePublicationRpcError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const candidate = error as { code?: unknown; status?: unknown; message?: unknown };
+  return candidate.code === "PGRST202"
+    || candidate.status === 404
+    || (typeof candidate.message === "string" && /function .*publish_course.*not found|could not find the function/i.test(candidate.message));
+}
+
 type CourseRow = {
   id: number;
   slug: string;

@@ -298,3 +298,11 @@ Do not commit, push, or apply migrations unless explicitly requested.
 ## Sprint 41C — Course publication
 
 In progress. The Studio now has the foundation for a course-level publication action, aggregated validation feedback, draft-version selection, and published-with-private-changes semantics. Remote migrations and browser release validation remain pending.
+
+## Sprint 42A — Teacher Dashboard Foundation
+
+In progress on the teacher-publishing branch. The `/admin` dashboard now presents role-aware Teacher Workspace and Platform Admin language, My Courses navigation, truthful future workspace placeholders, and migration-free compatibility handling for an undeployed course-publication RPC.
+
+## Sprint 42B — Course Workspace
+
+In progress. Course pages now provide Overview and Curriculum tabs at the existing course route, with permission-aware workspace actions and truthful future classroom placeholders. No migration or backend schema change was required.

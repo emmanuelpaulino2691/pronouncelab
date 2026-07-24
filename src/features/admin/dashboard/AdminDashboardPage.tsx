@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { useAdminPermissions } from "../permissions/useAdminPermissions";
 import { AdminIcon, Alert, Button, ButtonLink, Card, LoadingSkeleton, PageHeader, SectionHeader, StatusBadge } from "../ui";
 import { formatRelativeDate } from "../utils/format";
+import { futureWorkspaceSections, getWorkspaceHeading, getWorkspaceRole } from "../workspace";
 import { loadAdminDashboard } from "./adminDashboardService";
 import type { AdminDashboardData } from "./dashboardTypes";
 
@@ -17,7 +18,9 @@ const statItems = [
 ] as const;
 
 function AdminDashboardPage() {
-  const { canEditDrafts, canPublish } = useAdminPermissions();
+  const permissions = useAdminPermissions();
+  const { canEditDrafts, canPublish } = permissions;
+  const role = getWorkspaceRole(permissions);
   const [data, setData] = useState<AdminDashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
@@ -46,12 +49,12 @@ function AdminDashboardPage() {
   return (
     <section className="mx-auto max-w-7xl space-y-9">
       <PageHeader
-        eyebrow="Content Studio"
-        title="Welcome back"
-        description="Build structured English learning experiences, keep every draft organized, and prepare lessons for publication."
+        eyebrow={role === "administrator" ? "Platform Admin" : "Teacher Workspace"}
+        title={getWorkspaceHeading(role)}
+        description={role === "publisher" ? "Review published-ready courses and keep the learner experience consistent." : "Build structured English learning experiences, keep every draft organized, and prepare lessons for publication."}
         actions={<>
           {canEditDrafts && <ButtonLink to="/admin/courses?create=1" icon="plus">Create course</ButtonLink>}
-          <ButtonLink to="/admin/courses" variant="secondary">Browse courses</ButtonLink>
+          <ButtonLink to="/admin/courses" variant="secondary">{role === "administrator" ? "All Courses" : "My Courses"}</ButtonLink>
         </>}
       />
 
@@ -63,7 +66,7 @@ function AdminDashboardPage() {
       {hasError && <Alert tone="error" action={<Button variant="secondary" onClick={retry}>Try again</Button>}>Dashboard data could not be loaded. Your content remains safe.</Alert>}
 
       <section aria-labelledby="statistics-heading">
-        <SectionHeader title="Content at a glance" description="Live totals for content visible to your account through database access policies." />
+        <SectionHeader title={role === "administrator" ? "Platform overview" : "My Courses at a glance"} description="Live totals for content visible to your account through database access policies." />
         <h2 id="statistics-heading" className="sr-only">Statistics</h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
           {statItems.map(([key, label, icon]) => (
@@ -119,6 +122,16 @@ function AdminDashboardPage() {
           </section>
         </div>
       </div>
+
+      <section aria-labelledby="workspace-heading">
+        <SectionHeader title="Teacher workspace" description="My Courses is available now. Other workspace areas are planned for a future phase." />
+        <div id="workspace-heading" className="mt-4 grid gap-4 sm:grid-cols-3">
+          {futureWorkspaceSections.map((section) => <Card key={section} className="flex items-center justify-between gap-4 p-5 opacity-75">
+            <div><h2 className="font-semibold text-slate-900">{section}</h2><p className="mt-1 text-sm text-slate-600">{section} are coming in the next development phase.</p></div>
+            <span className="shrink-0 rounded-full border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-500">Coming later</span>
+          </Card>)}
+        </div>
+      </section>
     </section>
   );
 }

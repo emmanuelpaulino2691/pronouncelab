@@ -299,3 +299,9 @@ management, or AI history.
 ## Course-wide publication
 
 Course-wide validation and atomic publication are now part of the Studio direction. The workflow is intentionally separate from future classes, assignments, and enrollment: publishing controls learner-facing content, while those systems will later control who receives it.
+
+## Teacher Workspace
+
+The next workspace increment focuses on a role-aware dashboard and My Courses experience using existing ownership and permission data. Classes, Students, and Assignments remain future work and must not be represented as functional features until their data and authorization models are ready.
+
+Course workspaces extend this direction with a stable Overview/Curriculum split. Future classroom, assignment, and analytics areas remain placeholders until their underlying product and data models are implemented.

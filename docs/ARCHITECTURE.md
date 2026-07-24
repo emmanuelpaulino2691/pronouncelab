@@ -224,3 +224,9 @@ These are current facts, not proposals:
 ## Course-wide publication
 
 Course publication is handled by the controlled `public.publish_course(bigint)` RPC. It locks the hierarchy, validates courses, units, lessons, draft versions, activities, and specialist content, and returns structured errors without writes when validation fails. When validation succeeds, eligible draft lesson versions are published through the existing lesson-version lifecycle and the hierarchy is activated. Published versions remain immutable; lessons without a new draft continue serving their current published version.
+
+## Teacher workspace
+
+The current `/admin` route remains the lazy-loaded Content Studio entry point for compatibility. Its dashboard and sidebar derive visible workspace language from the existing permission context; no new role or persistence model is introduced. My Courses uses the existing RLS-visible course query. Future workspace sections are non-interactive placeholders until Classes, Students, and Assignments are implemented.
+
+Course workspace tabs use the existing `/admin/courses/:courseId` route and a query-state tab selector, so Curriculum continues to use the existing unit and Lesson Studio routes without a route migration or new RPC.

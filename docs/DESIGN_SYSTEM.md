@@ -100,3 +100,8 @@ Test wide desktop, laptop, tablet, and narrow mobile whenever layout changes.
 - Announce copy, save, auth, transition, and parse status where practical.
 - Respect `prefers-reduced-motion`.
 - Do not render pasted AI content as HTML.
+## Teacher workspace states
+
+Role-aware workspace navigation uses the existing visual system: clear active links, muted disabled future sections, readable role badges, and responsive cards. Future areas must communicate “Coming later” without behaving like links or presenting fabricated data. Primary actions remain reachable at narrow widths.
+
+Course workspaces use the same card, tab, status, and action patterns as the dashboard. Overview is intentionally information-only where the current data contract does not provide counts; Curriculum remains the focused authoring surface.
