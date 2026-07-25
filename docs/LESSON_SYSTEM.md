@@ -52,6 +52,12 @@ Block System without claiming that the generic system exists today.
 
 ## Lesson Studio
 
+## Learn block editor
+
+Learn block actions duplicate existing persisted content with a new block identity and preserve media references. Populated blocks require confirmation before deletion; media files are not deleted automatically. Current theory-block persistence remains the authority for supported fields.
+
+Learn uses a centralized block registry for heading, paragraph, example, tip, image, and audio content. The registry keeps presentation metadata and validation together so future blocks can be added without distributing activity-specific logic. Existing `theory` persistence values remain compatible; media authoring continues to use the existing protected draft media contracts.
+
 Route:
 
 ```text

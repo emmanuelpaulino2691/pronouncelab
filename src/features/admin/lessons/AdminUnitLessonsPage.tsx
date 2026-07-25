@@ -411,6 +411,7 @@ function UnitLessonsContent({
                       <td className="px-6 py-5">
                         <div className="flex justify-end gap-2">
                           <ButtonLink icon="sparkle" to={`/admin/courses/${courseId}/units/${unitId}/lessons/${lesson.id}/studio`}>Open Studio</ButtonLink>
+                          <ButtonLink variant="secondary" to={`/admin/preview/courses/${courseId}/lessons/${lesson.id}`}>Preview as Student</ButtonLink>
                         {isDraft &&
                         canEditDrafts &&
                         course?.status === "draft" &&

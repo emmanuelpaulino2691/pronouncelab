@@ -8,15 +8,17 @@ import type { LearnerLesson } from "../../shared/content/contracts/learnerConten
 import LessonNavigator from "./LessonNavigator";
 import ActivityErrorBoundary from "./components/ActivityErrorBoundary";
 import LessonHeader from "./components/LessonHeader";
+import { isPreviewMode, shouldPersistLearnerMutation, type LearnerRuntimeMode } from "./learnerRuntimeMode";
 import {
   calculateProgress, estimateRemainingMinutes, estimateTotalMinutes,
   getActivityDetails, getCompletionMessage,
 } from "./studentExperience";
 
-type Props = { lesson: LearnerLesson; returnPath?: string; contextLabel?: string };
+type Props = { lesson: LearnerLesson; returnPath?: string; contextLabel?: string; runtimeMode?: LearnerRuntimeMode };
 type TransitionState = { completedIndex: number; nextIndex: number } | null;
 
-export default function LessonPlayer({ lesson, returnPath = "/courses", contextLabel }: Props) {
+export default function LessonPlayer({ lesson, returnPath = "/courses", contextLabel, runtimeMode = "learner" }: Props) {
+  const isPreview = isPreviewMode(runtimeMode);
   const activities = lesson.activities;
   const {
     progress: userProgress, startLesson, completeLesson,
@@ -29,17 +31,17 @@ export default function LessonPlayer({ lesson, returnPath = "/courses", contextL
   const [activityReadiness, setActivityReadiness] = useState<Record<number, boolean>>({});
   const [transition, setTransition] = useState<TransitionState>(null);
   const [showCompletion, setShowCompletion] = useState(
-    () => userProgress.lessonsCompleted.includes(lesson.id)
+    () => !isPreview && userProgress.lessonsCompleted.includes(lesson.id)
   );
 
-  useEffect(() => { startLesson(lesson.id); }, [lesson.id, startLesson]);
+  useEffect(() => { if (!isPreview) startLesson(lesson.id); }, [isPreview, lesson.id, startLesson]);
 
   const current = state.currentActivity;
   const activity = activities[current];
   const completedSet = useMemo(() => {
-    const persisted = userProgress.activitiesCompleted.find((item) => item.lessonId === lesson.id)?.activities ?? [];
+    const persisted = isPreview ? [] : userProgress.activitiesCompleted.find((item) => item.lessonId === lesson.id)?.activities ?? [];
     return new Set([...state.completedActivities, ...persisted].filter((index) => index >= 0 && index < activities.length));
-  }, [activities.length, lesson.id, state.completedActivities, userProgress.activitiesCompleted]);
+  }, [activities.length, isPreview, lesson.id, state.completedActivities, userProgress.activitiesCompleted]);
   const completedCount = completedSet.size;
   const progress = calculateProgress(completedCount, activities.length);
   const details = activity ? getActivityDetails(activity.type) : null;
@@ -59,10 +61,12 @@ export default function LessonPlayer({ lesson, returnPath = "/courses", contextL
   function markCurrentComplete() {
     if (!activity || !canCompleteCurrent) return;
     completeActivity(current);
-    saveActivityProgress(lesson.id, current);
+    if (shouldPersistLearnerMutation(runtimeMode)) saveActivityProgress(lesson.id, current);
     if (isLastActivity) {
-      completeLesson(lesson.id);
-      setShowCompletion(true);
+      if (shouldPersistLearnerMutation(runtimeMode)) {
+        completeLesson(lesson.id);
+        setShowCompletion(true);
+      }
       setTransition(null);
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
@@ -78,9 +82,9 @@ export default function LessonPlayer({ lesson, returnPath = "/courses", contextL
   }
 
   function handleRestart() {
-    if (!window.confirm("Restart this lesson? This resets only this lesson’s device-local progress.")) return;
+    if (!window.confirm(isPreview ? "Restart this preview? Preview responses are temporary and will not be saved." : "Restart this lesson? This resets only this lesson’s device-local progress.")) return;
     restartLesson();
-    resetLessonProgress(lesson.id);
+    if (!isPreview) resetLessonProgress(lesson.id);
     setActivityReadiness({});
     setTransition(null);
     setShowCompletion(false);
@@ -113,7 +117,7 @@ export default function LessonPlayer({ lesson, returnPath = "/courses", contextL
           })}
         </ol>
         <button type="button" onClick={handleRestart} className="mt-4 w-full rounded-xl px-3 py-2 text-sm font-semibold text-slate-500 hover:bg-slate-100 hover:text-red-700">Restart lesson</button>
-        <p className="mt-2 px-3 text-xs leading-5 text-slate-400">Progress is stored on this device only.</p>
+        <p className="mt-2 px-3 text-xs leading-5 text-slate-400">{isPreview ? "Preview responses are not saved." : "Progress is stored on this device only."}</p>
       </aside>
 
       <main className="min-w-0">
@@ -134,7 +138,8 @@ export default function LessonPlayer({ lesson, returnPath = "/courses", contextL
             </ActivityErrorBoundary>
           </div>)}
 
-          {!canCompleteCurrent && <p role="status" className="mt-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900">Submit each question in this activity before continuing. Correct answers are not required.</p>}
+          {isPreview && <p role="status" className="mt-5 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-medium text-blue-900">Preview response checked. Nothing was saved.</p>}
+          {!isPreview && !canCompleteCurrent && <p role="status" className="mt-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900">Submit each question in this activity before continuing. Correct answers are not required.</p>}
           <div className="mt-6"><LessonNavigator current={current} total={activities.length} canAdvance={canCompleteCurrent} isLast={isLastActivity} onPrevious={() => { previousActivity(); setTransition(null); }} onComplete={markCurrentComplete} /></div>
         </>}
       </main>

@@ -227,6 +227,16 @@ Course publication is handled by the controlled `public.publish_course(bigint)` 
 
 ## Teacher workspace
 
+## Student Preview
+
+Student Preview uses dedicated lazy-loaded `/admin/preview/courses/:courseId` and `/admin/preview/courses/:courseId/lessons/:lessonId` routes. It reuses the learner `LessonPlayer` and activity renderers with a `teacher_preview` runtime mode. The mode prevents learner progress, completion, XP, scoring, assignment, and AI mission mutations while retaining local interaction. Preview content is resolved through the authorized draft adapter, then published learner-safe content, then local learner content.
+
+Preview resolution is centralized in `teacherPreviewResolver`: saved draft first, published second, local learner content third, and unavailable last. Draft loading reuses existing admin hierarchy/version/activity services and never exposes draft content through `/learn`.
+
+`mapDraftLessonToLearnerLessonData` is the single draft adapter for specialist content. It preserves stable activity IDs and maps theory, listening, pronunciation, quiz, legacy practice, and AI Speaking Mission configuration into the learner renderer shape without changing published projections.
+
+Learn block duplication is performed as a scoped child insert through the existing activity content service. It copies content and stable media references while generating a new block ID; deletion removes only the content reference.
+
 The current `/admin` route remains the lazy-loaded Content Studio entry point for compatibility. Its dashboard and sidebar derive visible workspace language from the existing permission context; no new role or persistence model is introduced. My Courses uses the existing RLS-visible course query. Future workspace sections are non-interactive placeholders until Classes, Students, and Assignments are implemented.
 
 Course workspace tabs use the existing `/admin/courses/:courseId` route and a query-state tab selector, so Curriculum continues to use the existing unit and Lesson Studio routes without a route migration or new RPC.

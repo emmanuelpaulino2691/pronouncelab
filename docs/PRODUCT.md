@@ -121,4 +121,10 @@ Direct draft-to-published lesson-version updates are rejected. Media has its own
 
 ## Commercial vision
 
+## Student Preview
+
+Authorized Studio users can open a read-only Student Preview from a course, lesson, or Lesson Studio. Preview reuses the learner presentation and navigation while keeping progress, completion, scoring, XP, and AI mission results local to the preview session. The current frontend preview intentionally uses the published learner-safe content source; draft-version preview remains future work until an authorized draft adapter is available.
+
+Preview source resolution now prefers the latest saved authorized draft, then published content, then mapped local learner content. The banner identifies the source honestly; unsaved editor changes are not transferred.
+
 **Future, not implemented.** A commercial product may provide premium curricula, synchronized learner history, teacher cohorts, analytics, and subscription access. Any implementation must build on real identity, entitlement, privacy, and progress models rather than local dashboard values.

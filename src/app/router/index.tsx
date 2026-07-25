@@ -18,6 +18,8 @@ const LessonStudioPage = lazy(() => import("../../features/admin/lesson-studio/p
 const AdminClassesPage = lazy(() => import("../../features/admin/classes/AdminClassesPage"));
 const CreateClassForm = lazy(() => import("../../features/admin/classes/CreateClassForm").then((module) => ({ default: module.CreateClassForm })));
 const ClassWorkspaceLayout = lazy(() => import("../../features/admin/classes/ClassWorkspaceLayout").then((module) => ({ default: module.ClassWorkspaceLayout })));
+const StudentPreviewCoursePage = lazy(() => import("../../features/admin/preview/StudentPreviewCoursePage"));
+const StudentPreviewLessonPage = lazy(() => import("../../features/admin/preview/StudentPreviewLessonPage"));
 
 function LazyRoute({ children }: { children: ReactNode }) {
   return <Suspense fallback={<div role="status" className="grid min-h-64 place-items-center text-sm font-medium text-slate-500">Loading PronounceLab…</div>}>{children}</Suspense>;
@@ -70,6 +72,14 @@ export const router = createBrowserRouter([
           {
             path: "classes/:classId",
             element: <LazyRoute><ClassWorkspaceLayout /></LazyRoute>,
+          },
+          {
+            path: "preview/courses/:courseId",
+            element: <LazyRoute><StudentPreviewCoursePage /></LazyRoute>,
+          },
+          {
+            path: "preview/courses/:courseId/lessons/:lessonId",
+            element: <LazyRoute><StudentPreviewLessonPage /></LazyRoute>,
           },
         ],
       },

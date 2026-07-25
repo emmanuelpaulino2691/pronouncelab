@@ -100,6 +100,21 @@ export async function addTheoryBlock(
   if (error) throw error;
 }
 
+export async function duplicateTheoryBlock(block: TheoryBlock, expectedActivityId: number) {
+  const { data, error } = await client().from("theory_blocks").insert({
+    activity_id: expectedActivityId,
+    position: block.position + 1,
+    block_type: block.blockType,
+    heading_level: block.headingLevel,
+    title: block.title,
+    text: block.text,
+    media_asset_id: block.mediaAssetId,
+    alt_text: block.altText,
+  }).select("id,activity_id,block_type,position,heading_level,title,text,media_asset_id,alt_text,updated_at").single();
+  if (error) throw error;
+  return data as unknown as TheoryBlock;
+}
+
 export async function saveTheoryBlock(
   block: TheoryBlock,
   expectedActivityId: number

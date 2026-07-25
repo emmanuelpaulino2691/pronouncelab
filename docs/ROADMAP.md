@@ -308,6 +308,12 @@ Course workspaces extend this direction with a stable Overview/Curriculum split.
 
 ## Sprint 43 — Classroom architecture
 
+## Student Preview
+
+The Studio preview foundation is implemented as a safe, published-content learner presentation. Future work may add an authorized draft adapter, save-before-preview handling, richer course navigation, and draft media resolution. Preview must continue to isolate learner progress and remain separate from public `/learn` routes.
+
+Saved-draft preview is now the preferred source when the viewer is authorized. Published content and local learner fixtures remain explicit fallbacks, while draft media and unsaved-edit transfer remain future refinements.
+
 The Classroom design phase defines the Course/Class distinction, teacher-owned classes, secure enrollment, stable published course releases, explicit update behavior, and future learner class navigation. Implementation is intentionally deferred until release snapshots, membership, progress, and RLS contracts are approved.
 
 The Classes UI foundation is the first non-data increment: it establishes reusable class cards, filters, creation form states, and workspace navigation without pretending classroom functionality exists.

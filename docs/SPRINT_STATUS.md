@@ -325,4 +325,24 @@ The existing frontend now consumes domain-owned course status, activity type, an
 
 ## Sprint 44.0 — Classroom Database Blueprint
 
+## Sprint 44A — Student View Preview
+
+In progress. Authorized admin-area users can open published Student Preview routes from Course Workspace, Curriculum lesson actions, and Lesson Studio. Preview reuses the learner LessonPlayer and blocks learner progress, completion, scoring, XP, and AI mission mutations through an explicit runtime mode. Draft preview and unsaved local-edit handoff remain future work; no migration or backend change was made.
+
+## Sprint 44B — Saved Draft Student Preview
+
+In progress. Preview now resolves saved draft content first, then published content, then local learner content, and reports unavailable only when all sources fail. Source labels distinguish Draft Preview, Published Preview, and Local Content Preview. Unsaved editor changes remain outside preview; no migration or database command was used.
+
+## Sprint 44C — Draft Activity Content Mapping
+
+## Sprint 45 — Learn Block Editor 2.0
+
+## Sprint 45B — Learn Media Authoring & Block Actions
+
+In progress. Persistent Learn block duplication, populated-block confirmation, and explicit media configured/missing states were added using existing theory-block persistence. Full image/audio upload controls and caption/label persistence remain blocked by the current media/content contract.
+
+In progress. Added a centralized Learn block registry, block validation helpers, reorder utilities, and collapsible block editing groundwork. Existing persistence and routes remain unchanged; richer media controls and drag-and-drop remain follow-up work.
+
+In progress. Draft preview now uses a centralized mapper for specialist activity configuration and stable activity identity, including theory, listening, pronunciation, quiz, legacy practice, and AI Speaking Mission data. No learner projection, migration, or persistence behavior changed.
+
 Design package only. `CLASSROOM_DATABASE_BLUEPRINT.md` specifies the future classroom tables, RLS, RPC boundaries, migration dependency graph, validation rules, integrations, and sequence diagrams. No SQL, migration, schema change, or database execution was performed.

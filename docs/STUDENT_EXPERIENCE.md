@@ -125,4 +125,12 @@ Students see a course only after the teacher or authorised publisher completes t
 
 ## Classroom direction
 
+## Student Preview
+
+Student Preview is an admin-side, read-only presentation of learner content. It uses the same lesson player, activity renderers, audio controls, and navigation patterns as `/learn`, but its runtime mode blocks learner mutations. Preview responses may be checked locally and disappear on refresh. Preview routes are separate from `/learn`, and public learner routes remain unchanged.
+
+When a saved draft is available to the authorized Studio viewer, preview labels it **Draft Preview**. If no remote draft or published version exists, mapped local learner fixtures may be shown as **Local Content Preview** with an explanatory message. Unsaved Lesson Studio edits are not included.
+
+Draft activity configuration is normalized before rendering, including theory blocks, listening items, pronunciation entries, quiz questions, and AI mission configuration. Activity identifiers remain stable so preview interaction stays local and cannot affect learner progress.
+
 **Future, not implemented.** Learners will eventually have My Classes and class workspaces for assigned published course releases, assignments, and class-scoped progress. They will not see drafts, ownership controls, publishing actions, other students’ private progress, or teacher analytics. The current learner routes and device-local progress remain unchanged.

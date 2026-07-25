@@ -108,6 +108,12 @@ Course workspaces use the same card, tab, status, and action patterns as the das
 
 ## Classroom design direction
 
+Learn block cards expose consistent Duplicate, Delete, Collapse, Move Up, and Move Down actions. Media blocks show explicit configured/missing states rather than empty placeholders. Destructive actions use confirmation only when content exists.
+
+## Student Preview chrome
+
+Preview uses a compact persistent banner with a clear Student Preview label and an Exit Preview action. Published previews are identified as published previews; draft indicators must only be shown when a real draft source is selected. The banner remains responsive and does not introduce learner editing controls.
+
 Future classroom screens should reuse the existing workspace shell, cards, tabs, status badges, and empty-state language. Unavailable classroom areas must say that they are coming later and must not render fake counts, members, assignments, or progress. Join-code and enrollment controls will require explicit accessible states and security explanations when implemented.
 
 The UI foundation provides reusable `ClassCard`, `ClassStatusBadge`, `EmptyClassesState`, `CreateClassForm`, and `ClassWorkspaceLayout` patterns. Production pages receive backend data only when classroom contracts exist; the current My Classes page intentionally renders an empty state.
