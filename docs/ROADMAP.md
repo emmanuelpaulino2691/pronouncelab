@@ -1,5 +1,11 @@
 # Roadmap
 
+### Sprint 47A — Bulk Authoring & Content Operations Foundation
+
+**Delivered locally:** reusable quick actions and dialogs, future request contracts, validated destination workflows, publication badge semantics, and non-mutating drag/keyboard reorder affordances.
+
+**Future backend integration:** atomic destination-aware unit duplication, cross-unit lesson copy/move, archive, and bulk reorder with parent scope, hierarchy locking, RLS, and transaction-safe ordering.
+
 ## Contents
 
 - [Status language](#status-language)

@@ -1,5 +1,9 @@
 # Sprint Status
 
+## Sprint 47A — Bulk Authoring & Content Operations Foundation
+
+Implemented locally without backend changes. Course Workspace and Curriculum share content-operation contracts, overflow actions, validated destination dialogs, truthful unavailable states, publication indicators, drag/drop affordances, keyboard reorder fallbacks, and accessible announcements. Destination-aware unit duplication, cross-unit copy/move, archive, and persistent reorder await atomic backend deployment. Browser QA remains pending.
+
 > Current delivery snapshot for PronounceLab with Emmanuel Paulino.
 
 ## Contents

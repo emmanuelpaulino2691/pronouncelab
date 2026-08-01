@@ -20,7 +20,8 @@ import {
   type AdminCourse,
 } from "../courses/adminCourseService";
 import { useAdminPermissions } from "../permissions/useAdminPermissions";
-import { Alert, Badge, Button, ButtonLink, Card, ConfirmDeleteDialog, EmptyState, LoadingSkeleton, PageHeader, StatusBadge } from "../ui";
+import { ContentOperationDialog, PublicationStatusBadge, QuickActionsMenu, UnavailableOperationDialog } from "../content-operations";
+import { Alert, Button, ButtonLink, Card, ConfirmDeleteDialog, EmptyState, LoadingSkeleton, PageHeader, StatusBadge } from "../ui";
 import {
   beginDeleteConfirmation,
   cancelDeleteConfirmation,
@@ -31,6 +32,7 @@ import {
 } from "../ui/deleteConfirmationState";
 import {
   getAdminUnit,
+  listAdminUnits,
   type AdminUnit,
 } from "../units/adminUnitService";
 import {
@@ -53,6 +55,7 @@ type FormState =
 type LoadedHierarchy = {
   course: AdminCourse;
   unit: AdminUnit;
+  units: AdminUnit[];
   lessons: AdminLesson[];
 };
 
@@ -67,13 +70,14 @@ async function getHierarchy(
   courseId: number,
   unitId: number
 ): Promise<LoadedHierarchy> {
-  const [course, unit] = await Promise.all([
+  const [course, unit, units] = await Promise.all([
     getAdminCourse(courseId),
     getAdminUnit(unitId, courseId),
+    listAdminUnits(courseId),
   ]);
   const lessons = await listAdminLessons(unit.id);
 
-  return { course, unit, lessons };
+  return { course, unit, units, lessons };
 }
 
 type UnitLessonsContentProps = {
@@ -98,6 +102,7 @@ function UnitLessonsContent({
     useState<AdminCourse | null>(null);
   const [unit, setUnit] =
     useState<AdminUnit | null>(null);
+  const [courseUnits, setCourseUnits] = useState<AdminUnit[]>([]);
   const [lessons, setLessons] = useState<
     AdminLesson[]
   >([]);
@@ -109,7 +114,7 @@ function UnitLessonsContent({
     deletingLessonId,
     setDeletingLessonId,
   ] = useState<number | null>(null);
-  const [duplicatingLessonId, setDuplicatingLessonId] = useState<number | null>(null);
+  const [, setDuplicatingLessonId] = useState<number | null>(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState(
     createDeleteConfirmationState<AdminLesson>
   );
@@ -119,11 +124,20 @@ function UnitLessonsContent({
     useState<string | null>(null);
   const [formErrorMessage, setFormErrorMessage] =
     useState<string | null>(null);
+  const [lessonOperation, setLessonOperation] = useState<{ kind: "copy" | "move"; lesson: AdminLesson } | null>(null);
+  const [destinationUnitId, setDestinationUnitId] = useState(0);
+  const [operationTitle, setOperationTitle] = useState("");
+  const [operationPosition, setOperationPosition] = useState(1);
+  const [unavailableOperation, setUnavailableOperation] = useState<string | null>(null);
+  const [draggedLessonId, setDraggedLessonId] = useState<number | null>(null);
+  const [dropLessonId, setDropLessonId] = useState<number | null>(null);
+  const [reorderAnnouncement, setReorderAnnouncement] = useState("");
 
   const applyHierarchy = useCallback(
     (hierarchy: LoadedHierarchy) => {
       setCourse(hierarchy.course);
       setUnit(hierarchy.unit);
+      setCourseUnits(hierarchy.units);
       setLessons(hierarchy.lessons);
     },
     []
@@ -394,7 +408,7 @@ function UnitLessonsContent({
                     lesson.status === "draft";
 
                   return (
-                    <tr key={lesson.id}>
+                    <tr key={lesson.id} draggable={canEditDrafts && isDraft && course?.status === "draft" && unit?.status === "draft"} onDragStart={() => setDraggedLessonId(lesson.id)} onDragOver={(event) => { event.preventDefault(); setDropLessonId(lesson.id); }} onDragEnd={() => { setDraggedLessonId(null); setDropLessonId(null); }} onDrop={(event) => { event.preventDefault(); if (draggedLessonId !== null && draggedLessonId !== lesson.id) { setReorderAnnouncement("Lesson order was not changed because persistent reordering is unavailable."); setUnavailableOperation("Reorder lessons"); } setDraggedLessonId(null); setDropLessonId(null); }} className={dropLessonId === lesson.id && draggedLessonId !== lesson.id ? "border-t-4 border-t-blue-500" : ""}>
                       <td className="px-6 py-5">
                         <p className="font-semibold text-slate-950">
                           {lesson.title}
@@ -409,7 +423,7 @@ function UnitLessonsContent({
                         {lesson.position}
                       </td>
                       <td className="px-4 py-5">
-                        <Badge tone={isDraft ? "draft" : "success"}>{lesson.status}</Badge>
+                        <PublicationStatusBadge status={lesson.status} currentPublishedVersionId={lesson.currentPublishedVersionId} />
                       </td>
                       <td className="px-6 py-5">
                         <div className="flex justify-end gap-2">
@@ -433,7 +447,16 @@ function UnitLessonsContent({
                             >
                               Edit
                             </button>
-                            <Button type="button" variant="secondary" isLoading={duplicatingLessonId === lesson.id} disabled={duplicatingLessonId !== null} onClick={() => void handleDuplicate(lesson)}>Duplicate</Button>
+                            <QuickActionsMenu label={`More actions for lesson ${lesson.title}`} actions={[
+                              { label: "Rename", onSelect: () => { setFormErrorMessage(null); setFormState({ mode: "edit", lesson }); } },
+                              { label: "Duplicate", onSelect: () => void handleDuplicate(lesson) },
+                              { label: "Copy", onSelect: () => { setLessonOperation({ kind: "copy", lesson }); setOperationTitle(`${lesson.title} copy`); setDestinationUnitId(courseUnits.find((item) => item.id !== unitId)?.id ?? 0); } },
+                              { label: "Move", onSelect: () => { setLessonOperation({ kind: "move", lesson }); setDestinationUnitId(courseUnits.find((item) => item.id !== unitId)?.id ?? 0); setOperationPosition(1); } },
+                              { label: "Move up", disabled: lesson === lessons[0], explanation: "This lesson is already first.", onSelect: () => setUnavailableOperation("Reorder lessons") },
+                              { label: "Move down", disabled: lesson === lessons.at(-1), explanation: "This lesson is already last.", onSelect: () => setUnavailableOperation("Reorder lessons") },
+                              { label: "Archive", disabled: true, explanation: "Archiving is planned for a future release.", onSelect: () => undefined },
+                              { label: "Delete", danger: true, onSelect: () => { setErrorMessage(null); setDeleteConfirmation(openDeleteConfirmation(lesson)); } },
+                            ]} />
                             <button
                               type="button"
                               disabled={
@@ -466,6 +489,7 @@ function UnitLessonsContent({
           </div>
         )}
       </Card>
+      <p className="sr-only" aria-live="polite">{reorderAnnouncement}</p>
 
       {formState.mode === "create" && (
         <LessonCreationDialog
@@ -505,6 +529,12 @@ function UnitLessonsContent({
         onCancel={() => setDeleteConfirmation((current) => cancelDeleteConfirmation(current))}
         onConfirm={() => { if (deleteConfirmation.target) void handleDelete(deleteConfirmation.target); }}
       />
+      <ContentOperationDialog open={lessonOperation !== null} title={lessonOperation?.kind === "move" ? "Move lesson" : "Copy lesson"} description={lessonOperation?.kind === "move" ? "Choose the destination unit and new order position." : "Choose the destination unit and optional new title."} valid={destinationUnitId > 0 && destinationUnitId !== unitId && (lessonOperation?.kind !== "copy" || operationTitle.trim().length > 0)} onClose={() => setLessonOperation(null)} actionLabel={lessonOperation?.kind === "move" ? "Move lesson" : "Copy lesson"}>
+        {lessonOperation && <div className="rounded-xl border border-slate-200 bg-slate-50 p-4"><p className="text-xs font-semibold uppercase text-slate-500">Current unit</p><p className="mt-1 font-semibold text-slate-900">{unit?.title}</p><p className="mt-2 text-sm text-slate-600">{lessonOperation.lesson.title}</p></div>}
+        <label className="block text-sm font-semibold text-slate-800">Destination unit<select value={destinationUnitId} onChange={(event) => setDestinationUnitId(Number(event.target.value))} className="admin-focus mt-2 min-h-11 w-full rounded-lg border border-slate-300 px-3"><option value={0}>Select a different unit</option>{courseUnits.filter((item) => item.id !== unitId).map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}</select></label>
+        {lessonOperation?.kind === "copy" ? <label className="block text-sm font-semibold text-slate-800">New lesson title<input value={operationTitle} onChange={(event) => setOperationTitle(event.target.value)} className="admin-focus mt-2 min-h-11 w-full rounded-lg border border-slate-300 px-3" /></label> : <label className="block text-sm font-semibold text-slate-800">New order position<input type="number" min={1} value={operationPosition} onChange={(event) => setOperationPosition(Math.max(1, Number(event.target.value)))} className="admin-focus mt-2 min-h-11 w-full rounded-lg border border-slate-300 px-3" /></label>}
+      </ContentOperationDialog>
+      <UnavailableOperationDialog open={unavailableOperation !== null} operation={unavailableOperation ?? "Operation"} onClose={() => setUnavailableOperation(null)} />
     </section>
   );
 }

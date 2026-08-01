@@ -24,7 +24,8 @@ import {
   type AdminCourse,
 } from "../courses/adminCourseService";
 import { useAdminPermissions } from "../permissions/useAdminPermissions";
-import { Alert, Badge, Button, ButtonLink, Card, ConfirmDeleteDialog, EmptyState, LoadingSkeleton, PageHeader, StatusBadge } from "../ui";
+import { ContentOperationDialog, PublicationStatusBadge, QuickActionsMenu, UnavailableOperationDialog } from "../content-operations";
+import { Alert, Button, ButtonLink, Card, ConfirmDeleteDialog, EmptyState, LoadingSkeleton, PageHeader, StatusBadge } from "../ui";
 import {
   beginDeleteConfirmation,
   cancelDeleteConfirmation,
@@ -36,7 +37,6 @@ import {
 import {
   createAdminUnit,
   deleteDraftUnit,
-  duplicateDraftUnit,
   listAdminUnits,
   updateAdminUnit,
   type AdminUnit,
@@ -71,7 +71,6 @@ function CourseUnitsContent({
   const isActiveRef = useRef(true);
   const saveInFlightRef = useRef(false);
   const deleteInFlightRef = useRef(false);
-  const duplicateInFlightRef = useRef(false);
   const [course, setCourse] =
     useState<AdminCourse | null>(null);
   const [units, setUnits] = useState<
@@ -83,7 +82,12 @@ function CourseUnitsContent({
     useState(false);
   const [deletingUnitId, setDeletingUnitId] =
     useState<number | null>(null);
-  const [duplicatingUnitId, setDuplicatingUnitId] = useState<number | null>(null);
+  const [duplicateUnit, setDuplicateUnit] = useState<AdminUnit | null>(null);
+  const [duplicateTitle, setDuplicateTitle] = useState("");
+  const [unavailableOperation, setUnavailableOperation] = useState<string | null>(null);
+  const [draggedUnitId, setDraggedUnitId] = useState<number | null>(null);
+  const [dropUnitId, setDropUnitId] = useState<number | null>(null);
+  const [reorderAnnouncement, setReorderAnnouncement] = useState("");
   const [deleteConfirmation, setDeleteConfirmation] = useState(
     createDeleteConfirmationState<AdminUnit>
   );
@@ -295,22 +299,6 @@ function CourseUnitsContent({
     }
   }
 
-  async function handleDuplicate(unit: AdminUnit) {
-    if (duplicateInFlightRef.current) return;
-    duplicateInFlightRef.current = true;
-    setDuplicatingUnitId(unit.id);
-    setErrorMessage(null);
-    try {
-      const duplicated = await duplicateDraftUnit(unit.id, courseId);
-      if (isActiveRef.current) setUnits((current) => [...current, duplicated].sort((a, b) => a.position - b.position));
-    } catch {
-      if (isActiveRef.current) setErrorMessage("The unit could not be duplicated. Nothing was changed. Try again.");
-    } finally {
-      duplicateInFlightRef.current = false;
-      if (isActiveRef.current) setDuplicatingUnitId(null);
-    }
-  }
-
   if (isLoading) {
     return (
       <section className="mx-auto max-w-7xl" aria-busy="true">
@@ -372,7 +360,12 @@ function CourseUnitsContent({
             return (
               <Card
                 key={unit.id}
-                className="p-5 transition hover:border-blue-200 sm:p-6"
+                draggable={canEditDrafts && isDraft && course?.status === "draft"}
+                onDragStart={() => setDraggedUnitId(unit.id)}
+                onDragOver={(event) => { event.preventDefault(); setDropUnitId(unit.id); }}
+                onDragEnd={() => { setDraggedUnitId(null); setDropUnitId(null); }}
+                onDrop={(event) => { event.preventDefault(); if (draggedUnitId !== null && draggedUnitId !== unit.id) { setReorderAnnouncement("Unit order was not changed because persistent reordering is unavailable."); setUnavailableOperation("Reorder units"); } setDraggedUnitId(null); setDropUnitId(null); }}
+                className={`p-5 transition hover:border-blue-200 sm:p-6 ${dropUnitId === unit.id && draggedUnitId !== unit.id ? "border-t-4 border-t-blue-500" : ""}`}
               >
                 <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
                   <div>
@@ -383,7 +376,7 @@ function CourseUnitsContent({
                       <h2 className="text-xl font-bold text-slate-950">
                         {unit.title}
                       </h2>
-                      <Badge tone={isDraft ? "draft" : "success"}>{unit.status}</Badge>
+                      <PublicationStatusBadge status={unit.status} />
                     </div>
                     {unit.description && (
                       <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
@@ -413,7 +406,14 @@ function CourseUnitsContent({
                           >
                             Edit
                           </button>
-                          <Button type="button" variant="secondary" isLoading={duplicatingUnitId === unit.id} disabled={duplicatingUnitId !== null} onClick={() => void handleDuplicate(unit)}>Duplicate</Button>
+                          <QuickActionsMenu label={`More actions for unit ${unit.title}`} actions={[
+                            { label: "Rename", onSelect: () => { setFormErrorMessage(null); setFormState({ mode: "edit", unit }); } },
+                            { label: "Duplicate", onSelect: () => { setDuplicateTitle(`${unit.title} copy`); setDuplicateUnit(unit); } },
+                            { label: "Move up", disabled: unit === units[0], explanation: "This unit is already first.", onSelect: () => setUnavailableOperation("Reorder units") },
+                            { label: "Move down", disabled: unit === units.at(-1), explanation: "This unit is already last.", onSelect: () => setUnavailableOperation("Reorder units") },
+                            { label: "Archive", disabled: true, explanation: "Archiving is planned for a future release.", onSelect: () => undefined },
+                            { label: "Delete", danger: true, onSelect: () => { setErrorMessage(null); setDeleteConfirmation(openDeleteConfirmation(unit)); } },
+                          ]} />
                           <button
                             type="button"
                             disabled={
@@ -437,6 +437,7 @@ function CourseUnitsContent({
           })
         )}
       </div>
+      <p className="sr-only" aria-live="polite">{reorderAnnouncement}</p>
 
       {formState.mode !== "closed" && (
         <HierarchyItemForm
@@ -467,6 +468,11 @@ function CourseUnitsContent({
         onCancel={() => setDeleteConfirmation((current) => cancelDeleteConfirmation(current))}
         onConfirm={() => { if (deleteConfirmation.target) void handleDelete(deleteConfirmation.target); }}
       />
+      <ContentOperationDialog open={duplicateUnit !== null} title="Duplicate unit" description="Review the source unit and choose a destination title." valid={duplicateTitle.trim().length > 0} onClose={() => setDuplicateUnit(null)} actionLabel="Duplicate unit">
+        {duplicateUnit && <div className="rounded-xl border border-slate-200 bg-slate-50 p-4"><p className="font-semibold text-slate-900">{duplicateUnit.title}</p><p className="mt-1 text-sm text-slate-600">Its lessons and draft content will be included.</p></div>}
+        <label className="block text-sm font-semibold text-slate-800">Destination title<input value={duplicateTitle} onChange={(event) => setDuplicateTitle(event.target.value)} className="admin-focus mt-2 min-h-11 w-full rounded-lg border border-slate-300 px-3" /></label>
+      </ContentOperationDialog>
+      <UnavailableOperationDialog open={unavailableOperation !== null} operation={unavailableOperation ?? "Operation"} onClose={() => setUnavailableOperation(null)} />
       </>}
     </section>
   );

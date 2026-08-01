@@ -1,5 +1,9 @@
 # Architecture
 
+## Content operations foundation
+
+Reusable contracts under `src/domain/content-operations` support shared quick actions, operation dialogs, publication-state presentation, and reorder helpers. Cross-parent copy/move and persistent reorder require trusted atomic backend operations; the frontend does not compose them from unrelated writes or optimistically present order as persisted.
+
 ## Contents
 
 - [System view](#system-view)
