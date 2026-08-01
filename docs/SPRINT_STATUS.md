@@ -345,6 +345,14 @@ Frontend cleanup now persists stable Image and Audio media references through th
 
 Release-blocker hardening makes Learn Audio reload use the same stable media-row resolution path as Image while preserving its label and transcript. Student Preview now settles every resource request into ready or a terminal failure state, supports retry and safe return actions, and renders block-local media fallbacks instead of rejecting an otherwise usable lesson.
 
+## Sprint 45D — Learn Block UX Polish
+
+Implemented locally as a frontend-only increment. Learn blocks support authoritative duplication, accessible confirmed deletion, native drag ordering, keyboard Move Up/Move Down controls, reorder announcements, focus recovery, improved collapsed summaries, and Collapse All/Expand All. Student Preview provides local Desktop, Tablet, and Phone widths without changing learner state or return navigation. Learn also offers an optional responsive split layout that uses the real learner renderer and explicitly shows only the last saved content. Browser QA remains pending.
+
+## Sprint 45E — Phone Preview and Shared Workspace Controls
+
+Implemented locally as a frontend-only increment. Forced teacher-preview modes now control both preview width and the shared learner shell: Phone and Tablet use compact activity navigation with a full-width content column, while Desktop retains the outline sidebar and learner routes remain automatic. Lesson Studio now owns the shared Editor only/Split preview and Collapse All/Expand All toolbar. Split preview loads saved activity data into `ActivityRenderer`; Interactive Practice remains explicitly unavailable. Complete activity editors have independent, local-only collapse state. Browser QA remains pending.
+
 In progress. Added a centralized Learn block registry, block validation helpers, reorder utilities, and collapsible block editing groundwork. Existing persistence and routes remain unchanged; richer media controls and drag-and-drop remain follow-up work.
 
 In progress. Draft preview now uses a centralized mapper for specialist activity configuration and stable activity identity, including theory, listening, pronunciation, quiz, legacy practice, and AI Speaking Mission data. No learner projection, migration, or persistence behavior changed.

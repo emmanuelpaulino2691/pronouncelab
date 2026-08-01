@@ -61,6 +61,7 @@ import {
   PageHeader,
 } from "../../ui";
 import { buildStudentPreviewUrl } from "../../preview/previewNavigation";
+import { setRememberedActivityCollapse, type StudioViewMode } from "../studioViewState";
 
 function parseId(value: string | undefined) {
   const id = Number(value);
@@ -107,6 +108,8 @@ function Studio({
   const [editorDirty, setEditorDirty] = useState(false);
   const editorDirtyRef = useRef(false);
   const [editorRevision, setEditorRevision] = useState(0);
+  const [studioViewMode, setStudioViewMode] = useState<StudioViewMode>("editor");
+  const [collapsedActivityEditors, setCollapsedActivityEditors] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(
@@ -612,6 +615,10 @@ function Studio({
                 editable={editable}
                 busy={busy}
                 onDirtyChange={reportEditorDirty}
+                viewMode={studioViewMode}
+                onViewModeChange={setStudioViewMode}
+                collapsed={collapsedActivityEditors.has(selected.id)}
+                onCollapsedChange={(collapsed) => setCollapsedActivityEditors((current) => setRememberedActivityCollapse(current, selected.id, collapsed))}
                 onSaveMetadata={async (input) => {
                   await run(
                     () =>

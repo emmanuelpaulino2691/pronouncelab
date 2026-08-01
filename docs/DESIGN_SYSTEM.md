@@ -117,3 +117,12 @@ Preview uses a compact persistent banner with a clear Student Preview label and 
 Future classroom screens should reuse the existing workspace shell, cards, tabs, status badges, and empty-state language. Unavailable classroom areas must say that they are coming later and must not render fake counts, members, assignments, or progress. Join-code and enrollment controls will require explicit accessible states and security explanations when implemented.
 
 The UI foundation provides reusable `ClassCard`, `ClassStatusBadge`, `EmptyClassesState`, `CreateClassForm`, and `ClassWorkspaceLayout` patterns. Production pages receive backend data only when classroom contracts exist; the current My Classes page intentionally renders an empty state.
+## Learn block interaction
+
+Learn block cards expose a dedicated drag handle plus visible Move Up and Move Down fallbacks. Controls use block-specific accessible names, minimum touch-friendly heights, disabled boundary states, focus restoration, and a polite reorder announcement. Populated destructive actions use the shared accessible confirmation dialog.
+
+Collapsed cards retain the block type, first meaningful content or media filename, and incomplete-state warning. Collapse All and Expand All support long lessons without persisting personal presentation state.
+
+Student Preview device controls are an accessible pressed-button group. Desktop uses the available width, Tablet is constrained to approximately 768 px, and Phone to approximately 390 px; the toolbar remains full-width and usable.
+
+Constrained preview widths also force the matching learner layout. Phone and Tablet replace the fixed outline sidebar with a labeled activity selector so the activity card retains the full available width. The Lesson Studio workspace toolbar consistently exposes Editor only, Split preview, Collapse All, and Expand All. Section actions are disabled with an accessible explanation when the selected editor has no registered collapsible sections. Activity-level collapse is separate from section/block collapse and reports its state with `aria-expanded`.

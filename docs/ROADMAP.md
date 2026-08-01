@@ -61,6 +61,18 @@ Before the numbered visual/product sprints, the repository established Supabase 
 
 ## Current milestone
 
+### Sprint 45D — Learn Block UX Polish
+
+**Status:** Implemented locally; browser QA pending.
+
+**Delivered:** frontend-only persistent Learn duplication and deletion semantics, drag ordering with keyboard fallback, long-lesson collapse controls, Student Preview device widths, and a saved-content split preview using the shared learner renderer.
+
+### Sprint 45E — Phone Preview and Shared Activity Workspace Controls
+
+**Delivered locally:** forced responsive learner layouts for constrained teacher previews, shared Lesson Studio view controls, saved-content split preview across supported activity renderers, truthful section-control availability, and per-activity editor collapse. Manual browser QA remains before release sign-off.
+
+**Boundary:** Split Preview does not inject unsaved state, responsive modes do not alter learner logic, and no schema, RPC, migration, Storage-copy, or learner-progress contract changed.
+
 ### Sprint 41 — Publishing and Versioning Experience
 
 **Status:** Partial; implemented locally, with specialist-RPC hardening and

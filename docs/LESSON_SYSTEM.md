@@ -62,6 +62,12 @@ Image and Audio blocks persist only their stable `media_assets.id` reference in 
 
 Learn Audio stores its teacher-facing label in the existing theory-block `title` field and its optional transcript in `text`. Reload reconstructs those fields and regenerates a URL from the referenced media row. URL resolution failure preserves the reference, label, and transcript and shows a block-local unavailable state.
 
+Sprint 45D adds persistent Learn block actions without changing this contract. Duplicate creates a new theory-block row at a safe append position, preserves every content and media reference without copying Storage bytes, and then uses the existing scoped reorder operation to place it after the source. Populated deletion uses the shared confirmation dialog and deletes only the theory row. Native drag handles and keyboard-accessible Move Up/Move Down controls update local order; **Save block order** persists it. Block collapse state remains editor-local.
+
+Sprint 45E moves workspace presentation controls above the selected activity. Editor only and Split preview apply consistently to every activity; saved preview uses the shared `ActivityRenderer` for Learn, Listening, Pronunciation, Quiz, legacy Practice, and AI Speaking Mission. Interactive Practice truthfully reports that preview is unavailable. Collapse All and Expand All delegate to the selected editor's registered section controller (currently Learn blocks); unsupported editors disable them. The complete selected activity editor can also be collapsed independently, with local per-activity remembered state and no effect on saving.
+
+The optional Split Preview renders the last saved Learn snapshot through the learner `ActivityRenderer`. Unsaved editor changes are intentionally excluded and display **Preview shows the last saved version.**
+
 Route:
 
 ```text

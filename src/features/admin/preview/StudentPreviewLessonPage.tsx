@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import MainLayout from "../../../shared/layouts/MainLayout";
 import { learnerContentProvider } from "../../../shared/content/learnerContentComposition";
@@ -12,10 +13,12 @@ import { getDraftLesson } from "./teacherPreviewSources";
 import { staticLearnerContentProvider } from "../../../shared/content/providers/staticLearnerContentProvider";
 import { PreviewTerminalState } from "./PreviewTerminalState";
 import { safePreviewReturnTo } from "./previewNavigation";
+import { previewViewportStyle, type PreviewViewportMode } from "./previewViewport";
 
 export default function StudentPreviewLessonPage() {
   const { courseId = "", lessonId = "" } = useParams();
   const [searchParams] = useSearchParams();
+  const [viewportMode, setViewportMode] = useState<PreviewViewportMode>("desktop");
   const returnPath = safePreviewReturnTo(searchParams.get("returnTo"), `/admin/courses/${courseId}?tab=curriculum`);
   const validId = isDecimalContentId(lessonId) ? lessonId as unknown as ContentId : null;
   const resource = useLearnerResource<{ lesson: LearnerLesson; unit: LearnerUnit; source: "draft" | "published" | "local" }>(async (signal) => {
@@ -40,5 +43,5 @@ export default function StudentPreviewLessonPage() {
   if (!resource.loading && !resource.value) return <PreviewTerminalState courseId={courseId} error={resource.error} onRetry={resource.retry} returnPath={returnPath} />;
   if (!resource.value) return <MainLayout><p role="status" className="p-8">Loading Student Preview…</p></MainLayout>;
   const { lesson, unit, source } = resource.value;
-  return <><StudentPreviewToolbar returnPath={returnPath} draft={source === "draft"} source={source} /><MainLayout immersive><LessonPlayer key={lesson.id} lesson={lesson} returnPath={returnPath} contextLabel={unit.title} runtimeMode="teacher_preview" /></MainLayout></>;
+  return <><StudentPreviewToolbar returnPath={returnPath} draft={source === "draft"} source={source} viewportMode={viewportMode} onViewportModeChange={setViewportMode} /><div className="mx-auto min-w-0 overflow-x-hidden" style={previewViewportStyle(viewportMode)}><MainLayout immersive><LessonPlayer key={lesson.id} lesson={lesson} returnPath={returnPath} contextLabel={unit.title} runtimeMode="teacher_preview" layoutMode={viewportMode} /></MainLayout></div></>;
 }

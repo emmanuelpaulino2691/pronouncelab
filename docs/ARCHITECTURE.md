@@ -239,7 +239,11 @@ The draft adapter resolves saved Learn Image and Audio `media_assets` references
 
 Preview resource loading is total and generation-scoped: fulfilled failures and unexpected rejections both leave loading, aborted or stale requests cannot replace the current request, and retry starts a new generation. Draft-source failure may fall through to published and local sources. A Learn media URL failure remains local to that block and does not reject the lesson preview.
 
+Student Preview owns a local presentation-width mode (`desktop`, `tablet`, or `phone`). It constrains only the preview content container and does not modify learner DTOs, runtime mode, progress behavior, route parameters, or the validated return location.
+
 Learn block duplication is performed as a scoped child insert through the existing activity content service. It copies content and stable media references while generating a new block ID; deletion removes only the content reference.
+
+Learn block interaction state is local and ID-based. Drag and keyboard moves preserve block identity until the existing reorder RPC saves the ordered ID list. Split Preview keeps a separate saved block snapshot and calls the shared learner renderer, avoiding a second Learn rendering implementation and preventing unsaved media URLs from replacing the saved preview.
 
 The current `/admin` route remains the lazy-loaded Content Studio entry point for compatibility. Its dashboard and sidebar derive visible workspace language from the existing permission context; no new role or persistence model is introduced. My Courses uses the existing RLS-visible course query. Future workspace sections are non-interactive placeholders until Classes, Students, and Assignments are implemented.
 
@@ -254,3 +258,6 @@ The UI-only foundation adds lazy-loaded `/admin/classes`, `/admin/classes/new`, 
 ## Domain contracts
 
 The progressive domain layer lives under `src/domain`. It centralizes shared status and activity constants, course/class/publishing types, frontend-safe permission predicates, domain error classes, and future service interfaces. These contracts do not replace existing feature services or authorize requests; Supabase RLS and controlled RPCs remain the security boundary. Classroom and release types are intentionally descriptive until their backend contracts are implemented.
+### Forced teacher-preview layout modes
+
+Student Preview carries `desktop`, `tablet`, or `phone` through the preview viewport boundary into the shared `LessonPlayer`. Width and learner-shell behavior therefore change together: desktop uses the outline sidebar, while tablet and phone use the compact activity selector and a full-width activity column. Normal learner routes keep `auto` mode and their existing browser-responsive behavior. Lesson Studio owns shared editor/split view state and renders saved activity content through `ActivityRenderer`; it does not inject unsaved editor state or persist learner mutations.

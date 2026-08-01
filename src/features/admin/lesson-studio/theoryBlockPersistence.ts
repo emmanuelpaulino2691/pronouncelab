@@ -24,6 +24,19 @@ export function buildTheoryBlockSavePayload(block: TheoryBlock) {
   };
 }
 
+export function buildTheoryBlockDuplicatePayload(block: TheoryBlock, activityId: number, position: number) {
+  return {
+    activity_id: activityId,
+    position,
+    block_type: block.blockType,
+    heading_level: block.headingLevel,
+    title: block.title,
+    text: block.text,
+    media_asset_id: block.mediaAssetId,
+    alt_text: block.altText,
+  };
+}
+
 export function parseTheoryBlockRow(row: TheoryBlockRow): TheoryBlock {
   return {
     id: row.id,

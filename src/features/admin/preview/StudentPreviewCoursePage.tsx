@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import MainLayout from "../../../shared/layouts/MainLayout";
 import { learnerContentProvider } from "../../../shared/content/learnerContentComposition";
@@ -11,10 +12,12 @@ import { getDraftCourse } from "./teacherPreviewSources";
 import { staticLearnerContentProvider } from "../../../shared/content/providers/staticLearnerContentProvider";
 import { buildStudentPreviewUrl, safePreviewReturnTo } from "./previewNavigation";
 import { PreviewTerminalState } from "./PreviewTerminalState";
+import { previewViewportStyle, type PreviewViewportMode } from "./previewViewport";
 
 export default function StudentPreviewCoursePage() {
   const { courseId = "" } = useParams();
   const [searchParams] = useSearchParams();
+  const [viewportMode, setViewportMode] = useState<PreviewViewportMode>("desktop");
   const returnTo = safePreviewReturnTo(searchParams.get("returnTo"), `/admin/courses/${courseId}`);
   const validId = isDecimalContentId(courseId) ? courseId as unknown as ContentId : null;
   const resource = useLearnerResource(async (signal) => {
@@ -32,8 +35,8 @@ export default function StudentPreviewCoursePage() {
 
   const { course, source } = resource.value;
   return <>
-    <StudentPreviewToolbar returnPath={`/admin/courses/${courseId}`} source={source} />
-    <MainLayout>
+    <StudentPreviewToolbar returnPath={returnTo} source={source} viewportMode={viewportMode} onViewportModeChange={setViewportMode} />
+    <div className="mx-auto overflow-x-hidden" style={previewViewportStyle(viewportMode)}><MainLayout>
       <section className="mx-auto max-w-4xl space-y-7 py-8">
         <header>
           <p className="text-sm font-bold uppercase tracking-wide text-blue-700">{source === "draft" ? "Draft Preview" : source === "local" ? "Local Content Preview" : "Published Preview"}</p>
@@ -45,6 +48,6 @@ export default function StudentPreviewCoursePage() {
           <ul className="mt-4 space-y-2">{unit.lessons.map((lesson) => <li key={lesson.id}><Link className="text-blue-700 underline" to={buildStudentPreviewUrl({ courseId, lessonId: lesson.id, returnTo })}>{lesson.title}</Link></li>)}</ul>
         </section>)}
       </section>
-    </MainLayout>
+    </MainLayout></div>
   </>;
 }

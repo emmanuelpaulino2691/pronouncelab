@@ -12,7 +12,7 @@ import {
   getListeningTranscriptError,
   normalizeListeningTranscript,
 } from "../listeningValidation";
-import { assertSavedMediaReference, buildTheoryBlockSavePayload, parseTheoryBlockRow, type TheoryBlockRow } from "../theoryBlockPersistence";
+import { assertSavedMediaReference, buildTheoryBlockDuplicatePayload, buildTheoryBlockSavePayload, parseTheoryBlockRow, type TheoryBlockRow } from "../theoryBlockPersistence";
 
 function client() {
   if (!supabase) {
@@ -90,19 +90,12 @@ export async function addTheoryBlock(
   if (error) throw error;
 }
 
-export async function duplicateTheoryBlock(block: TheoryBlock, expectedActivityId: number) {
-  const { data, error } = await client().from("theory_blocks").insert({
-    activity_id: expectedActivityId,
-    position: block.position + 1,
-    block_type: block.blockType,
-    heading_level: block.headingLevel,
-    title: block.title,
-    text: block.text,
-    media_asset_id: block.mediaAssetId,
-    alt_text: block.altText,
-  }).select("id,activity_id,block_type,position,heading_level,title,text,media_asset_id,alt_text,updated_at").single();
+export async function duplicateTheoryBlock(block: TheoryBlock, expectedActivityId: number, appendPosition: number) {
+  const { data, error } = await client().from("theory_blocks").insert(
+    buildTheoryBlockDuplicatePayload(block, expectedActivityId, appendPosition)
+  ).select("id,activity_id,block_type,position,heading_level,title,text,media_asset_id,alt_text,updated_at").single();
   if (error) throw error;
-  return data as unknown as TheoryBlock;
+  return parseTheoryBlockRow(data as unknown as TheoryBlockRow);
 }
 
 export async function saveTheoryBlock(

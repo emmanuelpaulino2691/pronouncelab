@@ -9,15 +9,16 @@ import LessonNavigator from "./LessonNavigator";
 import ActivityErrorBoundary from "./components/ActivityErrorBoundary";
 import LessonHeader from "./components/LessonHeader";
 import { isPreviewMode, shouldPersistLearnerMutation, type LearnerRuntimeMode } from "./learnerRuntimeMode";
+import { lessonShellClass, usesCompactActivityNavigation, type LearnerLayoutMode } from "./learnerLayoutMode";
 import {
   calculateProgress, estimateRemainingMinutes, estimateTotalMinutes,
   getActivityDetails, getCompletionMessage,
 } from "./studentExperience";
 
-type Props = { lesson: LearnerLesson; returnPath?: string; contextLabel?: string; runtimeMode?: LearnerRuntimeMode };
+type Props = { lesson: LearnerLesson; returnPath?: string; contextLabel?: string; runtimeMode?: LearnerRuntimeMode; layoutMode?: LearnerLayoutMode };
 type TransitionState = { completedIndex: number; nextIndex: number } | null;
 
-export default function LessonPlayer({ lesson, returnPath = "/courses", contextLabel, runtimeMode = "learner" }: Props) {
+export default function LessonPlayer({ lesson, returnPath = "/courses", contextLabel, runtimeMode = "learner", layoutMode = "auto" }: Props) {
   const isPreview = isPreviewMode(runtimeMode);
   const activities = lesson.activities;
   const {
@@ -101,8 +102,15 @@ export default function LessonPlayer({ lesson, returnPath = "/courses", contextL
 
   return <div className="min-h-screen bg-slate-50">
     <LessonHeader title={lesson.title} description={lesson.description} current={current + 1} total={activities.length} progress={progress} remainingMinutes={remainingMinutes} returnPath={returnPath} />
-    <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[15rem_minmax(0,1fr)] lg:px-8">
-      <aside className="hidden self-start rounded-2xl border border-slate-200 bg-white p-3 shadow-sm lg:sticky lg:top-4 lg:block">
+    <div className={lessonShellClass(layoutMode)} data-learner-layout={layoutMode}>
+      {usesCompactActivityNavigation(layoutMode) && <nav aria-label="Lesson activities" className="min-w-0 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+        <label htmlFor={`activity-select-${lesson.id}`} className="text-xs font-bold uppercase tracking-wide text-slate-500">{contextLabel || "Lesson activities"}</label>
+        <select id={`activity-select-${lesson.id}`} value={current} onChange={(event) => { goToActivity(Number(event.target.value)); setTransition(null); }} className="mt-2 min-h-11 w-full min-w-0 rounded-xl border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-800">
+          {activities.map((item, index) => { const available = completedSet.has(index) || index === current; return <option key={item.id} value={index} disabled={!available}>{index + 1}. {item.title || `Activity ${index + 1}`}</option>; })}
+        </select>
+        <p className="mt-2 text-xs text-slate-500">Activity {current + 1} of {activities.length}. Use Previous and Continue below to move through the lesson.</p>
+      </nav>}
+      {!usesCompactActivityNavigation(layoutMode) && <aside className={`${layoutMode === "desktop" ? "block sticky top-4" : "hidden lg:sticky lg:top-4 lg:block"} self-start rounded-2xl border border-slate-200 bg-white p-3 shadow-sm`}>
         <p className="px-3 py-2 text-xs font-bold uppercase tracking-wide text-slate-500">{contextLabel || "Lesson outline"}</p>
         <ol className="space-y-1">
           {activities.map((item, index) => {
@@ -118,7 +126,7 @@ export default function LessonPlayer({ lesson, returnPath = "/courses", contextL
         </ol>
         <button type="button" onClick={handleRestart} className="mt-4 w-full rounded-xl px-3 py-2 text-sm font-semibold text-slate-500 hover:bg-slate-100 hover:text-red-700">Restart lesson</button>
         <p className="mt-2 px-3 text-xs leading-5 text-slate-400">{isPreview ? "Preview responses are not saved." : "Progress is stored on this device only."}</p>
-      </aside>
+      </aside>}
 
       <main className="min-w-0">
         {transition ? <TransitionPanel

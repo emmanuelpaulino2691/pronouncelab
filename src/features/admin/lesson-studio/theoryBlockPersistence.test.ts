@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { assertSavedMediaReference, buildTheoryBlockSavePayload, parseTheoryBlockRow } from "./theoryBlockPersistence";
+import { assertSavedMediaReference, buildTheoryBlockDuplicatePayload, buildTheoryBlockSavePayload, parseTheoryBlockRow } from "./theoryBlockPersistence";
 import type { TheoryBlock } from "./types";
 
 const mediaBlock = (blockType: "image" | "audio", mediaAssetId: string): TheoryBlock => ({
@@ -36,5 +36,19 @@ describe("theory block persistence", () => {
 
   it("rejects save success when the authoritative row loses the requested reference", () => {
     expect(() => assertSavedMediaReference(mediaBlock("image", "expected"), { ...mediaBlock("image", "expected"), mediaAssetId: null })).toThrow(/not saved with its selected media/i);
+  });
+
+  it("duplicates content references without invoking or serializing a physical upload", () => {
+    const payload = buildTheoryBlockDuplicatePayload({ ...mediaBlock("audio", "audio-asset"), title: "Listen", text: "Transcript" }, 2, 8);
+    expect(payload).toMatchObject({ activity_id: 2, position: 8, media_asset_id: "audio-asset", title: "Listen", text: "Transcript" });
+    expect(payload).not.toHaveProperty("file");
+    expect(payload).not.toHaveProperty("previewUrl");
+  });
+
+  it("preserves a duplicated block through the authoritative row parser", () => {
+    const source = { ...mediaBlock("image", "image-asset"), title: "Diagram", text: "Caption" };
+    const payload = buildTheoryBlockDuplicatePayload(source, 2, 3);
+    const reloaded = parseTheoryBlockRow({ id: 99, activity_id: payload.activity_id, block_type: payload.block_type, position: payload.position, heading_level: payload.heading_level, title: payload.title, text: payload.text, media_asset_id: payload.media_asset_id, alt_text: payload.alt_text, updated_at: "saved" });
+    expect(reloaded).toMatchObject({ id: 99, blockType: "image", mediaAssetId: "image-asset", title: "Diagram", text: "Caption", position: 3 });
   });
 });
