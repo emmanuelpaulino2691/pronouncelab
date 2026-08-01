@@ -1,5 +1,9 @@
 # Product
 
+## Global Command Palette
+
+Authorized Content Studio users can open a global Command Palette with Ctrl/Cmd+K or Ctrl+Shift+P. It searches available navigation, route-context content, Smart Builder templates, and clearly marked future commands. Successful navigation uses client routing; unavailable commands explain their dependency and never simulate completion. Up to twenty executed commands are remembered locally for faster repeat access.
+
 ## Smart Content Builder
 
 Lesson Studio presents reusable, locally defined teaching templates alongside the existing blank-activity flow. Templates provide pedagogical preview metadata only; choosing one never creates or saves an activity. Teachers can favorite templates and keep up to ten recent previews in browser storage. Activity duplicate and cross-lesson copy dialogs collect valid intent but remain non-mutating until trusted backend operations are deployed.

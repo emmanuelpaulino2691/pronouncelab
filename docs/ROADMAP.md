@@ -1,5 +1,11 @@
 # Roadmap
 
+### Sprint 48A — Global Search & Command Palette Foundation
+
+**Delivered locally:** lazy global admin Command Palette, typed registry, stable ranked matching, route-context and template commands, client-side navigation, truthful unavailable commands, keyboard/mouse interaction, responsive presentation, and safe twenty-item browser history.
+
+**Future:** page-provided course hierarchy/media command contributions, command favorites, authorized mutation commands, and optional synchronized history. Backend search is not implemented.
+
 ### Sprint 47B — Smart Content Builder Foundation
 
 **Delivered locally:** reusable activity-template registry, preview-first Smart Builder, local favorites and ten-item recents, intelligent empty-lesson entry points, and validated non-mutating Duplicate/Copy Activity workflows.

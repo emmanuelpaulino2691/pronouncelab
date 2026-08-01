@@ -1,5 +1,9 @@
 # Architecture
 
+## Command Palette
+
+Command contracts, registry construction, matching, ranking, history, and keyboard utilities live under `src/domain/command-palette`. `AdminLayout` lazy-loads the visual palette only when opened, keeping it global to protected admin routes without affecting learner bundles. The first registry combines static navigation and templates with IDs already present in the current route; it does not crawl Supabase or introduce a parallel content cache. Future page data can contribute commands through the same typed registry contract.
+
 ## Smart Content Builder foundation
 
 The template registry and browser-preference utilities live under `src/domain/templates`; Lesson Studio consumes them through the shared Activity Picker without embedding template definitions in route code. Favorites and recents are versioned local-storage preferences, not lesson content. Blank activity creation retains the established service path. Template previews, destination-aware activity duplication, and cross-lesson copy do not issue mutations or simulate persistence.

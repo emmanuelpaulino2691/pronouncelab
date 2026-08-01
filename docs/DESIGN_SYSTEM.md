@@ -1,5 +1,9 @@
 # Design System
 
+## Command Palette
+
+The Command Palette is a centered modal on tablet and desktop and a full-height sheet on phone. Its focused combobox controls an accessible listbox through `aria-controls` and `aria-activedescendant`; options expose `aria-selected`, matching text is highlighted, and unavailable status is never color-only. Arrow keys wrap through results, Enter selects, Escape and the backdrop close, and focus returns to the opener.
+
 ## Template selection
 
 Smart Builder cards use a one-column phone, two-column tablet, and three-column desktop grid. Each card exposes a named Preview action and a favorite toggle whose pressed state is not color-only. Template previews use the shared focus-trapped Dialog. Favorites are ordered first, recent changes are announced through `aria-live`, and blank activities remain clearly separated from non-creating templates.

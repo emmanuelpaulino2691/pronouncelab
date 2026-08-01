@@ -1,8 +1,11 @@
-import { useCallback, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 
 import AdminSidebar from "../components/AdminSidebar";
 import { AdminIcon } from "../ui";
+import { isCommandPaletteShortcut } from "../../../domain/command-palette/keyboard";
+
+const CommandPalette = lazy(() => import("../command-palette/CommandPalette"));
 
 function getPageContext(pathname: string) {
   if (pathname.includes("/studio")) return "Lesson Studio";
@@ -16,6 +19,7 @@ function getPageContext(pathname: string) {
 function AdminLayout() {
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isPaletteOpen, setIsPaletteOpen] = useState(false);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const closeMenu = useCallback(() => {
     setIsMenuOpen(false);
@@ -23,6 +27,15 @@ function AdminLayout() {
       window.requestAnimationFrame(() => menuButtonRef.current?.focus());
     }
   }, [isMenuOpen]);
+
+  useEffect(() => {
+    function openPalette(event: KeyboardEvent) {
+      if (!isCommandPaletteShortcut(event)) return;
+      event.preventDefault(); setIsPaletteOpen(true);
+    }
+    window.addEventListener("keydown", openPalette);
+    return () => window.removeEventListener("keydown", openPalette);
+  }, []);
 
   return (
     <div className="min-h-screen bg-[var(--pl-page)] lg:flex">
@@ -36,11 +49,12 @@ function AdminLayout() {
               </button>
               <div className="min-w-0"><p className="truncate text-sm font-bold text-slate-900">{getPageContext(location.pathname)}</p><p className="hidden truncate text-xs text-slate-500 sm:block">Improve your English every day.</p></div>
             </div>
-            <span className="hidden rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 md:inline-flex">PronounceLab Content Studio</span>
+            <div className="flex items-center gap-2"><button type="button" aria-haspopup="dialog" aria-expanded={isPaletteOpen} onClick={() => setIsPaletteOpen(true)} className="admin-focus min-h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-600 hover:bg-slate-50"><span className="hidden sm:inline">Search commands </span><kbd className="rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-xs">Ctrl K</kbd></button><span className="hidden rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 md:inline-flex">PronounceLab Content Studio</span></div>
           </div>
         </header>
         <main className="px-4 py-7 sm:px-7 lg:px-10 lg:py-10"><Outlet /></main>
       </div>
+      {isPaletteOpen && <Suspense fallback={null}><CommandPalette open pathname={location.pathname} search={location.search} onClose={() => setIsPaletteOpen(false)} /></Suspense>}
     </div>
   );
 }

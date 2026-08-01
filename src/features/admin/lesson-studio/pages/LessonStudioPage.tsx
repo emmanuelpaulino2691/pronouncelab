@@ -120,7 +120,7 @@ function Studio({
     null
   );
   const [saved, setSaved] = useState("Saved");
-  const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const [isPickerOpen, setIsPickerOpen] = useState(() => searchParams.get("builder") === "open");
   const [deleteConfirmation, setDeleteConfirmation] = useState(
     createDeleteConfirmationState<LessonActivity>
   );
@@ -262,6 +262,17 @@ function Studio({
     lessonStatus: lesson?.status ?? null,
     versionStatus: version?.status ?? null,
   });
+
+  useEffect(() => {
+    function openTemplateBuilder() { if (editable && version) setIsPickerOpen(true); }
+    window.addEventListener("pronouncelab:open-template-builder", openTemplateBuilder);
+    return () => window.removeEventListener("pronouncelab:open-template-builder", openTemplateBuilder);
+  }, [editable, version]);
+
+  function closeActivityPicker() {
+    setIsPickerOpen(false);
+    if (searchParams.has("builder")) setSearchParams((current) => { const next = new URLSearchParams(current); next.delete("builder"); return next; }, { replace: true });
+  }
 
   useEffect(() => {
     function handleSaveShortcut(event: KeyboardEvent) {
@@ -411,7 +422,7 @@ function Studio({
       setActivities((current) => [...current, created]);
       selectActivity(created.id);
       setSaved("Saved");
-      setIsPickerOpen(false);
+      closeActivityPicker();
       window.requestAnimationFrame(() => editorRef.current?.focus());
     } catch (reason) {
       if (active.current && request === mutation.current) {
@@ -633,7 +644,7 @@ function Studio({
 
       {isPickerOpen && editable && version && (
         <ActivityPicker
-          onClose={() => setIsPickerOpen(false)}
+          onClose={closeActivityPicker}
           onCreate={handleCreateActivity}
         />
       )}
