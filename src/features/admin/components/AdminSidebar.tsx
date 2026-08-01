@@ -5,6 +5,7 @@ import { supabase } from "../../../shared/lib/supabaseClient";
 import { useAdminPermissions } from "../permissions/useAdminPermissions";
 import { AdminIcon, Avatar, Badge, Button } from "../ui";
 import { futureWorkspaceSections, getWorkspaceRole } from "../workspace";
+import { adminMediaLibraryPath, canViewMediaLibrary } from "../../../domain/media";
 
 const navigationItems = [
   { label: "Dashboard", to: "/admin", icon: "dashboard" as const, end: true },
@@ -18,11 +19,12 @@ type Props = {
 
 function AdminSidebar({ isOpen, onClose }: Props) {
   const navigate = useNavigate();
+  const permissions = useAdminPermissions();
   const {
     canEditDrafts,
     canPublish,
     isAdmin,
-  } = useAdminPermissions();
+  } = permissions;
   const workspaceRole = getWorkspaceRole({ canEditDrafts, canPublish, isAdmin });
   const [email, setEmail] = useState("Content manager");
   const [isSigningOut, setIsSigningOut] = useState(false);
@@ -104,6 +106,7 @@ function AdminSidebar({ isOpen, onClose }: Props) {
             </li>)}
             <li className="pt-4"><p className="px-4 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500">Workspace</p></li>
             <li><NavLink to="/admin/classes" end onClick={onClose} className={({ isActive }) => `admin-focus flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition ${isActive ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-slate-900 hover:text-white"}`}><AdminIcon name="book" className="h-5 w-5" />Classes</NavLink></li>
+            {canViewMediaLibrary(permissions) && <li><NavLink to={adminMediaLibraryPath} end onClick={onClose} className={({ isActive }) => `admin-focus flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition ${isActive ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-slate-900 hover:text-white"}`}><AdminIcon name="listening" className="h-5 w-5" />Media Library</NavLink></li>}
             {futureWorkspaceSections.filter((label) => label !== "Classes").map((label) => <li key={label}>
               <div aria-disabled="true" className="flex items-center justify-between gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-slate-500">
                 <span className="flex items-center gap-3"><AdminIcon name="book" className="h-5 w-5" />{label}</span><span className="text-[10px] font-bold uppercase tracking-wide text-slate-600">Later</span>

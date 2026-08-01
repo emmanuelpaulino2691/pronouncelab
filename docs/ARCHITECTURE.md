@@ -85,6 +85,7 @@ Feature folders own page-specific services and components. Shared folders contai
 | `/login` | Supabase staff login |
 | `/admin` | Protected admin dashboard |
 | `/admin/courses` | Course management |
+| `/admin/media` | UI-only Teacher Media Library foundation |
 | `/admin/courses/:courseId` | Unit management |
 | `/admin/courses/:courseId/units/:unitId` | Lesson management |
 | `/admin/.../lessons/:lessonId/studio` | Lesson Studio |
@@ -147,6 +148,8 @@ updates and security-definer RPCs for atomic creation, duplication, reordering,
 version creation, publication, and quiz compound writes. Authorized teachers,
 publishers, and administrators receive an explicit lesson-version publication
 action; the RPC remains the authorization and validation boundary.
+
+The media domain under `src/domain/media` defines schema-aligned summaries, queries, stable selections, UI permission predicates, and a future `MediaLibraryService`. Its active adapter is explicitly unavailable and performs no Supabase request. Runtime preview URLs are not stable selection data. The reusable Media Picker uses the shared Dialog beside existing Learn, Listening, and Pronunciation upload controls; direct-upload services remain the only working media authoring path until backend integration.
 
 When a published lesson is selected, the Studio presents the published version
 as read-only. `create_lesson_draft_version` creates the next draft version by

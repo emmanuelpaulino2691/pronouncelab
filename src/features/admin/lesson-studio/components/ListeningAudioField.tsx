@@ -9,6 +9,7 @@ import {
   uploadListeningAudio,
   type ListeningAudioAsset,
 } from "../services/listeningMediaService";
+import MediaPicker from "../../media/MediaPicker";
 
 type Props = {
   activityId: number;
@@ -35,6 +36,7 @@ export default function ListeningAudioField({
   const [previewUrl, setPreviewUrl] = useState("");
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState("");
+  const [libraryOpen, setLibraryOpen] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -116,6 +118,7 @@ export default function ListeningAudioField({
         <Button type={audioAssetId ? listeningControlTypes.replace : listeningControlTypes.upload} variant="secondary" disabled={disabled || uploading} onClick={() => inputRef.current?.click()}>
           {audioAssetId ? "Replace audio" : "Upload audio"}
         </Button>
+        <Button type="button" variant="secondary" disabled={disabled || uploading} onClick={() => setLibraryOpen(true)}>Choose from Library</Button>
         {audioAssetId && (
           <Button type={listeningControlTypes.remove} variant="danger" disabled={disabled || uploading} onClick={remove}>
             Remove audio
@@ -131,6 +134,7 @@ export default function ListeningAudioField({
       )}
       {message && <p role={message.includes("could not") ? "alert" : "status"} aria-live="polite" className="text-sm text-slate-600">{message}</p>}
       {requiredForPublication && !audioAssetId && !uploading && <p className="text-sm text-amber-700">Add audio before publishing this lesson.</p>}
+      <MediaPicker open={libraryOpen} kind="audio" selectedMediaAssetId={audioAssetId} onClose={() => setLibraryOpen(false)} onSelect={(selected) => { onChange(selected.id); setLibraryOpen(false); }} title={`Choose audio for ${attachmentLabel}`} />
     </fieldset>
   );
 }

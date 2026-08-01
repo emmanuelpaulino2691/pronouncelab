@@ -20,6 +20,7 @@ const CreateClassForm = lazy(() => import("../../features/admin/classes/CreateCl
 const ClassWorkspaceLayout = lazy(() => import("../../features/admin/classes/ClassWorkspaceLayout").then((module) => ({ default: module.ClassWorkspaceLayout })));
 const StudentPreviewCoursePage = lazy(() => import("../../features/admin/preview/StudentPreviewCoursePage"));
 const StudentPreviewLessonPage = lazy(() => import("../../features/admin/preview/StudentPreviewLessonPage"));
+const AdminMediaLibraryPage = lazy(() => import("../../features/admin/media/AdminMediaLibraryPage"));
 
 function LazyRoute({ children }: { children: ReactNode }) {
   return <Suspense fallback={<div role="status" className="grid min-h-64 place-items-center text-sm font-medium text-slate-500">Loading PronounceLab…</div>}>{children}</Suspense>;
@@ -64,6 +65,10 @@ export const router = createBrowserRouter([
           {
             path: "classes",
             element: <LazyRoute><AdminClassesPage /></LazyRoute>,
+          },
+          {
+            path: "media",
+            element: <LazyRoute><AdminMediaLibraryPage /></LazyRoute>,
           },
           {
             path: "classes/new",

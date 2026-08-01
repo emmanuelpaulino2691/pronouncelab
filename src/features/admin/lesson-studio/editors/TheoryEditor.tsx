@@ -18,6 +18,7 @@ import { getLearnMediaAsset, uploadDraftLearnAudio, uploadDraftLearnImage } from
 import { canMoveLearnBlock, deletionFocusTarget, insertDuplicatedLearnBlock, isLearnBlockPopulated, learnBlockSummary, removeLearnBlock, reorderLearnBlocks, toggleLearnBlockCollapsed } from "../learnBlockState";
 import { ConfirmDeleteDialog } from "../../ui";
 import type { ActivitySectionCollapseController } from "../studioViewState";
+import MediaPicker from "../../media/MediaPicker";
 
 const blockTypes: TheoryBlockType[] = learnBlockRegistry.map((block) => block.type);
 
@@ -51,6 +52,7 @@ export default function TheoryEditor({
   const [deleteCandidate, setDeleteCandidate] = useState<TheoryBlock | null>(null);
   const [announcement, setAnnouncement] = useState("");
   const [draggedId, setDraggedId] = useState<number | null>(null);
+  const [libraryPicker, setLibraryPicker] = useState<{ blockId: number; kind: "image" | "audio" } | null>(null);
   const blockRefs = useRef(new Map<number, HTMLDivElement>());
   const addBlockRef = useRef<HTMLSelectElement>(null);
   const reportedDirty = useRef(false);
@@ -346,6 +348,7 @@ export default function TheoryEditor({
               <div className="mt-3 rounded-lg border border-dashed border-slate-300 p-3 text-sm text-slate-600">
                 <input id={`learn-media-${block.id}`} className="sr-only" type="file" accept={block.blockType === "image" ? "image/*" : "audio/*"} disabled={!editable || uploading === block.id} onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadMedia(block, file); event.currentTarget.value = ""; }} />
                 <label htmlFor={`learn-media-${block.id}`} className="inline-flex min-h-10 cursor-pointer items-center rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white">{uploading === block.id ? "Uploading..." : block.mediaAssetId ? `Replace ${block.blockType === "image" ? "Image" : "Audio"}` : `Select ${block.blockType === "image" ? "Image" : "Audio"}`}</label>
+                <button type="button" disabled={!editable || uploading === block.id} onClick={() => setLibraryPicker({ blockId: block.id, kind: block.blockType as "image" | "audio" })} className="ml-2 min-h-10 rounded-lg border border-slate-300 px-3 text-sm font-semibold text-slate-700">Choose from Library</button>
                 {block.mediaAssetId && <button type="button" className="ml-2 min-h-10 text-sm font-semibold text-red-700" disabled={uploading === block.id} onClick={() => { updateBlock(block.id, { mediaAssetId: null }); setPreviewUrls((current) => { const next = { ...current }; delete next[block.id]; return next; }); setMediaFilenames((current) => { const next = { ...current }; delete next[block.id]; return next; }); setPreviewFailures((current) => { const next = new Set(current); next.delete(block.id); return next; }); }}>Remove {block.blockType === "image" ? "Image" : "Audio"}</button>}
                 {previewUrls[block.id] && block.blockType === "image" && <img src={previewUrls[block.id]} alt={block.altText ?? "Learn block preview"} className="mt-3 max-h-48 rounded-lg object-contain" />}
                 {previewUrls[block.id] && block.blockType === "audio" && <audio controls src={previewUrls[block.id]} className="mt-3 w-full" />}
@@ -373,6 +376,7 @@ export default function TheoryEditor({
       </div>
       </div>
       <ConfirmDeleteDialog isOpen={deleteCandidate !== null} title="Delete Learn block?" description={deleteCandidate ? `Delete this populated ${getLearnBlockDefinition(deleteCandidate.blockType).title} block? Shared media files will remain in the media library.` : "Delete this block?"} isDeleting={busy} errorMessage={null} onCancel={() => setDeleteCandidate(null)} onConfirm={() => { if (deleteCandidate) void confirmDelete(deleteCandidate); }} />
+      <MediaPicker open={libraryPicker !== null} kind={libraryPicker?.kind ?? "image"} selectedMediaAssetId={libraryPicker ? blocks.find((block) => block.id === libraryPicker.blockId)?.mediaAssetId : null} onClose={() => setLibraryPicker(null)} onSelect={(asset) => { if (libraryPicker) updateBlock(libraryPicker.blockId, { mediaAssetId: asset.id }); setLibraryPicker(null); }} title={`Choose ${libraryPicker?.kind ?? "media"} from Library`} />
     </section>
   );
 }

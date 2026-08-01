@@ -81,6 +81,14 @@ Before the numbered visual/product sprints, the repository established Supabase 
 
 **Boundary:** collapse state is presentation-only, Interactive Practice is unchanged, and no learner, persistence, scoring, AI-provider, schema, RPC, or migration contract changed.
 
+### Sprint 46A — Teacher Media Library UI Foundation
+
+**Status:** Implemented locally; backend integration and browser QA pending.
+
+**Delivered:** lazy Media Library route, role-aware navigation and UI permissions, schema-aligned media domain/service contracts, URL-backed filters, truthful terminal states, reusable media cards and picker, and picker entry points beside supported direct-upload controls.
+
+**Boundary:** the adapter is intentionally unavailable. No production list, selection, upload, replacement, deletion, ownership, usage-count, schema, Storage, RLS, RPC, or migration behavior changed.
+
 ### Sprint 41 — Publishing and Versioning Experience
 
 **Status:** Partial; implemented locally, with specialist-RPC hardening and

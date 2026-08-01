@@ -357,6 +357,10 @@ Implemented locally as a frontend-only increment. Forced teacher-preview modes n
 
 Implemented locally as a frontend-only increment. Listening, Pronunciation, Quiz, legacy Practice, and AI Speaking Mission now register the shared section-collapse controller used by Learn. Individual section toggles preserve mounted form state, collapsed summaries expose content and validation status, and shared Collapse All/Expand All actions announce accurate section counts. Activity-level collapse remains separate, and Interactive Practice is unchanged. Browser QA remains pending.
 
+## Sprint 46A — Teacher Media Library UI Foundation
+
+Implemented locally as a frontend-only foundation. Authorized staff receive a lazy `/admin/media` route, role-aware navigation, URL-backed filters, reusable media cards, and a shared Media Picker available beside existing Learn, Listening, and Pronunciation direct uploads. The active service adapter is intentionally unavailable and never returns fake production assets or mutation success. Ownership, usage counts, listing, selection, replacement, and deletion remain pending backend work. Browser QA remains pending.
+
 In progress. Added a centralized Learn block registry, block validation helpers, reorder utilities, and collapsible block editing groundwork. Existing persistence and routes remain unchanged; richer media controls and drag-and-drop remain follow-up work.
 
 In progress. Draft preview now uses a centralized mapper for specialist activity configuration and stable activity identity, including theory, listening, pronunciation, quiz, legacy practice, and AI Speaking Mission data. No learner projection, migration, or persistence behavior changed.

@@ -6,6 +6,7 @@ import { AdminIcon } from "../ui";
 
 function getPageContext(pathname: string) {
   if (pathname.includes("/studio")) return "Lesson Studio";
+  if (pathname.startsWith("/admin/media")) return "Media Library";
   if (/\/units\/\d+/.test(pathname)) return "Lessons";
   if (/\/courses\/\d+/.test(pathname)) return "Course curriculum";
   if (pathname.startsWith("/admin/courses")) return "Courses";
