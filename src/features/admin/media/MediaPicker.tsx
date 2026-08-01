@@ -25,6 +25,6 @@ export default function MediaPicker({ open, kind, selectedMediaAssetId, onSelect
     {status === "unavailable" && <p role="status" className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">Media Library could not connect because Supabase is not configured.</p>}
     {status === "error" && <p role="alert" className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">Media Library could not be loaded. You may not have permission to use these assets.</p>}
     {status === "ready" && items.length === 0 && <p role="status" className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">No media matches your current filters.</p>}
-    {items.length > 0 && <div className="mt-5 grid gap-4 sm:grid-cols-2">{items.map((asset) => <MediaAssetCard key={asset.id} asset={asset} selected={selected === asset.id} onSelect={(value) => setSelected(value.id)} readOnly />)}</div>}
+    {items.length > 0 && <div className="mt-5 grid gap-4 sm:grid-cols-2">{items.map((asset) => <MediaAssetCard key={asset.id} asset={asset} selected={selected === asset.id} onSelect={(value) => setSelected(value.id)} readOnly allowImagePreview={false} />)}</div>}
   </Dialog>;
 }

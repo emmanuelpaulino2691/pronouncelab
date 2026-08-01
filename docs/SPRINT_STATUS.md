@@ -1,5 +1,9 @@
 # Sprint Status
 
+## Sprint 48B — UX Polish & Consistency Audit
+
+Implemented locally as a frontend-only refinement. Shared controls now use consistent touch targets, destructive styling, phone stacking, section spacing, and disabled explanations. Course, dashboard, Classes, Media Library, Smart Builder, quick actions, and Student Preview states received clearer wording, actionable empty/error states, stable loading geometry, permission-aware actions, and responsive controls. No product architecture, route, learner behavior, persistence contract, or backend operation changed. Browser visual QA remains pending.
+
 ## Sprint 48A — Global Search & Command Palette Foundation
 
 Implemented locally without backend changes. The protected admin shell lazy-loads a global Ctrl/Cmd+K command surface with navigation, route-context course/unit/lesson/activity entries, templates, and truthful future commands. Exact/prefix/contains ranking receives a bounded recent-history boost; successful navigation uses React Router and twenty recent commands persist locally with a safe fallback. Browser QA remains pending.

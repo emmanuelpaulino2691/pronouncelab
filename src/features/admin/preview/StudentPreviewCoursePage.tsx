@@ -13,6 +13,7 @@ import { staticLearnerContentProvider } from "../../../shared/content/providers/
 import { buildStudentPreviewUrl, safePreviewReturnTo } from "./previewNavigation";
 import { PreviewTerminalState } from "./PreviewTerminalState";
 import { previewViewportStyle, type PreviewViewportMode } from "./previewViewport";
+import { PreviewLoadingState } from "./PreviewLoadingState";
 
 export default function StudentPreviewCoursePage() {
   const { courseId = "" } = useParams();
@@ -31,7 +32,7 @@ export default function StudentPreviewCoursePage() {
   if (!resource.loading && !resource.value) {
     return <PreviewTerminalState courseId={courseId} error={resource.error} onRetry={resource.retry} returnPath={returnTo} />;
   }
-  if (!resource.value) return <MainLayout><p role="status" className="p-8">Loading Student Preview...</p></MainLayout>;
+  if (!resource.value) return <PreviewLoadingState returnPath={returnTo} />;
 
   const { course, source } = resource.value;
   return <>

@@ -181,7 +181,7 @@ function AdminCoursesPage() {
       </Card>
 
       {isLoading ? <div role="status" className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">{[1, 2, 3, 4, 5, 6].map((item) => <Card key={item} className="p-6"><LoadingSkeleton className="h-12 w-12" /><LoadingSkeleton className="mt-5 h-6 w-2/3" /><LoadingSkeleton className="mt-3 h-16" /><LoadingSkeleton className="mt-5 h-10" /></Card>)}<span className="sr-only">Loading courses…</span></div>
-        : visibleCourses.length === 0 ? <EmptyState title={courses.length ? "No courses match" : canEditDrafts ? "Build your first course" : "No courses yet"} description={courses.length ? "Try changing the search or status filter." : canEditDrafts ? "Create a course draft and begin organizing units and lessons." : "There are no courses available to view."} action={canEditDrafts && !courses.length ? <Button icon="plus" onClick={() => { setFormErrorMessage(null); setFormState({ mode: "create" }); }}>Create course</Button> : undefined} />
+        : visibleCourses.length === 0 ? <EmptyState title={courses.length ? "No courses match your filters" : canEditDrafts ? "Build your first course" : "No courses yet"} description={courses.length ? "Clear the search and status filters to see all available courses." : canEditDrafts ? "Create a course draft and begin organizing units and lessons." : "There are no courses available to your role yet."} action={courses.length ? <Button variant="secondary" onClick={() => { setQuery(""); setStatus("all"); }}>Clear filters</Button> : canEditDrafts ? <Button icon="plus" onClick={() => { setFormErrorMessage(null); setFormState({ mode: "create" }); }}>Create course</Button> : undefined} />
           : <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
             {visibleCourses.map((course) => {
               const editable = canEditDrafts && course.status === "draft";
@@ -198,7 +198,7 @@ function AdminCoursesPage() {
                   <ButtonLink to={`/admin/courses/${course.id}`} className="flex-1">{editable ? "Continue editing" : "View course"}</ButtonLink>
                   {editable && <Button variant="secondary" icon="edit" aria-label={`Edit ${course.title}`} onClick={() => { setFormErrorMessage(null); setFormState({ mode: "edit", course }); }}>Edit</Button>}
                   {editable && <Button type="button" variant="secondary" aria-label={`Duplicate ${course.title}`} isLoading={duplicatingCourseId === course.id} disabled={duplicatingCourseId !== null} onClick={() => void handleDuplicate(course)}>Duplicate</Button>}
-                  {canPublish && course.status !== "archived" && <Button type="button" variant="primary" isLoading={publishingCourseId === course.id} disabled={publishingCourseId !== null} onClick={() => setPublishConfirmation(course)}>{course.status === "published" ? "Publish updates" : "Publish Course"}</Button>}
+                  {canPublish && course.status !== "archived" && <Button type="button" variant="primary" isLoading={publishingCourseId === course.id} disabled={publishingCourseId !== null} onClick={() => setPublishConfirmation(course)}>{course.status === "published" ? "Publish updates" : "Publish course"}</Button>}
                   {editable && <Button type="button" variant="danger" icon="delete" aria-label={`Delete ${course.title}`} isLoading={deletingCourseId === course.id} onClick={() => { setErrorMessage(null); setDeleteConfirmation(openDeleteConfirmation(course)); }}>Delete</Button>}
                 </div>
               </Card>;
@@ -218,10 +218,10 @@ function AdminCoursesPage() {
       <Dialog
         isOpen={publishConfirmation !== null}
         onClose={() => { if (publishingCourseId === null) setPublishConfirmation(null); }}
-        title="Publish Course"
+        title="Publish course"
         description={publishConfirmation ? `Review and publish “${publishConfirmation.title}”. The complete course will be validated before any learner-facing content changes.` : undefined}
         preventClose={publishingCourseId !== null}
-        footer={<><Button type="button" variant="secondary" disabled={publishingCourseId !== null} onClick={() => setPublishConfirmation(null)}>Cancel</Button><Button type="button" isLoading={publishingCourseId !== null} onClick={() => { if (publishConfirmation) void handlePublish(publishConfirmation); }}>Publish Course</Button></>}
+        footer={<><Button type="button" variant="secondary" disabled={publishingCourseId !== null} onClick={() => setPublishConfirmation(null)}>Cancel</Button><Button type="button" isLoading={publishingCourseId !== null} onClick={() => { if (publishConfirmation) void handlePublish(publishConfirmation); }}>Publish course</Button></>}
       >
         <p className="text-sm text-slate-600">All units, lessons, activities, and draft versions must be complete. If anything is missing, you will receive the full list of issues and nothing will be published.</p>
       </Dialog>

@@ -229,7 +229,7 @@ export function Dialog({
         </div>
 
         {footer && (
-          <footer className="flex flex-col-reverse gap-3 border-t border-slate-200 bg-slate-50/70 px-5 py-4 sm:flex-row sm:items-center sm:justify-end sm:px-6">
+          <footer className="flex flex-col-reverse gap-3 border-t border-slate-200 bg-slate-50/70 px-5 py-4 [&>*]:w-full sm:flex-row sm:items-center sm:justify-end sm:px-6 sm:[&>*]:w-auto">
             {footer}
           </footer>
         )}

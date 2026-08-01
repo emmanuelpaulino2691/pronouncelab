@@ -1,5 +1,7 @@
-import { ButtonLink, Card } from "../ui";
+import { ButtonLink, EmptyState } from "../ui";
+import { getEmptyClassesContent } from "./classEmptyState";
 
-export function EmptyClassesState() {
-  return <Card className="p-10 text-center sm:p-14"><h2 className="text-xl font-bold text-slate-950">You have not created any classes yet.</h2><p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-slate-600">Classes let you organize students and assign published courses.</p><ButtonLink to="/admin/classes/new" className="mt-6">Create your first class</ButtonLink></Card>;
+export function EmptyClassesState({ canCreate }: { canCreate: boolean }) {
+  const content = getEmptyClassesContent(canCreate);
+  return <EmptyState title="No classes yet" description={content.description} action={content.showSetupAction ? <ButtonLink to="/admin/classes/new">Review class setup</ButtonLink> : undefined} />;
 }

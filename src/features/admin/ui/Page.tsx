@@ -19,10 +19,10 @@ export function PageHeader({ eyebrow, title, description, breadcrumbs, actions, 
       <div className="min-w-0">{eyebrow && <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-600">{eyebrow}</p>}
         <div className="mt-1 flex flex-wrap items-center gap-3"><h1 className="text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">{title}</h1>{meta}</div>
         {description && <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600 sm:text-base">{description}</p>}
-      </div>{actions && <div className="flex shrink-0 flex-wrap gap-2">{actions}</div>}
+      </div>{actions && <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap [&>*]:w-full sm:[&>*]:w-auto">{actions}</div>}
     </div>
   </header>;
 }
 export function SectionHeader({ title, description, action }: { title: string; description?: string; action?: ReactNode }) {
-  return <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between"><div><h2 className="text-lg font-bold text-slate-950">{title}</h2>{description && <p className="mt-1 text-sm text-slate-600">{description}</p>}</div>{action}</div>;
+  return <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><div><h2 className="text-lg font-bold text-slate-950">{title}</h2>{description && <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-600">{description}</p>}</div>{action && <div className="shrink-0">{action}</div>}</div>;
 }

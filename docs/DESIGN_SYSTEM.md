@@ -1,5 +1,11 @@
 # Design System
 
+## Teacher CMS consistency rules
+
+Teacher-facing controls use sentence case for actions (`Create course`, `Publish course`, `Preview as student`) while product areas and page titles retain their names (`Lesson Studio`, `Media Library`, `Student Preview`). Shared buttons provide a minimum 44-pixel touch target; destructive confirmation uses the red danger treatment, secondary navigation remains outlined, and one primary action leads each workflow. Header actions and dialog footers stack to full width on phone and return to intrinsic-width rows on larger screens.
+
+Empty states explain the absence, distinguish permission or filter causes, and offer only actions the current role can use. Filtered-empty states provide a clear-filter action. Loading shells preserve the expected card or preview geometry, expose one concise status to assistive technology, and keep Preview exit navigation available. Disabled future operations remain focusable when their explanation is essential, use `aria-disabled`, and never invoke a mutation or clickable no-op.
+
 ## Command Palette
 
 The Command Palette is a centered modal on tablet and desktop and a full-height sheet on phone. Its focused combobox controls an accessible listbox through `aria-controls` and `aria-activedescendant`; options expose `aria-selected`, matching text is highlighted, and unavailable status is never color-only. Arrow keys wrap through results, Enter selects, Escape and the backdrop close, and focus returns to the opener.

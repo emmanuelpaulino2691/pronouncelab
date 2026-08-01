@@ -1,17 +1,9 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { Link, type LinkProps } from "react-router-dom";
 import AdminIcon, { type AdminIconName } from "./AdminIcon";
+import { buttonClassName } from "./buttonStyles";
 
 export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
-const variants = {
-  primary: "bg-blue-600 text-white shadow-sm hover:bg-blue-700",
-  secondary: "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50",
-  ghost: "text-slate-600 hover:bg-slate-100 hover:text-slate-950",
-  danger: "border border-red-200 bg-white text-red-700 hover:bg-red-50",
-};
-function buttonClassName(variant: ButtonVariant = "primary", className = "") {
-  return `admin-focus inline-flex min-h-10 items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${variants[variant]} ${className}`;
-}
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   icon?: AdminIconName; isLoading?: boolean; variant?: ButtonVariant;
 };

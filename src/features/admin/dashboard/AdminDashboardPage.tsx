@@ -54,7 +54,7 @@ function AdminDashboardPage() {
         description={role === "publisher" ? "Review published-ready courses and keep the learner experience consistent." : "Build structured English learning experiences, keep every draft organized, and prepare lessons for publication."}
         actions={<>
           {canEditDrafts && <ButtonLink to="/admin/courses?create=1" icon="plus">Create course</ButtonLink>}
-          <ButtonLink to="/admin/courses" variant="secondary">{role === "administrator" ? "All Courses" : "My Courses"}</ButtonLink>
+          <ButtonLink to="/admin/courses" variant="secondary">{role === "administrator" ? "View all courses" : "View My Courses"}</ButtonLink>
         </>}
       />
 
@@ -83,7 +83,7 @@ function AdminDashboardPage() {
 
       <div className="grid gap-6 xl:grid-cols-[1.45fr_1fr]">
         <section>
-          <SectionHeader title="Recent courses" description="Pick up where the content team left off." action={<ButtonLink to="/admin/courses" variant="ghost">View all</ButtonLink>} />
+          <SectionHeader title="Recent courses" description="Pick up where the content team left off." action={<ButtonLink to="/admin/courses" variant="ghost">View all courses</ButtonLink>} />
           <Card className="mt-4 overflow-hidden">
             {isLoading ? <div className="space-y-5 p-5">{[1, 2, 3].map((item) => <LoadingSkeleton key={item} className="h-16" />)}</div> :
               data?.recentCourses.length ? <ul className="divide-y divide-slate-200">
@@ -97,7 +97,7 @@ function AdminDashboardPage() {
                     <AdminIcon name="chevron-right" className="h-5 w-5 text-slate-400" />
                   </Link>
                 </li>)}
-              </ul> : <div className="p-10 text-center text-sm text-slate-600">No courses are visible yet.</div>}
+              </ul> : <div className="p-10 text-center"><p className="text-sm font-semibold text-slate-800">No recent courses yet</p><p className="mt-2 text-sm text-slate-600">{canEditDrafts ? "Create a course to begin building your curriculum." : "Courses available to your role will appear here."}</p>{canEditDrafts && <ButtonLink to="/admin/courses?create=1" className="mt-5" icon="plus">Create course</ButtonLink>}</div>}
           </Card>
         </section>
 
