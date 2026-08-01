@@ -134,7 +134,7 @@ export default function ListeningAudioField({
       )}
       {message && <p role={message.includes("could not") ? "alert" : "status"} aria-live="polite" className="text-sm text-slate-600">{message}</p>}
       {requiredForPublication && !audioAssetId && !uploading && <p className="text-sm text-amber-700">Add audio before publishing this lesson.</p>}
-      <MediaPicker open={libraryOpen} kind="audio" selectedMediaAssetId={audioAssetId} onClose={() => setLibraryOpen(false)} onSelect={(selected) => { onChange(selected.id); setLibraryOpen(false); }} title={`Choose audio for ${attachmentLabel}`} />
+      <MediaPicker open={libraryOpen} kind="audio" selectedMediaAssetId={audioAssetId} onClose={() => setLibraryOpen(false)} onSelect={(selected) => { onChange(selected.mediaAssetId); setLibraryOpen(false); }} title={`Choose audio for ${attachmentLabel}`} />
     </fieldset>
   );
 }

@@ -149,7 +149,7 @@ version creation, publication, and quiz compound writes. Authorized teachers,
 publishers, and administrators receive an explicit lesson-version publication
 action; the RPC remains the authorization and validation boundary.
 
-The media domain under `src/domain/media` defines schema-aligned summaries, queries, stable selections, UI permission predicates, and a future `MediaLibraryService`. Its active adapter is explicitly unavailable and performs no Supabase request. Runtime preview URLs are not stable selection data. The reusable Media Picker uses the shared Dialog beside existing Learn, Listening, and Pronunciation upload controls; direct-upload services remain the only working media authoring path until backend integration.
+The media domain under `src/domain/media` defines schema-aligned summaries, queries, stable selections, UI permission predicates, and `MediaLibraryService`. Its Supabase adapter reads the existing `media_assets` table through RLS and applies server-side kind, filename, and sort constraints. Cards resolve private draft objects with temporary signed URLs and intentional public buckets with public URLs; failures remain card-local. Runtime URLs are never selection data. Media Picker returns only the stable asset ID and kind, so Learn, Listening, and Pronunciation reuse one registered asset without copying its Storage object. Direct upload remains editor-specific and automatically feeds the same registry.
 
 When a published lesson is selected, the Studio presents the published version
 as read-only. `create_lesson_draft_version` creates the next draft version by

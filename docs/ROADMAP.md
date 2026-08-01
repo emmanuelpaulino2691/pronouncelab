@@ -89,6 +89,14 @@ Before the numbered visual/product sprints, the repository established Supabase 
 
 **Boundary:** the adapter is intentionally unavailable. No production list, selection, upload, replacement, deletion, ownership, usage-count, schema, Storage, RLS, RPC, or migration behavior changed.
 
+### Sprint 46B — Connect Teacher Media Library to Existing Assets
+
+**Status:** Implemented locally; browser QA pending.
+
+**Delivered:** direct RLS-backed `media_assets` listing, server-side filters and sorting, isolated secure preview resolution, stable ID-only Media Picker selection, and shared asset reuse across Learn, Listening, and Pronunciation authoring.
+
+**Boundary:** current media visibility remains the existing shared content-manager RLS pool. Shared upload, ownership, usage counting, replacement, and deletion remain future backend work; no schema, RPC, policy, Storage configuration, or migration changed.
+
 ### Sprint 41 — Publishing and Versioning Experience
 
 **Status:** Partial; implemented locally, with specialist-RPC hardening and

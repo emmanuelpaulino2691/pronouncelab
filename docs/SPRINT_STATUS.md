@@ -361,6 +361,10 @@ Implemented locally as a frontend-only increment. Listening, Pronunciation, Quiz
 
 Implemented locally as a frontend-only foundation. Authorized staff receive a lazy `/admin/media` route, role-aware navigation, URL-backed filters, reusable media cards, and a shared Media Picker available beside existing Learn, Listening, and Pronunciation direct uploads. The active service adapter is intentionally unavailable and never returns fake production assets or mutation success. Ownership, usage counts, listing, selection, replacement, and deletion remain pending backend work. Browser QA remains pending.
 
+## Sprint 46B — Existing Media Assets Integration
+
+Implemented locally without backend changes. The Media Library reads RLS-visible rows from `media_assets`, supports server-side kind/search/sort queries, and resolves Storage previews per card. Media Picker returns stable ID-and-kind selections to Learn, Listening, and Pronunciation; existing persistence regenerates secure previews after reload and Student Preview uses the same saved references. The current RLS policy exposes a shared content-manager pool rather than teacher-owned media. Replacement, deletion, usage counts, and shared upload remain unavailable. Browser QA remains pending.
+
 In progress. Added a centralized Learn block registry, block validation helpers, reorder utilities, and collapsible block editing groundwork. Existing persistence and routes remain unchanged; richer media controls and drag-and-drop remain follow-up work.
 
 In progress. Draft preview now uses a centralized mapper for specialist activity configuration and stable activity identity, including theory, listening, pronunciation, quiz, legacy practice, and AI Speaking Mission data. No learner projection, migration, or persistence behavior changed.

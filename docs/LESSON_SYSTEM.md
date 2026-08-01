@@ -68,6 +68,8 @@ Sprint 45E moves workspace presentation controls above the selected activity. Ed
 
 Sprint 45F extends that section-controller contract across supported editors. Controllers expose support, total-section, and collapsed-section counts plus Collapse All and Expand All actions. Listening items, pronunciation blocks, quiz settings/questions, the legacy Practice compatibility section, and grouped AI Mission authoring sections use stable activity-scoped section identifiers. Collapsing hides mounted form content, so unsaved values and save serialization remain unchanged. Interactive Practice remains outside this contract.
 
+Sprint 46B connects the shared Media Picker to the existing `media_assets` registry. Learn Image, Learn Audio, Listening audio, and Pronunciation audio attach a selected stable media asset ID and continue through their existing save/parser/preview paths. Reuse never copies Storage bytes. Existing direct uploads appear in the library automatically after registering their media row. Signed preview URLs are regenerated at runtime and excluded from saved content.
+
 The optional Split Preview renders the last saved Learn snapshot through the learner `ActivityRenderer`. Unsaved editor changes are intentionally excluded and display **Preview shows the last saved version.**
 
 Route:

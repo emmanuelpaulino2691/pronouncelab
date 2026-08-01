@@ -376,7 +376,7 @@ export default function TheoryEditor({
       </div>
       </div>
       <ConfirmDeleteDialog isOpen={deleteCandidate !== null} title="Delete Learn block?" description={deleteCandidate ? `Delete this populated ${getLearnBlockDefinition(deleteCandidate.blockType).title} block? Shared media files will remain in the media library.` : "Delete this block?"} isDeleting={busy} errorMessage={null} onCancel={() => setDeleteCandidate(null)} onConfirm={() => { if (deleteCandidate) void confirmDelete(deleteCandidate); }} />
-      <MediaPicker open={libraryPicker !== null} kind={libraryPicker?.kind ?? "image"} selectedMediaAssetId={libraryPicker ? blocks.find((block) => block.id === libraryPicker.blockId)?.mediaAssetId : null} onClose={() => setLibraryPicker(null)} onSelect={(asset) => { if (libraryPicker) updateBlock(libraryPicker.blockId, { mediaAssetId: asset.id }); setLibraryPicker(null); }} title={`Choose ${libraryPicker?.kind ?? "media"} from Library`} />
+      <MediaPicker open={libraryPicker !== null} kind={libraryPicker?.kind ?? "image"} selectedMediaAssetId={libraryPicker ? blocks.find((block) => block.id === libraryPicker.blockId)?.mediaAssetId : null} onClose={() => setLibraryPicker(null)} onSelect={(selection) => { if (libraryPicker) updateBlock(libraryPicker.blockId, { mediaAssetId: selection.mediaAssetId }); setLibraryPicker(null); }} title={`Choose ${libraryPicker?.kind ?? "media"} from Library`} />
     </section>
   );
 }

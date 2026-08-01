@@ -8,7 +8,7 @@ PronounceLab Studio provides a course-level **Publish Course** workflow. It vali
 
 The Content Studio is presented as a role-aware workspace. Teachers work from **My Courses**, administrators see platform-wide course management, and publishers review content without receiving draft-edit controls. Classes, Students, and Assignments are planned workspace areas and are clearly marked as coming later until their product foundations exist.
 
-The Teacher Media Library at `/admin/media` is currently a UI-only foundation for future reuse of uploaded images and audio across courses and lessons. It exposes truthful unavailable states, reusable cards, filters, and a Media Picker shell without listing or mutating production media. Existing direct uploads remain the working authoring path. Shared ownership, usage counts, replacement, deletion, and library selection require a future backend contract and authoritative RLS/RPC enforcement.
+The Teacher Media Library at `/admin/media` reuses uploaded images and audio across courses and lessons through the existing `media_assets` registry. Existing direct uploads remain the creation path and appear automatically; Media Picker attaches the same stable asset ID without copying its Storage object. Current RLS exposes a shared content-manager pool. Shared ownership, usage counts, replacement, deletion, and library-level upload remain future work.
 
 ## Course Workspace
 
