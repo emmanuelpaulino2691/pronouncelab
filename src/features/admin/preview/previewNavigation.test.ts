@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildStudentPreviewUrl, safePreviewReturnTo } from "./previewNavigation";
+import { buildStudentPreviewUrl, previewExitPath, safePreviewReturnTo } from "./previewNavigation";
 
 describe("preview navigation", () => {
   it("preserves an internal return target and activity", () => {
@@ -7,5 +7,8 @@ describe("preview navigation", () => {
   });
   it("rejects external return targets", () => {
     expect(safePreviewReturnTo("https://example.com", "/admin/courses/1")).toBe("/admin/courses/1");
+  });
+  it("returns to the exact origin and restores the selected Studio activity", () => {
+    expect(previewExitPath("/admin/courses/1/units/3/lessons/2/studio?panel=content", "9", "/admin/courses/1")).toBe("/admin/courses/1/units/3/lessons/2/studio?panel=content&activity=9");
   });
 });

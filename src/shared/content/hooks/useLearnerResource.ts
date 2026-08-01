@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { ContentProviderError, ContentResult } from "../errors/contentErrors";
+import { isCurrentResourceRequest, settleLearnerResourceLoad } from "./learnerResourceRequest";
 
 export type LearnerResourceState<T> = {
   value: T | null;
@@ -24,8 +25,8 @@ export function useLearnerResource<T>(
   useEffect(() => {
     const controller = new AbortController();
     const request = ++requestRef.current;
-    void load(controller.signal).then((result) => {
-      if (controller.signal.aborted || request !== requestRef.current) return;
+    void settleLearnerResourceLoad(load, controller.signal).then((result) => {
+      if (!isCurrentResourceRequest(request, requestRef.current, controller.signal)) return;
       setState(result.ok
         ? { value: result.value, loading: false, error: null }
         : { value: null, loading: false, error: result.error });

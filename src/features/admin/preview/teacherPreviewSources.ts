@@ -5,6 +5,7 @@ import { listActivities, loadLessonVersion } from "../lesson-studio/services/les
 import { getAssessment, listQuestions, listListeningItems, listPronunciationItems, listTheoryBlocks } from "../lesson-studio/services/activityContentService";
 import { getAiMission } from "../lesson-studio/services/aiMissionService";
 import { getListeningAudioAsset } from "../lesson-studio/services/listeningMediaService";
+import { getLearnMediaAsset } from "../lesson-studio/services/learnMediaService";
 import type { LearnerCourse, LearnerLesson, LearnerUnit } from "../../../shared/content/contracts/learnerContent";
 import type { LearnerActivity } from "../../../shared/content/contracts/learnerActivities";
 import type { ContentId } from "../../../shared/content/contracts/learnerContent";
@@ -15,7 +16,7 @@ export async function mapDraftLessonToLearnerLessonData(lesson: { id: number; un
   const mapped = await Promise.all(activities.map(async (activity): Promise<LearnerActivity> => {
   const base = { id: contentId(activity.id), title: activity.title, position: activity.position, required: activity.required };
   switch (activity.type) {
-    case "theory": return { ...base, type: "theory", blocks: (await listTheoryBlocks(activity.id)).map((block) => block.blockType === "heading" ? { type: "heading", level: (block.headingLevel ?? 2) as 1 | 2 | 3, text: block.text ?? block.title ?? "" } : { type: block.blockType === "example" ? "example" : block.blockType === "tip" ? "tip" : "paragraph", ...(block.blockType === "example" ? { title: block.title ?? "Example", text: block.text ?? "" } : { text: block.text ?? "" }) }) as never };
+    case "theory": return { ...base, type: "theory", blocks: await Promise.all((await listTheoryBlocks(activity.id)).map(mapDraftTheoryBlock)) };
     case "listening": return { ...base, type: "listening", items: await Promise.all((await listListeningItems(activity.id)).map(async (item) => ({ id: contentId(item.id), title: item.title, instructions: item.instructions, transcript: item.transcript, audio: item.audioAssetId ? await draftAudio(item.audioAssetId) : null, questions: [] }))) };
     case "pronunciation": return { ...base, type: "pronunciation", items: await Promise.all((await listPronunciationItems(activity.id)).map(async (item) => ({ id: contentId(item.id), title: item.title, instructions: item.instructions, displayText: item.displayText, blockType: item.blockType ?? undefined, spellingPattern: item.spellingPattern, entries: item.entries, audio: item.audioAssetId ? await draftAudio(item.audioAssetId) : null }))) };
     case "practice": return { ...base, type: "practice", delivery: "metadata-only", items: [] };
@@ -25,6 +26,25 @@ export async function mapDraftLessonToLearnerLessonData(lesson: { id: number; un
   }
   }));
   return { id: contentId(lesson.id), unitId: contentId(lesson.unitId), courseId: contentId(courseId), title: lesson.title, description: lesson.description, metadata: { source: "local" as const, lessonId: contentId(lesson.id), fixtureRevision: "1" as const }, activities: mapped };
+}
+
+async function mapDraftTheoryBlock(block: Awaited<ReturnType<typeof listTheoryBlocks>>[number]): Promise<import("../../../shared/content/contracts/learnerActivities").LearnerTheoryBlock> {
+  switch (block.blockType) {
+    case "heading": return { type: "heading", level: (block.headingLevel ?? 2) as 1 | 2 | 3, text: block.text ?? block.title ?? "" };
+    case "paragraph": return { type: "paragraph", text: block.text ?? "" };
+    case "tip": return { type: "tip", text: block.text ?? "" };
+    case "example": return { type: "example", title: block.title ?? "Example", text: block.text ?? "" };
+    case "image":
+    case "audio": {
+      if (!block.mediaAssetId) throw new Error(`Saved ${block.blockType} media is missing.`);
+      let asset: Awaited<ReturnType<typeof getLearnMediaAsset>> | null = null;
+      try { asset = await getLearnMediaAsset(block.mediaAssetId, block.blockType); } catch { /* Preserve the stable reference and render a local media fallback. */ }
+      const media = { id: block.mediaAssetId as ContentId, kind: block.blockType, url: asset?.previewUrl ?? "", mimeType: asset?.mimeType ?? null, altText: block.altText } as const;
+      return block.blockType === "image"
+        ? { type: "image", media, alt: block.altText ?? "" }
+        : { type: "audio", media, label: block.title ?? "", transcript: block.text ?? "" };
+    }
+  }
 }
 
 async function draftAudio(assetId: string) {

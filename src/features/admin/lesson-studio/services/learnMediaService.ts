@@ -1,5 +1,26 @@
 import { supabase } from "../../../../shared/lib/supabaseClient";
-import { getListeningAudioAsset, uploadListeningAudio } from "./listeningMediaService";
+import { uploadListeningAudio } from "./listeningMediaService";
+
+export type LearnMediaAssetRow = {
+  id: string;
+  kind: "image" | "audio";
+  original_filename: string;
+  bucket: string;
+  object_path: string;
+  mime_type: string | null;
+};
+
+export async function resolveLearnMediaAssetRow(
+  row: LearnMediaAssetRow,
+  resolveUrl: (bucket: string, objectPath: string) => Promise<string>,
+) {
+  return {
+    id: row.id,
+    filename: row.original_filename,
+    mimeType: row.mime_type,
+    previewUrl: await resolveUrl(row.bucket, row.object_path),
+  };
+}
 
 export async function uploadDraftLearnAudio(activityId: number, file: File) {
   return uploadListeningAudio(activityId, file, "pronunciation");
@@ -23,14 +44,24 @@ export async function uploadDraftLearnImage(activityId: number, file: File) {
   return { id: String((registered.data as { id: string }).id), previewUrl: signed.data.signedUrl, filename: file.name };
 }
 
-export { getListeningAudioAsset };
-
-export async function getLearnImageAsset(assetId: string) {
+async function getLearnMediaAssetRow(assetId: string, kind: "image" | "audio") {
   if (!supabase) throw new Error("Supabase is not configured.");
-  const { data, error } = await supabase.from("media_assets").select("id,original_filename,bucket,object_path,mime_type").eq("id", assetId).eq("kind", "image").maybeSingle();
-  if (error || !data) throw new Error("The saved image preview could not be loaded.");
-  const row = data as { id: string; original_filename: string; bucket: string; object_path: string; mime_type: string | null };
-  const signed = await supabase.storage.from(row.bucket).createSignedUrl(row.object_path, 3600);
-  if (signed.error) throw new Error("The saved image preview could not be loaded.");
-  return { id: row.id, filename: row.original_filename, mimeType: row.mime_type, previewUrl: signed.data.signedUrl };
+  const { data, error } = await supabase.from("media_assets").select("id,kind,original_filename,bucket,object_path,mime_type").eq("id", assetId).eq("kind", kind).maybeSingle();
+  if (error || !data) throw new Error(`The saved ${kind} preview could not be loaded.`);
+  return data as LearnMediaAssetRow;
 }
+
+export async function getLearnMediaAsset(assetId: string, kind: "image" | "audio") {
+  const row = await getLearnMediaAssetRow(assetId, kind);
+  return resolveLearnMediaAssetRow(row, async (bucket, objectPath) => {
+    if (!supabase) throw new Error("Supabase is not configured.");
+    if (bucket === "content-audio" || bucket === "content-images") {
+      return supabase.storage.from(bucket).getPublicUrl(objectPath).data.publicUrl;
+    }
+    const { data, error } = await supabase.storage.from(bucket).createSignedUrl(objectPath, 3600);
+    if (error) throw new Error(`The saved ${kind} preview could not be loaded.`);
+    return data.signedUrl;
+  });
+}
+
+export const getLearnImageAsset = (assetId: string) => getLearnMediaAsset(assetId, "image");

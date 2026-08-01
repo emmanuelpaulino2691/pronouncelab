@@ -5,7 +5,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { useBlocker, useParams, useSearchParams } from "react-router-dom";
+import { useBlocker, useLocation, useParams, useSearchParams } from "react-router-dom";
 
 import { getAdminCourse } from "../../courses/adminCourseService";
 import {
@@ -60,6 +60,7 @@ import {
   LoadingSkeleton,
   PageHeader,
 } from "../../ui";
+import { buildStudentPreviewUrl } from "../../preview/previewNavigation";
 
 function parseId(value: string | undefined) {
   const id = Number(value);
@@ -87,6 +88,7 @@ function Studio({
   const mutationInFlightRef = useRef(false);
   const editorRef = useRef<HTMLElement>(null);
   const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
   const [course, setCourse] =
     useState<AdminCourse | null>(null);
   const [unit, setUnit] =
@@ -448,7 +450,7 @@ function Studio({
         description={version ? `Version ${version.versionNumber} · ${saved}` : "This lesson has not been started yet."}
         breadcrumbs={[{ label: "Courses", to: "/admin/courses" }, { label: course.title, to: `/admin/courses/${courseId}` }, { label: unit.title, to: `/admin/courses/${courseId}/units/${unitId}` }, { label: lesson.title }]}
         meta={<Badge tone={(version?.status ?? lesson.status) === "draft" ? "draft" : "success"}>{version?.status ?? lesson.status}</Badge>}
-        actions={<><ButtonLink icon="arrow-left" variant="secondary" to={`/admin/courses/${courseId}/units/${unitId}`}>Back to lessons</ButtonLink><ButtonLink variant="secondary" to={`/admin/preview/courses/${courseId}/lessons/${lessonId}`}>Preview as Student</ButtonLink>{publishable && <Button type="button" icon="check" isLoading={busy} onClick={handlePublish}>{busy ? "Publishing…" : "Publish lesson version"}</Button>}{version?.status === "published" && canEditDrafts && <Button type="button" icon="edit" isLoading={busy} onClick={handleCreateDraftVersion}>{busy ? "Creating draft…" : "Create draft version"}</Button>}</>}
+        actions={<><ButtonLink icon="arrow-left" variant="secondary" to={`/admin/courses/${courseId}/units/${unitId}`}>Back to lessons</ButtonLink><ButtonLink variant="secondary" to={buildStudentPreviewUrl({ courseId, lessonId, returnTo: `${location.pathname}${location.search}`, activityId: selected?.id })}>Preview as Student</ButtonLink>{publishable && <Button type="button" icon="check" isLoading={busy} onClick={handlePublish}>{busy ? "Publishing…" : "Publish lesson version"}</Button>}{version?.status === "published" && canEditDrafts && <Button type="button" icon="edit" isLoading={busy} onClick={handleCreateDraftVersion}>{busy ? "Creating draft…" : "Create draft version"}</Button>}</>}
       />
       <span role="status" aria-live="polite" className="sr-only">{saved}</span>
 

@@ -7,6 +7,7 @@ import {
 } from "react";
 import {
   Link,
+  useLocation,
   useNavigate,
   useParams,
 } from "react-router-dom";
@@ -42,6 +43,7 @@ import {
 } from "./adminLessonService";
 import LessonCreationDialog from "./LessonCreationDialog";
 import { canStartLessonCreation } from "./lessonCreationState";
+import { buildStudentPreviewUrl } from "../preview/previewNavigation";
 
 type FormState =
   | { mode: "closed" }
@@ -83,6 +85,7 @@ function UnitLessonsContent({
   courseId,
   unitId,
 }: UnitLessonsContentProps) {
+  const location = useLocation();
   const navigate = useNavigate();
   const { canEditDrafts } =
     useAdminPermissions();
@@ -411,7 +414,7 @@ function UnitLessonsContent({
                       <td className="px-6 py-5">
                         <div className="flex justify-end gap-2">
                           <ButtonLink icon="sparkle" to={`/admin/courses/${courseId}/units/${unitId}/lessons/${lesson.id}/studio`}>Open Studio</ButtonLink>
-                          <ButtonLink variant="secondary" to={`/admin/preview/courses/${courseId}/lessons/${lesson.id}`}>Preview as Student</ButtonLink>
+                          <ButtonLink variant="secondary" to={buildStudentPreviewUrl({ courseId, lessonId: lesson.id, returnTo: `${location.pathname}${location.search}` })}>Preview as Student</ButtonLink>
                         {isDraft &&
                         canEditDrafts &&
                         course?.status === "draft" &&

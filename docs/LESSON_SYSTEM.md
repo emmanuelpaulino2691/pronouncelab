@@ -58,6 +58,10 @@ Learn block actions duplicate existing persisted content with a new block identi
 
 Learn uses a centralized block registry for heading, paragraph, example, tip, image, and audio content. The registry keeps presentation metadata and validation together so future blocks can be added without distributing activity-specific logic. Existing `theory` persistence values remain compatible; media authoring continues to use the existing protected draft media contracts.
 
+Image and Audio blocks persist only their stable `media_assets.id` reference in `theory_blocks.media_asset_id`. Signed draft URLs are resolved at runtime for Studio and authorized Student Preview and are never part of a save payload. Save is treated as successful only when the authoritative returned theory row preserves the requested reference; replacement and removal use the same scoped block save path.
+
+Learn Audio stores its teacher-facing label in the existing theory-block `title` field and its optional transcript in `text`. Reload reconstructs those fields and regenerates a URL from the referenced media row. URL resolution failure preserves the reference, label, and transcript and shows a block-local unavailable state.
+
 Route:
 
 ```text

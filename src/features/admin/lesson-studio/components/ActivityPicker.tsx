@@ -87,9 +87,9 @@ export default function ActivityPicker({ onClose, onCreate }: ActivityPickerProp
                 </button>
               ) : (
                 <div className="mt-5">
-                  <p className="mb-2 text-xs font-semibold text-slate-600">Existing Practice activities can still be edited</p>
+                  <p className="mb-2 text-xs font-semibold text-slate-600">{activity.unavailableReason ?? "This activity is not available for creation."}</p>
                   <Button type="button" variant="secondary" className="w-full" disabled aria-disabled="true" aria-describedby={descriptionId}>
-                    Cannot add new Practice
+                    Cannot add {activity.title}
                   </Button>
                 </div>
               )}

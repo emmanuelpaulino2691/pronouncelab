@@ -55,6 +55,8 @@ export type LearnerTheoryBlock =
   | {
       type: "audio";
       media: LearnerMedia;
+      label?: string;
+      transcript?: string;
     };
 
 export type LearnerQuestionOption = {

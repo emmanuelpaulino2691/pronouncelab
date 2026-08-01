@@ -12,6 +12,7 @@ import {
   getListeningTranscriptError,
   normalizeListeningTranscript,
 } from "../listeningValidation";
+import { assertSavedMediaReference, buildTheoryBlockSavePayload, parseTheoryBlockRow, type TheoryBlockRow } from "../theoryBlockPersistence";
 
 function client() {
   if (!supabase) {
@@ -68,18 +69,7 @@ export async function listTheoryBlocks(
       alt_text: string | null;
       updated_at: string;
     }>
-  ).map((row): TheoryBlock => ({
-    id: row.id,
-    activityId: row.activity_id,
-    blockType: row.block_type,
-    position: row.position,
-    headingLevel: row.heading_level,
-    title: row.title,
-    text: row.text,
-    mediaAssetId: row.media_asset_id,
-    altText: row.alt_text,
-    updatedAt: row.updated_at,
-  }));
+  ).map((row) => parseTheoryBlockRow(row));
 }
 
 export async function addTheoryBlock(
@@ -121,17 +111,7 @@ export async function saveTheoryBlock(
 ) {
   const { data, error } = await client()
     .from("theory_blocks")
-    .update({
-      block_type: block.blockType,
-      heading_level:
-        block.blockType === "heading"
-          ? block.headingLevel ?? 2
-          : null,
-      title: block.title?.trim() || null,
-      text: block.text?.trim() ?? "",
-      media_asset_id: block.mediaAssetId,
-      alt_text: block.altText?.trim() || null,
-    })
+    .update(buildTheoryBlockSavePayload(block))
     .eq("id", block.id)
     .eq("activity_id", expectedActivityId)
     .select(
@@ -144,30 +124,7 @@ export async function saveTheoryBlock(
       "Theory block is stale, unavailable, or no longer belongs to this activity."
     );
   }
-  const row = data as unknown as {
-    id: number;
-    activity_id: number;
-    block_type: TheoryBlockType;
-    position: number;
-    heading_level: number | null;
-    title: string | null;
-    text: string | null;
-    media_asset_id: string | null;
-    alt_text: string | null;
-    updated_at: string;
-  };
-  return {
-    id: row.id,
-    activityId: row.activity_id,
-    blockType: row.block_type,
-    position: row.position,
-    headingLevel: row.heading_level,
-    title: row.title,
-    text: row.text,
-    mediaAssetId: row.media_asset_id,
-    altText: row.alt_text,
-    updatedAt: row.updated_at,
-  } satisfies TheoryBlock;
+  return assertSavedMediaReference(block, parseTheoryBlockRow(data as unknown as TheoryBlockRow));
 }
 
 export async function deleteTheoryBlock(

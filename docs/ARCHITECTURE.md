@@ -235,6 +235,10 @@ Preview resolution is centralized in `teacherPreviewResolver`: saved draft first
 
 `mapDraftLessonToLearnerLessonData` is the single draft adapter for specialist content. It preserves stable activity IDs and maps theory, listening, pronunciation, quiz, legacy practice, and AI Speaking Mission configuration into the learner renderer shape without changing published projections.
 
+The draft adapter resolves saved Learn Image and Audio `media_assets` references to short-lived secure URLs only while building the authorized preview model. Preview launch URLs carry a validated admin return location; Lesson Studio also carries the selected activity so Exit Preview restores the exact editing context.
+
+Preview resource loading is total and generation-scoped: fulfilled failures and unexpected rejections both leave loading, aborted or stale requests cannot replace the current request, and retry starts a new generation. Draft-source failure may fall through to published and local sources. A Learn media URL failure remains local to that block and does not reject the lesson preview.
+
 Learn block duplication is performed as a scoped child insert through the existing activity content service. It copies content and stable media references while generating a new block ID; deletion removes only the content reference.
 
 The current `/admin` route remains the lazy-loaded Content Studio entry point for compatibility. Its dashboard and sidebar derive visible workspace language from the existing permission context; no new role or persistence model is introduced. My Courses uses the existing RLS-visible course query. Future workspace sections are non-interactive placeholders until Classes, Students, and Assignments are implemented.

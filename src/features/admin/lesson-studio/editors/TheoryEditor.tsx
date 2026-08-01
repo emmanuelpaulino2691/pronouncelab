@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
   addTheoryBlock,
@@ -14,7 +14,7 @@ import type {
 } from "../types";
 import { learnBlockRegistry, getLearnBlockDefinition } from "../learnBlockRegistry";
 import { validateLearnBlock } from "../learnBlockState";
-import { uploadDraftLearnAudio, uploadDraftLearnImage } from "../services/learnMediaService";
+import { getLearnMediaAsset, uploadDraftLearnAudio, uploadDraftLearnImage } from "../services/learnMediaService";
 
 const blockTypes: TheoryBlockType[] = learnBlockRegistry.map((block) => block.type);
 
@@ -36,7 +36,12 @@ export default function TheoryEditor({
   );
   const [collapsed, setCollapsed] = useState<Set<number>>(new Set());
   const [previewUrls, setPreviewUrls] = useState<Record<number, string>>({});
+  const [previewFailures, setPreviewFailures] = useState<Set<number>>(new Set());
   const [uploading, setUploading] = useState<number | null>(null);
+  const mediaSignature = useMemo(() => blocks
+    .filter((block) => block.blockType === "image" || block.blockType === "audio")
+    .map((block) => `${block.id}:${block.blockType}:${block.mediaAssetId ?? ""}`)
+    .join("|"), [blocks]);
 
   async function refresh() {
     setBlocks(await listTheoryBlocks(activityId));
@@ -59,6 +64,29 @@ export default function TheoryEditor({
       active = false;
     };
   }, [activityId]);
+
+  useEffect(() => {
+    let active = true;
+    const mediaBlocks = blocks.filter(
+      (block) => (block.blockType === "image" || block.blockType === "audio") && block.mediaAssetId
+    );
+    for (const block of mediaBlocks) {
+      void getLearnMediaAsset(block.mediaAssetId!, block.blockType as "image" | "audio").then(
+        (asset) => {
+          if (!active) return;
+          setPreviewUrls((current) => ({ ...current, [block.id]: asset.previewUrl }));
+          setPreviewFailures((current) => { const next = new Set(current); next.delete(block.id); return next; });
+        },
+        () => {
+          if (!active) return;
+          setPreviewFailures((current) => new Set(current).add(block.id));
+        }
+      );
+    }
+    return () => { active = false; };
+    // The stable media signature changes only when a saved reference changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mediaSignature]);
 
   async function run(action: () => Promise<unknown>) {
     setBusy(true);
@@ -85,6 +113,7 @@ export default function TheoryEditor({
         : await uploadDraftLearnAudio(activityId, file);
       setBlocks((current) => current.map((item) => item.id === block.id ? { ...item, mediaAssetId: result.id } : item));
       setPreviewUrls((current) => ({ ...current, [block.id]: result.previewUrl }));
+      setPreviewFailures((current) => { const next = new Set(current); next.delete(block.id); return next; });
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Media upload failed. Try again.");
     } finally { setUploading(null); }
@@ -218,7 +247,7 @@ export default function TheoryEditor({
               )}
             </div>
             <button type="button" className="mt-2 text-xs font-semibold text-slate-600" onClick={() => setCollapsed((current) => { const next = new Set(current); if (next.has(block.id)) next.delete(block.id); else next.add(block.id); return next; })}>{collapsed.has(block.id) ? "Expand block" : "Collapse block"}</button>
-            {!collapsed.has(block.id) && <textarea
+            {!collapsed.has(block.id) && block.blockType !== "audio" && <textarea
               aria-label={`Content for block ${index + 1}`}
               value={block.text ?? ""}
               disabled={!editable || busy}
@@ -241,11 +270,13 @@ export default function TheoryEditor({
               <div className="mt-3 rounded-lg border border-dashed border-slate-300 p-3 text-sm text-slate-600">
                 <input id={`learn-media-${block.id}`} className="sr-only" type="file" accept={block.blockType === "image" ? "image/*" : "audio/*"} disabled={!editable || uploading === block.id} onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadMedia(block, file); event.currentTarget.value = ""; }} />
                 <label htmlFor={`learn-media-${block.id}`} className="inline-flex min-h-10 cursor-pointer items-center rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white">{uploading === block.id ? "Uploading..." : block.mediaAssetId ? `Replace ${block.blockType === "image" ? "Image" : "Audio"}` : `Select ${block.blockType === "image" ? "Image" : "Audio"}`}</label>
-                {block.mediaAssetId && <button type="button" className="ml-2 text-sm font-semibold text-red-700" disabled={uploading === block.id} onClick={() => { setBlocks((current) => current.map((item) => item.id === block.id ? { ...item, mediaAssetId: null } : item)); setPreviewUrls((current) => { const next = { ...current }; delete next[block.id]; return next; }); }}>Remove {block.blockType === "image" ? "Image" : "Audio"}</button>}
+                {block.mediaAssetId && <button type="button" className="ml-2 text-sm font-semibold text-red-700" disabled={uploading === block.id} onClick={() => { setBlocks((current) => current.map((item) => item.id === block.id ? { ...item, mediaAssetId: null } : item)); setPreviewUrls((current) => { const next = { ...current }; delete next[block.id]; return next; }); setPreviewFailures((current) => { const next = new Set(current); next.delete(block.id); return next; }); }}>Remove {block.blockType === "image" ? "Image" : "Audio"}</button>}
                 {previewUrls[block.id] && block.blockType === "image" && <img src={previewUrls[block.id]} alt={block.altText ?? "Learn block preview"} className="mt-3 max-h-48 rounded-lg object-contain" />}
                 {previewUrls[block.id] && block.blockType === "audio" && <audio controls src={previewUrls[block.id]} className="mt-3 w-full" />}
+                {previewFailures.has(block.id) && <p role="status" className="mt-2 text-amber-700">Media remains saved, but its secure preview could not be loaded. Retry by refreshing this page.</p>}
                 {!block.mediaAssetId && <p className="mt-2">Media not configured. Select a file to add it.</p>}
                 {block.blockType === "image" && <input aria-label="Alternative text" className="mt-3 w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="Alternative text" value={block.altText ?? ""} disabled={!editable || busy} onChange={(event) => setBlocks((current) => current.map((item) => item.id === block.id ? { ...item, altText: event.target.value } : item))} />}
+                {block.blockType === "audio" && <><input aria-label="Audio label" className="mt-3 w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="Audio label" value={block.title ?? ""} disabled={!editable || busy} onChange={(event) => setBlocks((current) => current.map((item) => item.id === block.id ? { ...item, title: event.target.value } : item))} /><textarea aria-label="Audio transcript" className="mt-3 w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="Optional transcript" rows={3} value={block.text ?? ""} disabled={!editable || busy} onChange={(event) => setBlocks((current) => current.map((item) => item.id === block.id ? { ...item, text: event.target.value } : item))} /></>}
               </div>
             )}
             {!collapsed.has(block.id) && editable && (

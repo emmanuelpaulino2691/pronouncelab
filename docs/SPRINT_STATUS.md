@@ -341,6 +341,10 @@ In progress. Preview now resolves saved draft content first, then published cont
 
 In progress. Persistent Learn block duplication, populated-block confirmation, and explicit media configured/missing states were added using existing theory-block persistence. Full image/audio upload controls and caption/label persistence remain blocked by the current media/content contract.
 
+Frontend cleanup now persists stable Image and Audio media references through the existing theory-block contract, reloads secure previews after refresh, and renders both block types in authorized Student Preview. Preview exits preserve Course Workspace, Curriculum, or Lesson Studio origin, including the selected Studio activity. Interactive Practice creation remains visibly unavailable until pending migration `202607220008` is validated and deployed; no fallback creation path is used.
+
+Release-blocker hardening makes Learn Audio reload use the same stable media-row resolution path as Image while preserving its label and transcript. Student Preview now settles every resource request into ready or a terminal failure state, supports retry and safe return actions, and renders block-local media fallbacks instead of rejecting an otherwise usable lesson.
+
 In progress. Added a centralized Learn block registry, block validation helpers, reorder utilities, and collapsible block editing groundwork. Existing persistence and routes remain unchanged; richer media controls and drag-and-drop remain follow-up work.
 
 In progress. Draft preview now uses a centralized mapper for specialist activity configuration and stable activity identity, including theory, listening, pronunciation, quiz, legacy practice, and AI Speaking Mission data. No learner projection, migration, or persistence behavior changed.

@@ -7,7 +7,8 @@ export type TeacherPreviewResult<T> =
   | { status: "ready"; source: TeacherPreviewSource; value: T }
   | { status: "not_found" }
   | { status: "forbidden" }
-  | { status: "unavailable"; reason: string };
+  | { status: "unavailable"; reason: string }
+  | { status: "error"; reason: string };
 
 export type TeacherPreviewSources = {
   draft?: {
@@ -25,16 +26,33 @@ async function resolve<T>(
   local: (id: ContentId, signal?: AbortSignal) => Promise<{ ok: true; value: T } | { ok: false; error: { code: string; message: string } }>,
   signal?: AbortSignal,
 ): Promise<TeacherPreviewResult<T>> {
+  let unexpectedFailure = false;
   if (draft) {
-    const draftValue = await draft(id, signal);
-    if (draftValue) return { status: "ready", source: "draft", value: draftValue };
+    try {
+      const draftValue = await draft(id, signal);
+      if (draftValue) return { status: "ready", source: "draft", value: draftValue };
+    } catch {
+      unexpectedFailure = true;
+    }
   }
-  const publishedResult = await published(id, signal);
-  if (publishedResult.ok) return { status: "ready", source: "published", value: publishedResult.value };
-  const localResult = await local(id, signal);
-  if (localResult.ok) return { status: "ready", source: "local", value: localResult.value };
-  if (publishedResult.error.code === "forbidden") return { status: "forbidden" };
-  return { status: "not_found" };
+  try {
+    const publishedResult = await published(id, signal);
+    if (publishedResult.ok) return { status: "ready", source: "published", value: publishedResult.value };
+    if (publishedResult.error.code === "forbidden") return { status: "forbidden" };
+    unexpectedFailure ||= publishedResult.error.code === "unexpected";
+  } catch {
+    unexpectedFailure = true;
+  }
+  try {
+    const localResult = await local(id, signal);
+    if (localResult.ok) return { status: "ready", source: "local", value: localResult.value };
+    unexpectedFailure ||= localResult.error.code === "unexpected";
+  } catch {
+    return { status: "error", reason: "Preview sources could not be loaded." };
+  }
+  return unexpectedFailure
+    ? { status: "error", reason: "Preview sources could not be loaded." }
+    : { status: "unavailable", reason: "No saved draft, published version, or local content is available." };
 }
 
 export function resolveTeacherPreviewLesson(

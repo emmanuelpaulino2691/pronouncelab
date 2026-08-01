@@ -15,6 +15,7 @@ export type ActivityPresentation = {
   allowsMultiple: boolean;
   canCreate: boolean;
   future: boolean;
+  unavailableReason?: string;
 };
 
 export const activityCatalog = [
@@ -61,6 +62,7 @@ export const activityCatalog = [
     allowsMultiple: true,
     canCreate: false,
     future: false,
+    unavailableReason: "Existing Practice activities can still be edited.",
   },
   {
     type: "quiz",
@@ -92,8 +94,9 @@ export const activityCatalog = [
     icon: "practice",
     category: "Assessment",
     allowsMultiple: true,
-    canCreate: true,
+    canCreate: false,
     future: false,
+    unavailableReason: "Creation requires the pending Interactive Practice backend RPC. Validate and deploy it on Dell before enabling this action.",
   },
 ] as const satisfies readonly ActivityPresentation[];
 
@@ -107,5 +110,6 @@ export function getActivityPresentation(type: ActivityType): ActivityPresentatio
     allowsMultiple: false,
     canCreate: false,
     future: false,
+    unavailableReason: "This activity type is not available for creation.",
   };
 }

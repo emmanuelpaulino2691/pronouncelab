@@ -12,3 +12,12 @@ export function buildStudentPreviewUrl(input: { courseId: number | string; lesso
 export function safePreviewReturnTo(value: string | null, fallback: string): string {
   return value?.startsWith("/admin/") ? value : fallback;
 }
+
+export function previewExitPath(returnTo: string | null, activityId: string | null, fallback: string): string {
+  const safe = safePreviewReturnTo(returnTo, fallback);
+  if (!activityId || !/^\d+$/.test(activityId)) return safe;
+  const [pathname, query = ""] = safe.split("?", 2);
+  const params = new URLSearchParams(query);
+  params.set("activity", activityId);
+  return `${pathname}?${params.toString()}`;
+}

@@ -46,7 +46,7 @@ describe("activityCatalog", () => {
     });
   });
 
-  it("makes Interactive Practice available for new authoring", () => {
+  it("keeps Interactive Practice safely unavailable until its backend RPC is deployed", () => {
     const interactivePractice = activityCatalog.find(
       (activity) =>
         activity.type === "interactive_practice"
@@ -54,8 +54,9 @@ describe("activityCatalog", () => {
 
     expect(interactivePractice).toMatchObject({
       title: "Interactive Practice",
-      canCreate: true,
+      canCreate: false,
       future: false,
+      unavailableReason: expect.stringContaining("pending Interactive Practice backend RPC"),
     });
   });
 

@@ -1,5 +1,6 @@
 export type ContentErrorCode =
   | "not_found"
+  | "forbidden"
   | "unavailable"
   | "invalid_data"
   | "aborted"

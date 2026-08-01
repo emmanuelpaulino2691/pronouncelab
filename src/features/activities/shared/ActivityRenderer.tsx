@@ -34,9 +34,13 @@ function TheoryBlockView({ block }: { block: import("../../../shared/content/con
     case "paragraph": return <p className="leading-7 text-slate-700">{block.text}</p>;
     case "tip": return <aside className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-blue-950">{block.text}</aside>;
     case "example": return <div className="rounded-xl bg-slate-50 p-4"><strong>{block.title}</strong><p className="mt-2">{block.text}</p></div>;
-    case "image": return <figure><img src={block.media.url} alt={block.alt} className="max-w-full rounded-xl" /></figure>;
-    case "audio": return <AudioPlayer src={block.media.url} />;
+    case "image": return block.media.url ? <figure><img src={block.media.url} alt={block.alt} className="max-w-full rounded-xl" /></figure> : <MediaUnavailable label="Image" />;
+    case "audio": return <section className="space-y-3">{block.label && <h3 className="font-semibold text-slate-950">{block.label}</h3>}{block.media.url ? <AudioPlayer src={block.media.url} /> : <MediaUnavailable label="Audio" />}{block.transcript && <ToggleSection buttonText="Show transcript" closeButtonText="Hide transcript" regionLabel={`${block.label || "Audio"} transcript`}><p className="whitespace-pre-wrap leading-7 text-slate-700">{block.transcript}</p></ToggleSection>}</section>;
   }
+}
+
+function MediaUnavailable({ label }: { label: string }) {
+  return <p role="status" className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">{label} is saved, but its secure preview is temporarily unavailable.</p>;
 }
 
 function AnswerSafeQuestions({ questions, onReadyChange }: { questions: readonly LearnerQuestion[]; onReadyChange: (ready: boolean) => void }) {
