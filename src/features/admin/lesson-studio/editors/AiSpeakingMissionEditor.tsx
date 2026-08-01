@@ -4,13 +4,18 @@ import AiSpeakingMissionCard from "../../../ai-missions/AiSpeakingMissionCard";
 import { cefrLevels, copyPlainText, generateAiMissionPrompt, validateAiSpeakingMission, type AiSpeakingMissionData } from "../../../ai-missions";
 import { normalizeAiSpeakingMission } from "../../../ai-missions/missionNormalization";
 import { Alert, Button, Card, FormField, Select, TextArea, TextInput } from "../../ui";
+import CollapsibleEditorSection from "../components/CollapsibleEditorSection";
+import type { ActivitySectionCollapseController } from "../studioViewState";
+import { useEditorSectionCollapse } from "../useEditorSectionCollapse";
 import {
   AiMissionConflictError,
   getAiMission,
   saveAiMission,
 } from "../services/aiMissionService";
 
-export default function AiSpeakingMissionEditor({ activityId, editable }: { activityId: number; editable: boolean }) {
+const missionSectionIds = ["mission-basics", "mission-practice", "mission-configuration", "mission-prompt", "mission-preview"];
+
+export default function AiSpeakingMissionEditor({ activityId, editable, onDirtyChange, onSectionControllerChange }: { activityId: number; editable: boolean; onDirtyChange?: (dirty: boolean) => void; onSectionControllerChange?: (controller: ActivitySectionCollapseController | null) => void }) {
   const active = useRef(true);
   const request = useRef(0);
   const [missionId, setMissionId] = useState<number | null>(null);
@@ -20,6 +25,7 @@ export default function AiSpeakingMissionEditor({ activityId, editable }: { acti
   const [message, setMessage] = useState("");
   const [copyStatus, setCopyStatus] = useState("");
   const prompt = useMemo(() => data ? generateAiMissionPrompt(data) : "", [data]);
+  const sections = useEditorSectionCollapse(activityId, missionSectionIds, onSectionControllerChange);
 
   useEffect(() => {
     active.current = true;
@@ -35,6 +41,7 @@ export default function AiSpeakingMissionEditor({ activityId, editable }: { acti
   }, [activityId]);
 
   function patch(values: Partial<AiSpeakingMissionData>) {
+    onDirtyChange?.(true);
     setData((current) => current ? { ...current, ...values } : current);
   }
 
@@ -60,6 +67,7 @@ export default function AiSpeakingMissionEditor({ activityId, editable }: { acti
         setData(saved.config);
         setUpdatedAt(saved.updated_at);
         setMessage("AI speaking mission saved.");
+        onDirtyChange?.(false);
       }
     } catch (error) {
       if (
@@ -103,7 +111,7 @@ export default function AiSpeakingMissionEditor({ activityId, editable }: { acti
 
   return <div className="space-y-6">
     {message && <Alert tone={message.includes("saved") ? "success" : "info"}>{message}</Alert>}
-    <Card className="p-5 sm:p-6">
+    <CollapsibleEditorSection sectionId="mission-basics" title="Mission basics" collapsed={sections.collapsed.has("mission-basics")} onToggle={() => sections.toggle("mission-basics")} summary={`${data.missionTitle || "Untitled mission"} · ${data.cefrLevel} · ${data.estimatedMinutes} minutes`} warning={!data.missionTitle.trim() || !data.goal.trim() ? "Mission title and goal are required." : null}>
       <h2 className="text-lg font-bold">Mission basics</h2>
       <div className="mt-5 grid gap-5 sm:grid-cols-2">
         <FormField label="Mission title" htmlFor="mission-title" required><TextInput id="mission-title" disabled={!editable || busy} value={data.missionTitle} onChange={(e) => patch({ missionTitle: e.target.value })} /></FormField>
@@ -113,8 +121,8 @@ export default function AiSpeakingMissionEditor({ activityId, editable }: { acti
         <FormField label="Difficulty label" htmlFor="mission-difficulty"><TextInput id="mission-difficulty" disabled={!editable || busy} value={data.difficultyLabel} onChange={(e) => patch({ difficultyLabel: e.target.value })} /></FormField>
         <div className="sm:col-span-2"><FormField label="Short goal" htmlFor="mission-goal" required><TextArea id="mission-goal" disabled={!editable || busy} value={data.goal} onChange={(e) => patch({ goal: e.target.value })} /></FormField></div>
       </div>
-    </Card>
-    <Card className="p-5 sm:p-6">
+    </CollapsibleEditorSection>
+    <CollapsibleEditorSection sectionId="mission-practice" title="Sound groups, sentences, and reading" collapsed={sections.collapsed.has("mission-practice")} onToggle={() => sections.toggle("mission-practice")} summary={`${data.primaryWords.length} primary words · ${data.secondaryWords.length} contrast words · ${data.sentences.length} sentences · ${data.readingText.trim() ? "Reading added" : "No reading"}`} warning={!data.primaryWords.some((value) => value.trim()) ? "Add at least one primary practice word." : null}>
       <h2 className="text-lg font-bold">Sound focus and practice</h2>
       <div className="mt-5 grid gap-5 sm:grid-cols-2">
         <FormField label="Primary sound name" htmlFor="primary-sound"><TextInput id="primary-sound" disabled={!editable || busy} value={data.primarySoundLabel} onChange={(e) => patch({ primarySoundLabel: e.target.value })} /></FormField>
@@ -126,8 +134,8 @@ export default function AiSpeakingMissionEditor({ activityId, editable }: { acti
         <div className="sm:col-span-2"><MissionListEditor label="Sentences" items={data.sentences} recommended="Two or three sentences are recommended." disabled={!editable || busy} onChange={(sentences) => patch({ sentences })} /></div>
         <div className="sm:col-span-2"><FormField label={`Short reading (${data.readingText.trim().split(/\s+/).filter(Boolean).length} words)`} htmlFor="mission-reading"><TextArea id="mission-reading" disabled={!editable || busy} value={data.readingText} onChange={(e) => patch({ readingText: e.target.value.slice(0, 3000) })} /></FormField></div>
       </div>
-    </Card>
-    <Card className="p-5 sm:p-6">
+    </CollapsibleEditorSection>
+    <CollapsibleEditorSection sectionId="mission-configuration" title="Student instructions and result configuration" collapsed={sections.collapsed.has("mission-configuration")} onToggle={() => sections.toggle("mission-configuration")} summary={`${data.studentInstructions.trim() ? "English instructions added" : "No English instructions"} · ${data.studentInstructionsEs?.trim() ? "Spanish instructions added" : "No Spanish instructions"} · ${data.supportedTools.join(" and ") || "No platform"}`} warning={!data.supportedTools.length ? "Select at least one supported platform." : null}>
       <h2 className="text-lg font-bold">AI configuration</h2>
       <p className="mt-1 text-sm text-slate-500">ChatGPT and Gemini are enabled by default. PronounceLab does not call either API.</p>
       <div className="mt-5 grid gap-5 sm:grid-cols-2">
@@ -155,14 +163,14 @@ export default function AiSpeakingMissionEditor({ activityId, editable }: { acti
         <div className="sm:col-span-2"><FormField label="Student instructions — Spanish (optional)" htmlFor="student-instructions-es" hint="Support students who may not understand the English workflow. The AI prompt does not need to be translated."><TextArea id="student-instructions-es" maxLength={5000} disabled={!editable || busy} value={data.studentInstructionsEs ?? ""} onChange={(e) => patch({ studentInstructionsEs: e.target.value })} /></FormField></div>
         <div className="sm:col-span-2"><FormField label="Teacher note" htmlFor="teacher-instructions"><TextArea id="teacher-instructions" disabled={!editable || busy} value={data.teacherInstructions} onChange={(e) => patch({ teacherInstructions: e.target.value })} /></FormField></div>
       </div>
-    </Card>
-    <Card className="p-5 sm:p-6">
+    </CollapsibleEditorSection>
+    <CollapsibleEditorSection sectionId="mission-prompt" title="Generated prompt" collapsed={sections.collapsed.has("mission-prompt")} onToggle={() => sections.toggle("mission-prompt")} summary={`${prompt.length} generated characters`}>
       <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-lg font-bold">AI prompt</h2><p className="text-sm text-slate-500">Generated from the mission configuration and kept separate from student instructions.</p></div><Button variant="secondary" onClick={() => void copyPlainText(prompt).then(() => setCopyStatus("Prompt copied.")).catch(() => setCopyStatus("Copy failed."))}>Copy Prompt</Button></div>
       {copyStatus && <p role="status" className="mt-3 text-sm text-blue-700">{copyStatus}</p>}
       <pre className="mt-4 max-h-96 overflow-auto whitespace-pre-wrap rounded-xl bg-slate-950 p-4 text-xs leading-6 text-slate-100">{prompt}</pre>
-    </Card>
+    </CollapsibleEditorSection>
     {editable && <Button isLoading={busy} onClick={() => void save()}>Save AI mission</Button>}
-    <div><h2 className="mb-3 text-lg font-bold">Student preview</h2><AiSpeakingMissionCard mission={data} previewOnly /></div>
+    <CollapsibleEditorSection sectionId="mission-preview" title="Student preview" collapsed={sections.collapsed.has("mission-preview")} onToggle={() => sections.toggle("mission-preview")} summary="Mutation-free external AI workflow preview"><AiSpeakingMissionCard mission={data} previewOnly /></CollapsibleEditorSection>
   </div>;
 }
 

@@ -119,9 +119,9 @@ export default function TheoryEditor({
   const blockIds = useMemo(() => blocks.map((block) => block.id), [blocks]);
   useEffect(() => {
     if (!onSectionControllerChange) return;
-    onSectionControllerChange({ canCollapse: true, collapseAll: () => setCollapsed(new Set(blockIds)), expandAll: () => setCollapsed(new Set()) });
+    onSectionControllerChange({ canCollapse: blockIds.length > 0, supportsSectionCollapse: true, sectionCount: blockIds.length, collapsedSectionCount: blockIds.filter((id) => collapsed.has(id)).length, disabledReason: blockIds.length ? undefined : "This Learn activity has no blocks to collapse.", collapseAll: () => setCollapsed(new Set(blockIds)), expandAll: () => setCollapsed(new Set()) });
     return () => onSectionControllerChange(null);
-  }, [blockIds, onSectionControllerChange]);
+  }, [blockIds, collapsed, onSectionControllerChange]);
 
   async function run(action: () => Promise<unknown>) {
     setBusy(true);

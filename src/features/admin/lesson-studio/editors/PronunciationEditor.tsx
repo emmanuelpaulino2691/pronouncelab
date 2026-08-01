@@ -21,12 +21,17 @@ import {
   savePronunciationItem,
 } from "../services/activityContentService";
 import type { PronunciationItem } from "../types";
+import type { ActivitySectionCollapseController } from "../studioViewState";
+import { useEditorSectionCollapse } from "../useEditorSectionCollapse";
+import CollapsibleEditorSection from "../components/CollapsibleEditorSection";
 
-export default function PronunciationEditor({ activityId, editable, onDirtyChange }: { activityId: number; editable: boolean; onDirtyChange: (dirty: boolean) => void }) {
+export default function PronunciationEditor({ activityId, editable, onDirtyChange, onSectionControllerChange }: { activityId: number; editable: boolean; onDirtyChange: (dirty: boolean) => void; onSectionControllerChange?: (controller: ActivitySectionCollapseController | null) => void }) {
   const [items, setItems] = useState<PronunciationItem[]>([]);
   const [loadedActivityId, setLoadedActivityId] = useState<number | null>(null);
   const [pendingId, setPendingId] = useState<number | "create" | "reorder" | null>(null);
   const [message, setMessage] = useState("");
+  const sectionIds = items.map((item) => `pronunciation-${item.id}`);
+  const sections = useEditorSectionCollapse(activityId, sectionIds, onSectionControllerChange);
 
   useEffect(() => {
     let active = true;
@@ -101,16 +106,16 @@ export default function PronunciationEditor({ activityId, editable, onDirtyChang
           <Button type="button" variant="secondary" disabled={Boolean(pendingId)} onClick={() => void create("minimal_pairs")}>Add Minimal Pairs</Button>
         </div>
       )}
-      {items.map((item, index) => item.blockType ? (
+      {items.map((item, index) => <CollapsibleEditorSection key={item.id} sectionId={`pronunciation-${item.id}`} title={item.title || `Pronunciation block ${index + 1}`} collapsed={sections.collapsed.has(`pronunciation-${item.id}`)} onToggle={() => sections.toggle(`pronunciation-${item.id}`)} summary={`${item.blockType === "minimal_pairs" ? "Minimal Pairs" : item.blockType === "word_list" ? "Word List" : "Existing item"} · ${item.spellingPattern?.trim() || "No spelling pattern"} · ${item.entries.length} ${item.blockType === "minimal_pairs" ? "pairs" : "words"} · ${item.audioAssetId ? "Audio attached" : "No audio"}`} warning={item.blockType ? getPronunciationEntriesError(item.blockType, item.entries) : !item.title.trim() ? "Title is required." : null}>{item.blockType ? (
         <PronunciationBlockForm
-          key={item.id} item={item} editable={editable} busy={Boolean(pendingId)}
+          item={item} editable={editable} busy={Boolean(pendingId)}
           onPatch={(values) => patch(item.id, values)} onSave={() => void save(item)} onDelete={() => void remove(item)}
           onMoveUp={() => void moveBlock(index, -1)} onMoveDown={() => void moveBlock(index, 1)}
           canMoveUp={index > 0} canMoveDown={index < items.length - 1}
         />
       ) : (
-        <LegacyPronunciationForm key={item.id} item={item} editable={editable} busy={Boolean(pendingId)} onPatch={(values) => patch(item.id, values)} onSave={() => void save(item)} />
-      ))}
+        <LegacyPronunciationForm item={item} editable={editable} busy={Boolean(pendingId)} onPatch={(values) => patch(item.id, values)} onSave={() => void save(item)} />
+      )}</CollapsibleEditorSection>)}
     </section>
   );
 }
@@ -129,7 +134,7 @@ function PronunciationBlockForm({ item, editable, busy, onPatch, onSave, onDelet
     if (parsed.length) { onPatch({ entries: [...item.entries, ...parsed] }); setPasteText(""); }
   }
   return (
-    <form className="space-y-5 rounded-2xl border border-slate-200 bg-white p-5 sm:p-6" onSubmit={(event) => { event.preventDefault(); onSave(); }}>
+    <form className="space-y-5" onSubmit={(event) => { event.preventDefault(); onSave(); }}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div><p className="text-xs font-bold uppercase tracking-wide text-blue-700">{type === "word_list" ? "Word List" : "Minimal Pairs"}</p></div>
         {editable && <div className="flex flex-wrap gap-2"><Button type="button" variant="secondary" disabled={busy || !canMoveUp} aria-label={`Move ${item.title} up`} onClick={onMoveUp}>Up</Button><Button type="button" variant="secondary" disabled={busy || !canMoveDown} aria-label={`Move ${item.title} down`} onClick={onMoveDown}>Down</Button><Button type="button" variant="danger" disabled={busy} onClick={onDelete}>Delete</Button></div>}

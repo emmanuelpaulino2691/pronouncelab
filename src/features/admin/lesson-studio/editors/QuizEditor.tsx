@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
   createQuestion,
@@ -13,13 +13,20 @@ import type {
   AssessmentSet,
   QuizQuestion,
 } from "../types";
+import type { ActivitySectionCollapseController } from "../studioViewState";
+import { useEditorSectionCollapse } from "../useEditorSectionCollapse";
+import CollapsibleEditorSection from "../components/CollapsibleEditorSection";
 
 export default function QuizEditor({
   activityId,
   editable,
+  onDirtyChange,
+  onSectionControllerChange,
 }: {
   activityId: number;
   editable: boolean;
+  onDirtyChange?: (dirty: boolean) => void;
+  onSectionControllerChange?: (controller: ActivitySectionCollapseController | null) => void;
 }) {
   const [assessment, setAssessment] =
     useState<AssessmentSet | null>(null);
@@ -30,6 +37,8 @@ export default function QuizEditor({
   const [message, setMessage] = useState<
     string | null
   >(null);
+  const sectionIds = useMemo(() => ["quiz-settings", ...questions.map((question) => `quiz-question-${question.id}`)], [questions]);
+  const sections = useEditorSectionCollapse(activityId, sectionIds, onSectionControllerChange);
 
   async function refresh() {
     const set = await getAssessment(activityId);
@@ -80,6 +89,7 @@ export default function QuizEditor({
       await action();
       await refresh();
       setMessage(success);
+      onDirtyChange?.(false);
     } catch (error) {
       setMessage(
         error instanceof Error
@@ -112,6 +122,7 @@ export default function QuizEditor({
         )
       );
       setMessage("Question saved.");
+      onDirtyChange?.(false);
     } catch (error) {
       const message =
         error instanceof Error
@@ -165,30 +176,30 @@ export default function QuizEditor({
           {message}
         </p>
       )}
-      <div className="mt-5 grid gap-4">
+      <div className="mt-5"><CollapsibleEditorSection sectionId="quiz-settings" title="Quiz settings and instructions" collapsed={sections.collapsed.has("quiz-settings")} onToggle={() => sections.toggle("quiz-settings")} summary={`${assessment.title || "Untitled quiz"} · ${assessment.instructions?.trim() ? "Instructions added" : "No instructions"}`} warning={!assessment.title.trim() ? "Quiz title is required." : null}><div className="grid gap-4">
         <input
           aria-label="Quiz title"
           className="field"
           disabled={!editable || busy}
           value={assessment.title}
-          onChange={(event) =>
+          onChange={(event) => {
             setAssessment({
               ...assessment,
               title: event.target.value,
-            })
-          }
+            }); onDirtyChange?.(true);
+          }}
         />
         <textarea
           aria-label="Quiz instructions"
           className="field"
           disabled={!editable || busy}
           value={assessment.instructions ?? ""}
-          onChange={(event) =>
+          onChange={(event) => {
             setAssessment({
               ...assessment,
               instructions: event.target.value,
-            })
-          }
+            }); onDirtyChange?.(true);
+          }}
         />
         {editable && (
           <div className="flex flex-wrap gap-2">
@@ -238,12 +249,17 @@ export default function QuizEditor({
             </button>
           </div>
         )}
-      </div>
+      </div></CollapsibleEditorSection></div>
       <div className="mt-6 space-y-5">
         {questions.map((question, questionIndex) => (
-          <article
+          <CollapsibleEditorSection
             key={question.id}
-            className="rounded-xl border border-slate-200 p-4"
+            sectionId={`quiz-question-${question.id}`}
+            title={`Question ${questionIndex + 1}`}
+            collapsed={sections.collapsed.has(`quiz-question-${question.id}`)}
+            onToggle={() => sections.toggle(`quiz-question-${question.id}`)}
+            summary={`Single choice · ${question.prompt.trim().slice(0, 90) || "No prompt"} · ${question.options.length} options`}
+            warning={!question.prompt.trim() ? "Question prompt is required." : question.options.some((option) => !option.text.trim()) ? "Every option needs text." : !question.options.some((option) => option.isCorrect) ? "Select a correct option." : null}
           >
             <div className="flex justify-between gap-3">
               <strong className="text-sm">
@@ -334,7 +350,7 @@ export default function QuizEditor({
               className="field"
               disabled={!editable || busy}
               value={question.prompt}
-              onChange={(event) =>
+              onChange={(event) => {
                 setQuestions((current) =>
                   current.map((item) =>
                     item.id === question.id
@@ -344,8 +360,8 @@ export default function QuizEditor({
                         }
                       : item
                   )
-                )
-              }
+                ); onDirtyChange?.(true);
+              }}
             />
             <div className="mt-3 space-y-2">
               {question.options.map(
@@ -359,7 +375,7 @@ export default function QuizEditor({
                       name={`correct-${question.id}`}
                       checked={option.isCorrect}
                       disabled={!editable || busy}
-                      onChange={() =>
+                      onChange={() => {
                         setQuestions((current) =>
                           current.map((item) =>
                             item.id === question.id
@@ -377,15 +393,15 @@ export default function QuizEditor({
                                 }
                               : item
                           )
-                        )
-                      }
+                        ); onDirtyChange?.(true);
+                      }}
                     />
                     <input
                       aria-label={`Option ${optionIndex + 1}`}
                       className="field mt-0"
                       disabled={!editable || busy}
                       value={option.text}
-                      onChange={(event) =>
+                      onChange={(event) => {
                         setQuestions((current) =>
                           current.map((item) =>
                             item.id === question.id
@@ -407,8 +423,8 @@ export default function QuizEditor({
                                 }
                               : item
                           )
-                        )
-                      }
+                        ); onDirtyChange?.(true);
+                      }}
                     />
                   </label>
                 )
@@ -420,7 +436,7 @@ export default function QuizEditor({
               className="field"
               disabled={!editable || busy}
               value={question.explanation ?? ""}
-              onChange={(event) =>
+              onChange={(event) => {
                 setQuestions((current) =>
                   current.map((item) =>
                     item.id === question.id
@@ -431,8 +447,8 @@ export default function QuizEditor({
                         }
                       : item
                   )
-                )
-              }
+                ); onDirtyChange?.(true);
+              }}
             />
             {editable && (
               <button
@@ -446,7 +462,7 @@ export default function QuizEditor({
                 Save question
               </button>
             )}
-          </article>
+          </CollapsibleEditorSection>
         ))}
       </div>
     </section>

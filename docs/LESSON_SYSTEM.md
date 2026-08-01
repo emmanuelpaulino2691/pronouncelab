@@ -66,6 +66,8 @@ Sprint 45D adds persistent Learn block actions without changing this contract. D
 
 Sprint 45E moves workspace presentation controls above the selected activity. Editor only and Split preview apply consistently to every activity; saved preview uses the shared `ActivityRenderer` for Learn, Listening, Pronunciation, Quiz, legacy Practice, and AI Speaking Mission. Interactive Practice truthfully reports that preview is unavailable. Collapse All and Expand All delegate to the selected editor's registered section controller (currently Learn blocks); unsupported editors disable them. The complete selected activity editor can also be collapsed independently, with local per-activity remembered state and no effect on saving.
 
+Sprint 45F extends that section-controller contract across supported editors. Controllers expose support, total-section, and collapsed-section counts plus Collapse All and Expand All actions. Listening items, pronunciation blocks, quiz settings/questions, the legacy Practice compatibility section, and grouped AI Mission authoring sections use stable activity-scoped section identifiers. Collapsing hides mounted form content, so unsaved values and save serialization remain unchanged. Interactive Practice remains outside this contract.
+
 The optional Split Preview renders the last saved Learn snapshot through the learner `ActivityRenderer`. Unsaved editor changes are intentionally excluded and display **Preview shows the last saved version.**
 
 Route:

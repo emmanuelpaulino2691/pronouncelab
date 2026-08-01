@@ -353,6 +353,10 @@ Implemented locally as a frontend-only increment. Learn blocks support authorita
 
 Implemented locally as a frontend-only increment. Forced teacher-preview modes now control both preview width and the shared learner shell: Phone and Tablet use compact activity navigation with a full-width content column, while Desktop retains the outline sidebar and learner routes remain automatic. Lesson Studio now owns the shared Editor only/Split preview and Collapse All/Expand All toolbar. Split preview loads saved activity data into `ActivityRenderer`; Interactive Practice remains explicitly unavailable. Complete activity editors have independent, local-only collapse state. Browser QA remains pending.
 
+## Sprint 45F — Shared Collapsible Sections
+
+Implemented locally as a frontend-only increment. Listening, Pronunciation, Quiz, legacy Practice, and AI Speaking Mission now register the shared section-collapse controller used by Learn. Individual section toggles preserve mounted form state, collapsed summaries expose content and validation status, and shared Collapse All/Expand All actions announce accurate section counts. Activity-level collapse remains separate, and Interactive Practice is unchanged. Browser QA remains pending.
+
 In progress. Added a centralized Learn block registry, block validation helpers, reorder utilities, and collapsible block editing groundwork. Existing persistence and routes remain unchanged; richer media controls and drag-and-drop remain follow-up work.
 
 In progress. Draft preview now uses a centralized mapper for specialist activity configuration and stable activity identity, including theory, listening, pronunciation, quiz, legacy practice, and AI Speaking Mission data. No learner projection, migration, or persistence behavior changed.

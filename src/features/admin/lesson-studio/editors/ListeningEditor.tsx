@@ -16,21 +16,28 @@ import {
   saveListeningItem,
 } from "../services/activityContentService";
 import type { ListeningItem } from "../types";
+import type { ActivitySectionCollapseController } from "../studioViewState";
+import { useEditorSectionCollapse } from "../useEditorSectionCollapse";
+import CollapsibleEditorSection from "../components/CollapsibleEditorSection";
 
 export default function ListeningEditor({
   activityId,
   editable,
   onDirtyChange,
+  onSectionControllerChange,
 }: {
   activityId: number;
   editable: boolean;
   onDirtyChange: (dirty: boolean) => void;
+  onSectionControllerChange?: (controller: ActivitySectionCollapseController | null) => void;
 }) {
   const [items, setItems] = useState<ListeningItem[]>([]);
   const [busy, setBusy] = useState(false);
   const [loadedActivityId, setLoadedActivityId] = useState<number | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [messageTone, setMessageTone] = useState<"success" | "error" | "info">("info");
+  const sectionIds = items.map((item) => `listening-${item.id}`);
+  const sections = useEditorSectionCollapse(activityId, sectionIds, onSectionControllerChange);
 
   useEffect(() => {
     let active = true;
@@ -90,9 +97,9 @@ export default function ListeningEditor({
       {items.map((item) => {
         const transcriptError = getListeningTranscriptError(item.transcript);
         return (
+          <CollapsibleEditorSection key={item.id} sectionId={`listening-${item.id}`} title={item.title || "Listening item"} collapsed={sections.collapsed.has(`listening-${item.id}`)} onToggle={() => sections.toggle(`listening-${item.id}`)} summary={`${item.audioAssetId ? "Audio attached" : "No audio"} · ${item.transcript?.trim() ? "Transcript added" : "No transcript"}`} warning={!item.title.trim() ? "Item title is required." : transcriptError}>
           <form
-            key={item.id}
-            className="space-y-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_10px_30px_rgb(15_23_42/0.05)] sm:p-6"
+            className="space-y-5"
             onSubmit={(event) => {
               preventListeningFormNavigation(event);
               void save(item);
@@ -122,6 +129,7 @@ export default function ListeningEditor({
             <p className="text-right text-xs text-slate-500">{item.transcript?.length ?? 0} / {maxListeningTranscriptLength}</p>
             {editable && <Button type={listeningControlTypes.save} isLoading={busy} disabled={busy || !item.title.trim() || Boolean(transcriptError)}>Save listening</Button>}
           </form>
+          </CollapsibleEditorSection>
         );
       })}
     </section>

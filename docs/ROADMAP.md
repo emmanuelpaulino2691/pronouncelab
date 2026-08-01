@@ -73,6 +73,14 @@ Before the numbered visual/product sprints, the repository established Supabase 
 
 **Boundary:** Split Preview does not inject unsaved state, responsive modes do not alter learner logic, and no schema, RPC, migration, Storage-copy, or learner-progress contract changed.
 
+### Sprint 45F — Shared Collapsible Sections Across Activity Editors
+
+**Status:** Implemented locally; browser QA pending.
+
+**Delivered:** a counted shared section-controller contract, accessible mounted-content collapse surfaces, useful collapsed validation summaries, and working workspace Collapse All/Expand All behavior for Learn, Listening, Pronunciation, Quiz, legacy Practice, and AI Speaking Mission.
+
+**Boundary:** collapse state is presentation-only, Interactive Practice is unchanged, and no learner, persistence, scoring, AI-provider, schema, RPC, or migration contract changed.
+
 ### Sprint 41 — Publishing and Versioning Experience
 
 **Status:** Partial; implemented locally, with specialist-RPC hardening and

@@ -10,6 +10,7 @@ import LessonStudioWorkspaceToolbar from "../components/LessonStudioWorkspaceToo
 import SavedActivityPreview from "../components/SavedActivityPreview";
 import { activityTypeLabels } from "../types";
 import type { ActivitySectionCollapseController, StudioViewMode } from "../studioViewState";
+import LegacyPracticeEditor from "./LegacyPracticeEditor";
 
 const AiSpeakingMissionEditor = lazy(
   () => import("./AiSpeakingMissionEditor")
@@ -82,6 +83,7 @@ export default function ActivityEditor({
           activityId={activity.id}
           editable={editable}
           onDirtyChange={(dirty) => reportDirty("listening", dirty)}
+          onSectionControllerChange={registerSectionController}
         />
       )}
       {activity.type === "pronunciation" && (
@@ -90,21 +92,19 @@ export default function ActivityEditor({
           activityId={activity.id}
           editable={editable}
           onDirtyChange={(dirty) => reportDirty("pronunciation", dirty)}
+          onSectionControllerChange={registerSectionController}
         />
       )}
       {activity.type === "practice" && (
-        <section className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-600 shadow-sm">
-          <h2 className="font-semibold text-slate-950">Existing Practice activity</h2>
-          <p className="mt-2 leading-6">
-            This activity remains available for compatibility with existing lessons. You can update its title and required status above, while its existing lesson position and actions remain supported.
-          </p>
-        </section>
+        <LegacyPracticeEditor activityId={activity.id} onSectionControllerChange={registerSectionController} />
       )}
       {activity.type === "quiz" && (
         <QuizEditor
           key={activity.id}
           activityId={activity.id}
           editable={editable}
+          onDirtyChange={(dirty) => reportDirty("quiz", dirty)}
+          onSectionControllerChange={registerSectionController}
         />
       )}
       {activity.type === "interactive_practice" && (
@@ -120,6 +120,8 @@ export default function ActivityEditor({
             key={activity.id}
             activityId={activity.id}
             editable={editable}
+            onDirtyChange={(dirty) => reportDirty("ai_speaking_mission", dirty)}
+            onSectionControllerChange={registerSectionController}
           />
         </Suspense>
       )}
