@@ -1,5 +1,9 @@
 # Lesson System
 
+## Smart Content Builder
+
+Lesson Studio uses a reusable activity-template registry for Learn, Listening, Pronunciation, Quiz, and AI Speaking Mission starting points. Registry entries contain a stable local ID, activity type, description, suggested level, duration, recommended use, and optional tags. Opening a template records it locally as recent and displays preview information only. Favorites and recents never enter lesson serialization. Empty lessons link directly to Templates, Recently Used, Favorites, and Blank Activities. Duplicate Activity and Copy Activity dialogs support Learn, Listening, Pronunciation, Quiz, legacy Practice, and AI Speaking Mission, but do not mutate until matching backend contracts exist.
+
 ## Contents
 
 - [Two representations](#two-representations)

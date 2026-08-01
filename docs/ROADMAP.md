@@ -1,5 +1,11 @@
 # Roadmap
 
+### Sprint 47B — Smart Content Builder Foundation
+
+**Delivered locally:** reusable activity-template registry, preview-first Smart Builder, local favorites and ten-item recents, intelligent empty-lesson entry points, and validated non-mutating Duplicate/Copy Activity workflows.
+
+**Future backend integration:** atomic activity duplication with destination position, cross-lesson copy with parent validation and title rules, and an explicit template-instantiation contract. Browser preference synchronization is not implemented.
+
 ### Sprint 47A — Bulk Authoring & Content Operations Foundation
 
 **Delivered locally:** reusable quick actions and dialogs, future request contracts, validated destination workflows, publication badge semantics, and non-mutating drag/keyboard reorder affordances.

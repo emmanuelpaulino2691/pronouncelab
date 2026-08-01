@@ -1,5 +1,9 @@
 # Design System
 
+## Template selection
+
+Smart Builder cards use a one-column phone, two-column tablet, and three-column desktop grid. Each card exposes a named Preview action and a favorite toggle whose pressed state is not color-only. Template previews use the shared focus-trapped Dialog. Favorites are ordered first, recent changes are announced through `aria-live`, and blank activities remain clearly separated from non-creating templates.
+
 ## Content quick actions
 
 Unit and lesson cards use compact keyboard-accessible overflow menus for secondary actions. Shared dialogs trap focus, close with Escape, and restore trigger focus. Publication badges expose concise explanations. Drag affordances retain Move Up/Move Down fallbacks and `aria-live` results; unavailable persistence never changes displayed order.

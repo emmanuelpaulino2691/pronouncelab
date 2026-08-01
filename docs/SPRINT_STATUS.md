@@ -1,5 +1,9 @@
 # Sprint Status
 
+## Sprint 47B — Smart Content Builder Foundation
+
+Implemented locally without backend changes. Lesson Studio now offers a responsive template registry with detailed previews, browser-local favorites and recent templates, intelligent empty-lesson actions, preserved blank activity creation, and non-mutating Duplicate/Copy Activity dialogs for supported activity types. Backend activity-copy and template-instantiation contracts remain pending. Browser QA remains pending.
+
 ## Sprint 47A — Bulk Authoring & Content Operations Foundation
 
 Implemented locally without backend changes. Course Workspace and Curriculum share content-operation contracts, overflow actions, validated destination dialogs, truthful unavailable states, publication indicators, drag/drop affordances, keyboard reorder fallbacks, and accessible announcements. Destination-aware unit duplication, cross-unit copy/move, archive, and persistent reorder await atomic backend deployment. Browser QA remains pending.

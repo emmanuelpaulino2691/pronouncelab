@@ -1,5 +1,9 @@
 # Product
 
+## Smart Content Builder
+
+Lesson Studio presents reusable, locally defined teaching templates alongside the existing blank-activity flow. Templates provide pedagogical preview metadata only; choosing one never creates or saves an activity. Teachers can favorite templates and keep up to ten recent previews in browser storage. Activity duplicate and cross-lesson copy dialogs collect valid intent but remain non-mutating until trusted backend operations are deployed.
+
 ## Bulk authoring operations
 
 Course Workspace and Curriculum expose consistent content actions for editable units and lessons. Rename and delete continue to use existing authorized mutations. Destination-aware unit duplication, cross-unit lesson copy/move, archiving, and persistent bulk reorder have validated workflows but remain unavailable until atomic backend contracts are deployed; the UI never reports a successful change for them. Publication indicators use only status and version facts returned by current queries.

@@ -10,6 +10,7 @@ import { useBlocker, useLocation, useParams, useSearchParams } from "react-route
 import { getAdminCourse } from "../../courses/adminCourseService";
 import {
   getAdminLesson,
+  listAdminLessons,
   type AdminLesson,
 } from "../../lessons/adminLessonService";
 import { useAdminPermissions } from "../../permissions/useAdminPermissions";
@@ -35,13 +36,13 @@ import {
   createActivity,
   createDraftVersion,
   deleteActivity,
-  duplicateActivity,
   listActivities,
   loadLessonVersion,
   publishLessonVersion,
   reorderActivities,
   updateActivity,
 } from "../services/lessonStudioService";
+import { ContentOperationDialog, QuickActionsMenu } from "../../content-operations";
 import { canOfferLessonPublication } from "../publicationState";
 import {
   type ActivityType,
@@ -62,6 +63,8 @@ import {
 } from "../../ui";
 import { buildStudentPreviewUrl } from "../../preview/previewNavigation";
 import { setRememberedActivityCollapse, type StudioViewMode } from "../studioViewState";
+import { canOfferActivityOperations, validCopyActivityInput, validDuplicateActivityPosition } from "../activityOperationState";
+import { smartBuilderEmptyActions } from "../smartBuilderPresentation";
 
 function parseId(value: string | undefined) {
   const id = Number(value);
@@ -96,6 +99,7 @@ function Studio({
     useState<AdminUnit | null>(null);
   const [lesson, setLesson] =
     useState<AdminLesson | null>(null);
+  const [destinationLessons, setDestinationLessons] = useState<AdminLesson[]>([]);
   const [version, setVersion] =
     useState<LessonVersion | null>(null);
   const [activities, setActivities] = useState<
@@ -120,6 +124,10 @@ function Studio({
   const [deleteConfirmation, setDeleteConfirmation] = useState(
     createDeleteConfirmationState<LessonActivity>
   );
+  const [activityOperation, setActivityOperation] = useState<{ kind: "duplicate" | "copy"; activity: LessonActivity } | null>(null);
+  const [destinationPosition, setDestinationPosition] = useState(1);
+  const [destinationLessonId, setDestinationLessonId] = useState(0);
+  const [copyTitle, setCopyTitle] = useState("");
 
   const selectActivity = useCallback((activityId: number | null, discardDirty = true) => {
     selectedIdRef.current = activityId;
@@ -180,8 +188,9 @@ function Studio({
       getAdminCourse(courseId),
       getAdminUnit(unitId, courseId),
       getAdminLesson(lessonId, unitId),
+      listAdminLessons(unitId),
     ])
-      .then(async ([nextCourse, nextUnit, nextLesson]) => {
+      .then(async ([nextCourse, nextUnit, nextLesson, nextLessons]) => {
         const nextVersion =
           await loadLessonVersion(lessonId);
         const nextActivities = nextVersion
@@ -191,6 +200,7 @@ function Studio({
           nextCourse,
           nextUnit,
           nextLesson,
+          nextLessons,
           nextVersion,
           nextActivities,
         };
@@ -205,6 +215,7 @@ function Studio({
           setCourse(result.nextCourse);
           setUnit(result.nextUnit);
           setLesson(result.nextLesson);
+          setDestinationLessons(result.nextLessons);
           setVersion(result.nextVersion);
           setActivities(result.nextActivities);
           selectActivity(reconcileSelectedActivityId(selectedIdRef.current, result.nextActivities), false);
@@ -504,9 +515,7 @@ function Studio({
               </Button>
             )}
             {activities.length === 0 ? (
-              <p className="mt-5 rounded-xl bg-slate-50 p-4 text-sm text-slate-500">
-                {editable ? "No activities yet. Choose Add Activity to begin the learning sequence." : "This lesson does not contain any activities to view."}
-              </p>
+              editable ? <div className="mt-5 rounded-xl border border-dashed border-blue-200 bg-blue-50 p-4"><h3 className="font-bold text-slate-950">Build your first activity</h3><p className="mt-2 text-sm leading-6 text-slate-600">Choose a starting point to build your lesson.</p><div className="mt-4 grid gap-2">{smartBuilderEmptyActions.map((label) => <button key={label} type="button" onClick={() => setIsPickerOpen(true)} className="admin-focus min-h-11 rounded-lg border border-blue-200 bg-white px-3 text-left text-sm font-semibold text-blue-800 hover:bg-blue-100">{label}</button>)}</div></div> : <p className="mt-5 rounded-xl bg-slate-50 p-4 text-sm text-slate-500">This lesson does not contain any activities to view.</p>
             ) : (
               <ol className="mt-4 space-y-2">
                 {activities.map((activity, index) => (
@@ -557,34 +566,10 @@ function Studio({
                         >
                           Down
                         </button>
-                        <button
-                          type="button"
-                          aria-label={`Duplicate ${activity.title}`}
-                          disabled={busy || !version}
-                          onClick={() => {
-                            if (!version) return;
-                            void run(
-                              () =>
-                                duplicateActivity(
-                                  activity.id,
-                                  version.id,
-                                  activity.type
-                                ),
-                              (created) => {
-                                setActivities((current) =>
-                                  [...current, created].sort(
-                                    (first, second) => first.position - second.position
-                                  )
-                                );
-                                selectActivity(created.id);
-                                window.requestAnimationFrame(() => editorRef.current?.focus());
-                              }
-                            );
-                          }}
-                          className="admin-focus min-h-10 rounded-lg border px-3 py-2 text-xs"
-                        >
-                          Duplicate
-                        </button>
+                        {canOfferActivityOperations(activity.type) && <QuickActionsMenu label={`Content operations for ${activity.title}`} actions={[
+                          { label: "Duplicate Activity", onSelect: () => { setDestinationPosition(activity.position + 2); setActivityOperation({ kind: "duplicate", activity }); } },
+                          { label: "Copy Activity", onSelect: () => { setDestinationLessonId(destinationLessons.find((item) => item.id !== lessonId)?.id ?? 0); setCopyTitle(""); setActivityOperation({ kind: "copy", activity }); } },
+                        ]} />}
                         <button
                           type="button"
                           aria-label={`Delete ${activity.title}`}
@@ -652,6 +637,15 @@ function Studio({
           onCreate={handleCreateActivity}
         />
       )}
+      <ContentOperationDialog open={activityOperation?.kind === "duplicate"} title="Duplicate Activity" description="Review the activity and choose where its future copy should appear." valid={validDuplicateActivityPosition(destinationPosition, activities.length + 1)} onClose={() => setActivityOperation(null)} actionLabel="Duplicate Activity">
+        {activityOperation?.kind === "duplicate" && <div className="rounded-xl border border-slate-200 bg-slate-50 p-4"><p className="text-xs font-bold uppercase text-blue-700">{getActivityPresentation(activityOperation.activity.type).title}</p><p className="mt-1 font-semibold text-slate-950">{activityOperation.activity.title}</p></div>}
+        <label className="block text-sm font-semibold text-slate-800">Destination position<input type="number" min={1} max={activities.length + 1} value={destinationPosition} onChange={(event) => setDestinationPosition(Number(event.target.value))} className="admin-focus mt-2 min-h-11 w-full rounded-lg border border-slate-300 px-3" /></label>
+      </ContentOperationDialog>
+      <ContentOperationDialog open={activityOperation?.kind === "copy"} title="Copy Activity" description="Choose another lesson and an optional title for the future copy." valid={validCopyActivityInput({ sourceLessonId: lessonId, destinationLessonId, title: copyTitle })} onClose={() => setActivityOperation(null)} actionLabel="Copy Activity">
+        {activityOperation?.kind === "copy" && <div className="rounded-xl border border-slate-200 bg-slate-50 p-4"><p className="text-xs font-bold uppercase text-blue-700">{getActivityPresentation(activityOperation.activity.type).title}</p><p className="mt-1 font-semibold text-slate-950">{activityOperation.activity.title}</p></div>}
+        <label className="block text-sm font-semibold text-slate-800">Destination Lesson<select value={destinationLessonId} onChange={(event) => setDestinationLessonId(Number(event.target.value))} className="admin-focus mt-2 min-h-11 w-full rounded-lg border border-slate-300 px-3"><option value={0}>Select another lesson</option>{destinationLessons.filter((item) => item.id !== lessonId).map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}</select></label>
+        <label className="block text-sm font-semibold text-slate-800">New activity title <span className="font-normal text-slate-500">(optional)</span><input value={copyTitle} onChange={(event) => setCopyTitle(event.target.value)} placeholder={activityOperation?.activity.title} className="admin-focus mt-2 min-h-11 w-full rounded-lg border border-slate-300 px-3" /></label>
+      </ContentOperationDialog>
       <ConfirmDeleteDialog
         isOpen={deleteConfirmation.target !== null}
         title="Delete activity"

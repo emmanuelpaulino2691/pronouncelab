@@ -1,5 +1,9 @@
 # Architecture
 
+## Smart Content Builder foundation
+
+The template registry and browser-preference utilities live under `src/domain/templates`; Lesson Studio consumes them through the shared Activity Picker without embedding template definitions in route code. Favorites and recents are versioned local-storage preferences, not lesson content. Blank activity creation retains the established service path. Template previews, destination-aware activity duplication, and cross-lesson copy do not issue mutations or simulate persistence.
+
 ## Content operations foundation
 
 Reusable contracts under `src/domain/content-operations` support shared quick actions, operation dialogs, publication-state presentation, and reorder helpers. Cross-parent copy/move and persistent reorder require trusted atomic backend operations; the frontend does not compose them from unrelated writes or optimistically present order as persisted.
