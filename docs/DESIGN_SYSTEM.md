@@ -1,5 +1,9 @@
 # Design System
 
+## Responsive Student shell
+
+The Student shell uses a single responsive mode rather than component-specific preview checks. Desktop navigation is permanent; Tablet and Phone use a compact header and slide-out drawer. Drawer controls meet the 44px touch-target baseline, expose expanded/controlled state, trap keyboard focus, close on Escape or backdrop activation, and restore focus to the opener. Preview-width containers always use `min-width: 0` and hide horizontal overflow; lesson and course content wrap within the selected mode.
+
 ## Teacher CMS consistency rules
 
 Teacher-facing controls use sentence case for actions (`Create course`, `Publish course`, `Preview as student`) while product areas and page titles retain their names (`Lesson Studio`, `Media Library`, `Student Preview`). Shared buttons provide a minimum 44-pixel touch target; destructive confirmation uses the red danger treatment, secondary navigation remains outlined, and one primary action leads each workflow. Header actions and dialog footers stack to full width on phone and return to intrinsic-width rows on larger screens.

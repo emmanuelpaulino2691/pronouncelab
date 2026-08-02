@@ -1,5 +1,9 @@
 # Sprint Status
 
+## Sprint 48C — Responsive Student Shell for Teacher Preview
+
+Implemented locally as a frontend-only increment. Teacher Preview now sends one Desktop, Tablet, or Phone mode through the complete shared Student shell and LessonPlayer. Desktop preserves the permanent sidebar; Tablet and Phone use the compact student app bar and accessible navigation drawer while lesson activity navigation remains full-width. Real learner routes retain automatic browser-responsive behavior. Browser QA remains pending.
+
 ## Sprint 48B — UX Polish & Consistency Audit
 
 Implemented locally as a frontend-only refinement. Shared controls now use consistent touch targets, destructive styling, phone stacking, section spacing, and disabled explanations. Course, dashboard, Classes, Media Library, Smart Builder, quick actions, and Student Preview states received clearer wording, actionable empty/error states, stable loading geometry, permission-aware actions, and responsive controls. No product architecture, route, learner behavior, persistence contract, or backend operation changed. Browser visual QA remains pending.

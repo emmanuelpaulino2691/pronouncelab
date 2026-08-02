@@ -13,7 +13,7 @@ import { getDraftLesson } from "./teacherPreviewSources";
 import { staticLearnerContentProvider } from "../../../shared/content/providers/staticLearnerContentProvider";
 import { PreviewTerminalState } from "./PreviewTerminalState";
 import { safePreviewReturnTo } from "./previewNavigation";
-import { previewViewportStyle, type PreviewViewportMode } from "./previewViewport";
+import { previewLayoutContract, previewViewportStyle, type PreviewViewportMode } from "./previewViewport";
 import { PreviewLoadingState } from "./PreviewLoadingState";
 
 export default function StudentPreviewLessonPage() {
@@ -44,5 +44,6 @@ export default function StudentPreviewLessonPage() {
   if (!resource.loading && !resource.value) return <PreviewTerminalState courseId={courseId} error={resource.error} onRetry={resource.retry} returnPath={returnPath} />;
   if (!resource.value) return <PreviewLoadingState returnPath={returnPath} />;
   const { lesson, unit, source } = resource.value;
-  return <><StudentPreviewToolbar returnPath={returnPath} draft={source === "draft"} source={source} viewportMode={viewportMode} onViewportModeChange={setViewportMode} /><div className="mx-auto min-w-0 overflow-x-hidden" style={previewViewportStyle(viewportMode)}><MainLayout immersive><LessonPlayer key={lesson.id} lesson={lesson} returnPath={returnPath} contextLabel={unit.title} runtimeMode="teacher_preview" layoutMode={viewportMode} /></MainLayout></div></>;
+  const layout = previewLayoutContract(viewportMode);
+  return <><StudentPreviewToolbar returnPath={returnPath} draft={source === "draft"} source={source} viewportMode={viewportMode} onViewportModeChange={setViewportMode} /><div className="mx-auto min-w-0 overflow-x-hidden" style={previewViewportStyle(viewportMode)}><MainLayout key={viewportMode} layoutMode={layout.shellMode}><LessonPlayer key={lesson.id} lesson={lesson} returnPath={returnPath} contextLabel={unit.title} runtimeMode="teacher_preview" layoutMode={layout.lessonMode} /></MainLayout></div></>;
 }

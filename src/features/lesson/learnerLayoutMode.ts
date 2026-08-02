@@ -1,4 +1,6 @@
-export type LearnerLayoutMode = "auto" | "desktop" | "tablet" | "phone";
+import type { StudentLayoutMode } from "../../shared/layouts/studentLayoutMode";
+
+export type LearnerLayoutMode = StudentLayoutMode;
 
 export function usesCompactActivityNavigation(mode: LearnerLayoutMode) {
   return mode === "tablet" || mode === "phone";

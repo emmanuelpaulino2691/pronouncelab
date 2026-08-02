@@ -10,3 +10,7 @@ export const previewViewportWidths: Record<PreviewViewportMode, string> = {
 export function previewViewportStyle(mode: PreviewViewportMode) {
   return { width: "100%", maxWidth: previewViewportWidths[mode] } as const;
 }
+
+export function previewLayoutContract(mode: PreviewViewportMode) {
+  return { shellMode: mode, lessonMode: mode } as const;
+}

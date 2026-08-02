@@ -12,7 +12,7 @@ import { getDraftCourse } from "./teacherPreviewSources";
 import { staticLearnerContentProvider } from "../../../shared/content/providers/staticLearnerContentProvider";
 import { buildStudentPreviewUrl, safePreviewReturnTo } from "./previewNavigation";
 import { PreviewTerminalState } from "./PreviewTerminalState";
-import { previewViewportStyle, type PreviewViewportMode } from "./previewViewport";
+import { previewLayoutContract, previewViewportStyle, type PreviewViewportMode } from "./previewViewport";
 import { PreviewLoadingState } from "./PreviewLoadingState";
 
 export default function StudentPreviewCoursePage() {
@@ -35,16 +35,17 @@ export default function StudentPreviewCoursePage() {
   if (!resource.value) return <PreviewLoadingState returnPath={returnTo} />;
 
   const { course, source } = resource.value;
+  const layout = previewLayoutContract(viewportMode);
   return <>
     <StudentPreviewToolbar returnPath={returnTo} source={source} viewportMode={viewportMode} onViewportModeChange={setViewportMode} />
-    <div className="mx-auto overflow-x-hidden" style={previewViewportStyle(viewportMode)}><MainLayout>
-      <section className="mx-auto max-w-4xl space-y-7 py-8">
+    <div className="mx-auto min-w-0 overflow-x-hidden" style={previewViewportStyle(viewportMode)}><MainLayout key={viewportMode} layoutMode={layout.shellMode}>
+      <section className={`mx-auto max-w-4xl space-y-7 ${viewportMode === "phone" ? "py-3" : "py-8"}`}>
         <header>
           <p className="text-sm font-bold uppercase tracking-wide text-blue-700">{source === "draft" ? "Draft Preview" : source === "local" ? "Local Content Preview" : "Published Preview"}</p>
-          <h1 className="mt-2 text-4xl font-bold text-slate-950">{course.emoji} {course.title}</h1>
+          <h1 className={`${viewportMode === "phone" ? "text-2xl" : "text-4xl"} mt-2 break-words font-bold text-slate-950`}>{course.emoji} {course.title}</h1>
           <p className="mt-3 text-slate-600">{course.description}</p>
         </header>
-        {course.units.map((unit) => <section key={unit.id} className="rounded-2xl border border-slate-200 bg-white p-6">
+        {course.units.map((unit) => <section key={unit.id} className={`rounded-2xl border border-slate-200 bg-white ${viewportMode === "phone" ? "p-4" : "p-6"}`}>
           <h2 className="text-xl font-bold text-slate-950">{unit.title}</h2>
           <ul className="mt-4 space-y-2">{unit.lessons.map((lesson) => <li key={lesson.id}><Link className="text-blue-700 underline" to={buildStudentPreviewUrl({ courseId, lessonId: lesson.id, returnTo })}>{lesson.title}</Link></li>)}</ul>
         </section>)}

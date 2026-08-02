@@ -1,5 +1,9 @@
 # Student Experience
 
+## Responsive Student shell
+
+The learner `MainLayout` owns one `StudentLayoutMode` contract shared by its header, sidebar, navigation drawer, and content region. Normal learner routes use `auto`; Teacher Preview may force Desktop, Tablet, or Phone without changing learner data or runtime behavior. Desktop keeps the permanent navigation sidebar. Tablet and Phone use a compact app bar, touch-sized menu control, and focus-trapped slide-out navigation containing the same student navigation items. Lesson previews pass that same mode into `LessonPlayer`, so the outer shell and activity selector cannot disagree.
+
 ## Contents
 
 - [Architecture decision](#architecture-decision)

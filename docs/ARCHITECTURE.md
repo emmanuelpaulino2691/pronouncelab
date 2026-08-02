@@ -276,3 +276,5 @@ The progressive domain layer lives under `src/domain`. It centralizes shared sta
 ### Forced teacher-preview layout modes
 
 Student Preview carries `desktop`, `tablet`, or `phone` through the preview viewport boundary into the shared `LessonPlayer`. Width and learner-shell behavior therefore change together: desktop uses the outline sidebar, while tablet and phone use the compact activity selector and a full-width activity column. Normal learner routes keep `auto` mode and their existing browser-responsive behavior. Lesson Studio owns shared editor/split view state and renders saved activity content through `ActivityRenderer`; it does not inject unsaved editor state or persist learner mutations.
+
+`MainLayout` is the shared responsive Student shell boundary. The same forced Teacher Preview mode controls its navigation, header, content spacing, and the nested `LessonPlayer`: Desktop retains the permanent student sidebar, while Tablet and Phone replace it with a compact app bar and accessible navigation drawer. Real learner routes continue to pass `auto`, so browser breakpoints remain authoritative outside Teacher Preview.
