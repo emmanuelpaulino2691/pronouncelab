@@ -1,5 +1,13 @@
 # Sprint Status
 
+## Sprint 49A — Student Experience Architecture
+
+Implemented locally as a frontend-only architecture increment. The complete learner information architecture now prioritizes one truthful next action from Dashboard through Lesson Complete and defines future Progress, Achievements, Profile, Settings, Classes, and Assignments boundaries. Current Course displays real device-local unit completion and recommends the first incomplete unit. The dashboard no longer presents isolated local XP, level, or streak values as learning truth; future motivation capabilities are labelled as dependent on learner accounts and synchronized progress. Browser QA remains pending.
+
+## Sprint 49 — End-to-End Product Review
+
+Reviewed locally from the first-course teacher journey through publication, preview, command navigation, quick actions, and media reuse. The focused implementation opens a newly created course directly in its workspace, removes redundant or misleading first-activity entry points, removes the no-op Curriculum action, and completes keyboard focus containment in the mobile Content Studio drawer. Remaining findings are documented in the Sprint 49 handoff; browser walkthrough and backend-dependent publication validation remain pending.
+
 ## Sprint 48D — Performance and Bundle Optimization
 
 Implemented locally as a frontend-only increment. The protected Admin route now lazy-loads with the rest of the route tree, moving Supabase out of the application entry chunk. Lesson Studio loads Learn, Listening, Pronunciation, Quiz, legacy Practice, Interactive Practice, and AI Speaking Mission editors independently with stable loading and controlled failure states. The production entry chunk decreases from 501.88 kB to approximately 293 kB and the Vite 500 kB advisory no longer appears. Browser performance QA remains pending.

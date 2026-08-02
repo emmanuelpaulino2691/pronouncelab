@@ -4,6 +4,70 @@
 
 The learner `MainLayout` owns one `StudentLayoutMode` contract shared by its header, sidebar, navigation drawer, and content region. Normal learner routes use `auto`; Teacher Preview may force Desktop, Tablet, or Phone without changing learner data or runtime behavior. Desktop keeps the permanent navigation sidebar. Tablet and Phone use a compact app bar, touch-sized menu control, and focus-trapped slide-out navigation containing the same student navigation items. Lesson previews pass that same mode into `LessonPlayer`, so the outer shell and activity selector cannot disagree.
 
+## Learner information architecture
+
+Every learner surface answers **What should I do next?** with one primary recommendation derived from real available content and progress. Secondary actions allow browsing and review without competing with that recommendation.
+
+| Area | Purpose | Primary next action | Current status |
+| --- | --- | --- | --- |
+| Dashboard `/` | Resume daily learning | Continue the latest incomplete lesson, otherwise browse courses | Implemented with device-local progress |
+| Courses `/courses` | Browse published learning paths | Open a course | Implemented |
+| Current Course `/courses/:courseId` | Understand unit sequence and progress | Start or continue the first incomplete unit | Implemented with device-local lesson completion |
+| Current Unit `/units/:unitId` | Choose the next lesson | Start/continue the next relevant lesson; completed lessons remain reviewable | Implemented |
+| Lesson `/lessons/:lessonId` | Complete one guided learning session | Complete the current activity | Implemented |
+| Lesson Complete | Reinforce the small win | Return to the unit or review the lesson | Implemented inside Lesson Player |
+| Progress | Explain verified learning history | Continue a course or review completed work | **Future:** requires route design; device-local summary may precede accounts |
+| Achievements | Celebrate rule-based milestones | Continue toward a clearly explained milestone | **Future:** requires event definitions and synchronized progress |
+| Profile | Manage learner identity | Review account information | **Future:** requires learner authentication |
+| Settings | Manage accessibility, language, notifications, privacy, and local data | Save a preference or manage stored data | **Future:** split local preferences from account settings |
+| Classes and assignments | Show teacher-assigned published releases | Continue the next due assignment | **Future:** requires Classes backend, enrollment, assignment, and progress contracts |
+
+Navigation uses the same concepts everywhere: **Course → Unit → Lesson → Activity**. “Continue” resumes existing device-local progress, “Start” begins untouched content, “Review” reopens completed content, and “Complete” records an explicit learning action. Teacher terms such as draft, publish, activity editor, and version never appear in the learner application.
+
+## Dashboard architecture
+
+The dashboard is ordered by decision value rather than by metric density:
+
+1. **Continue Learning** — latest incomplete lesson from available published content and valid device-local progress.
+2. **Recommended next lesson** — first available incomplete lesson when no resumable lesson exists. This must be derived, not manually invented.
+3. **Current Course** — course/unit context and real lesson completion.
+4. **Today’s Mission** — **Future:** assignment or recommendation backed by a defined source. Until then, do not imply a personalized daily task.
+5. **Weekly Progress and Recent Activity** — **Future:** require timestamped learning events. Current progress storage has no event dates.
+6. **Upcoming Assignments and Teacher Feedback** — **Future:** require enrollment, assignment, feedback, visibility, and privacy contracts.
+7. **Daily Goal, streak, XP, achievements, and badges** — visible only as clearly marked future capabilities until durable, idempotent learning events exist.
+
+The dashboard may summarize current device-local lesson and activity completion, but labels must identify local-only behavior where a learner could reasonably infer account synchronization.
+
+## Course and unit experience
+
+Course cards show published course identity, level, unit count, and completion calculated only from published lessons visible in the current catalog. The Current Course page presents units in curriculum order, shows completed lesson counts and an accessible progress bar, marks one first-incomplete unit as **Recommended next**, and uses Start/Continue/Review actions derived from completion state. Empty units remain visible but cannot become the recommended next action.
+
+The Current Unit page preserves lesson order and distinguishes Not Started, In Progress, and Completed from device-local progress. Future locked lessons must have a pedagogical or assignment rule from an authoritative contract; position alone must not invent locking. Duration appears only when published lesson metadata supplies a reliable estimate.
+
+## Motivation architecture
+
+Motivation is evidence-based rather than decorative:
+
+- **Small wins:** activity transitions and Lesson Complete use deterministic encouragement without invented scores.
+- **Daily Goal:** Future configurable target backed by timestamped completion events.
+- **Learning streak:** Future calendar-based policy with timezone, grace, and offline reconciliation rules.
+- **XP:** Future idempotent event ledger; never calculated from page views or mutable browser counters.
+- **Achievements and badges:** Future versioned criteria with earned timestamps and accessible explanations.
+- **Assignments:** Future class-scoped published release, due date, completion, and teacher visibility.
+- **Teacher feedback:** Future private feedback record with authorship, learner visibility, and retention rules.
+
+Placeholders may explain these future capabilities, but they never display fabricated numeric values or imply synchronization.
+
+## Responsive and accessibility contract
+
+Desktop uses persistent navigation and broad content grids. Tablet uses compact navigation and two-column layouts only where cards remain readable. Phone uses the top app bar, navigation drawer, one-column content, full-width primary actions, wrapping headings, and no horizontal dependency. The immersive Lesson Player keeps its own compact activity selector.
+
+Every primary journey remains keyboard operable. Page headings identify route purpose; progress bars expose names and values; statuses are not color-only; loading/error/empty states retain navigation; drawer/dialog focus is trapped and restored; touch controls meet the 44px target; completion and transition updates use restrained live regions.
+
+## Learner performance boundaries
+
+Learner routes remain individually lazy-loaded. Shared shell and small shared learner renderers are retained where reuse avoids duplicate implementations. Additional renderer splitting is justified only if measured growth outweighs request and layout costs. Static template registries and admin authoring modules do not enter learner route chunks. Future dashboard widgets should load independently only when their data source and visual weight justify a new boundary.
+
 ## Contents
 
 - [Architecture decision](#architecture-decision)

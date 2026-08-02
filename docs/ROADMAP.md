@@ -1,5 +1,19 @@
 # Roadmap
 
+## Sprint 49A — Student Experience Architecture
+
+Implemented locally as a frontend architecture increment. The canonical learner journey now defines Dashboard, Courses, Current Course, Current Unit, Lesson, Lesson Complete, and future Progress, Achievements, Profile, Settings, Classes, and Assignments. Current Course uses existing device-local completed lesson IDs to show unit progress and recommend the first incomplete unit. Unsupported motivation systems are explicitly placeholder-only.
+
+Before Classes backend implementation:
+
+1. reconcile learner identity, local-data migration, and account/session behavior;
+2. define synchronized progress events, idempotency, offline reconciliation, and privacy controls;
+3. define stable published course releases for class assignment;
+4. approve enrollment, assignment, teacher-feedback, and learner-visibility contracts;
+5. design Progress, Profile, and Settings route states against those contracts;
+6. define daily goal, streak, XP, and achievement rules only after durable event semantics exist;
+7. add browser-level responsive and accessibility coverage for the current learner journey.
+
 ## Sprint 48D — Performance and Bundle Optimization
 
 Implemented locally. Route and activity-editor lazy boundaries now isolate Supabase and activity-specific authoring code from the main entry path. Future performance work should be driven by production telemetry; possible follow-ups include browser-level chunk failure tests, navigation prefetching for high-frequency routes, and further learner renderer splitting only if shared-renderer growth becomes material.

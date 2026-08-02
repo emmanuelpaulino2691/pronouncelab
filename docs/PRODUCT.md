@@ -4,6 +4,8 @@
 
 The authoring interface consistently calls the overall protected product the **Content Studio**, its lesson workspace **Lesson Studio**, and learner-facing read-only checks **Student Preview**. Stored `theory` activities are presented to teachers as **Learn**. `Create` starts a new hierarchy record, `Add` inserts an activity or block, `Open` navigates to an existing workspace, `Preview` opens mutation-free learner presentation, and `Delete` is reserved for destructive removal with confirmation.
 
+Creating a course continues directly into its Course Workspace so a first-time teacher can add the first unit without rediscovering the new card in the catalog. An empty Lesson Studio exposes one truthful Smart Content Builder entry point: blank activities can be created, while templates remain explicitly preview-only until backend template instantiation exists.
+
 ## Global Command Palette
 
 Authorized Content Studio users can open a global Command Palette with Ctrl/Cmd+K or Ctrl+Shift+P. It searches available navigation, route-context content, Smart Builder templates, and clearly marked future commands. Successful navigation uses client routing; unavailable commands explain their dependency and never simulate completion. Up to twenty executed commands are remembered locally for faster repeat access.
@@ -86,6 +88,8 @@ A learner:
 6. may complete an AI Speaking Mission by copying its prompt to ChatGPT or Gemini;
 7. can paste and preview the external result locally;
 8. reviews or restarts the lesson after completion.
+
+The learner information architecture follows **Dashboard → Courses → Current Course → Current Unit → Lesson → Lesson Complete**, with one recommended next action at each step. Current recommendations use only published content and validated device-local progress. Progress, Profile, Settings, Achievements, Classes, Assignments, and Teacher Feedback are future destinations whose data and permissions must be designed before activation. XP, streaks, daily goals, and badges remain truthful placeholders rather than local numeric claims.
 
 Lesson state persists in browser `localStorage`, not a learner account. The lesson does not invent scores, XP, or synchronized progress.
 

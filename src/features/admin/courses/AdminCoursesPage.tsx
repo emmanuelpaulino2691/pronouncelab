@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { useAdminPermissions } from "../permissions/useAdminPermissions";
 import { Alert, Button, ButtonLink, Card, ConfirmDeleteDialog, Dialog, EmptyState, LoadingSkeleton, PageHeader, Select, StatusBadge, TextInput } from "../ui";
@@ -15,6 +15,7 @@ import { formatDate } from "../utils/format";
 import CourseForm from "./CourseForm";
 import { getCourseSaveErrorMessage } from "./courseSaveErrors";
 import { shouldRenderCourseForm } from "./courseFormState";
+import { courseWorkspacePath } from "./courseNavigation";
 import { publicationErrorLabel } from "./coursePublicationState";
 import {
   createAdminCourse, deleteDraftCourse, duplicateDraftCourse, listAdminCourses, publishAdminCourse, updateAdminCourse,
@@ -25,6 +26,7 @@ type FormState = { mode: "closed" } | { mode: "create" } | { mode: "edit"; cours
 type SortMode = "updated" | "title" | "position";
 
 function AdminCoursesPage() {
+  const navigate = useNavigate();
   const {
     canEditDrafts,
     canPublish,
@@ -93,6 +95,7 @@ function AdminCoursesPage() {
       } else {
         const created = await createAdminCourse(input);
         setCourses((current) => [...current, created]);
+        navigate(courseWorkspacePath(created.id));
       }
       setFormState({ mode: "closed" });
     } catch (error) { setFormErrorMessage(getCourseSaveErrorMessage(error)); }

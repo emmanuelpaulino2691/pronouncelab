@@ -6,6 +6,9 @@ import { useAdminPermissions } from "../permissions/useAdminPermissions";
 import { AdminIcon, Avatar, Badge, Button } from "../ui";
 import { futureWorkspaceSections, getWorkspaceRole } from "../workspace";
 import { adminMediaLibraryPath, canViewMediaLibrary } from "../../../domain/media";
+import { drawerKeyboardAction, shouldWrapDrawerFocus } from "../../../shared/components/drawerKeyboard";
+
+const drawerFocusableSelector = "a[href], button:not([disabled]), [tabindex]:not([tabindex='-1'])";
 
 const navigationItems = [
   { label: "Dashboard", to: "/admin", icon: "dashboard" as const, end: true },
@@ -50,7 +53,14 @@ function AdminSidebar({ isOpen, onClose }: Props) {
   useEffect(() => {
     if (!isOpen) return;
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      const action = drawerKeyboardAction(event.key);
+      if (action === "close") { event.preventDefault(); onClose(); return; }
+      if (action !== "trap-focus") return;
+      const drawer = document.querySelector<HTMLElement>("[data-admin-navigation-drawer]");
+      const items = Array.from(drawer?.querySelectorAll<HTMLElement>(drawerFocusableSelector) ?? []);
+      if (!items.length) return;
+      const activeIndex = items.indexOf(document.activeElement as HTMLElement);
+      if (shouldWrapDrawerFocus(event.shiftKey, activeIndex, items.length - 1)) { event.preventDefault(); (event.shiftKey ? items.at(-1) : items[0])?.focus(); }
     };
     window.addEventListener("keydown", closeOnEscape);
     return () => window.removeEventListener("keydown", closeOnEscape);
@@ -76,6 +86,7 @@ function AdminSidebar({ isOpen, onClose }: Props) {
     <>
       {isOpen && <button type="button" aria-label="Close navigation" onClick={onClose} className="fixed inset-0 z-40 bg-slate-950/55 backdrop-blur-[2px] lg:hidden" />}
       <aside
+        data-admin-navigation-drawer
         aria-label="Content Studio navigation"
         className={`fixed inset-y-0 left-0 z-50 flex w-[min(86vw,18rem)] flex-col bg-slate-950 text-white shadow-2xl transition-transform duration-200 motion-reduce:transition-none lg:sticky lg:top-0 lg:z-20 lg:h-screen lg:w-72 lg:translate-x-0 lg:shadow-none ${isOpen ? "translate-x-0" : "-translate-x-full"}`}
       >

@@ -64,7 +64,7 @@ import {
 import { buildStudentPreviewUrl } from "../../preview/previewNavigation";
 import { setRememberedActivityCollapse, type StudioViewMode } from "../studioViewState";
 import { canOfferActivityOperations, validCopyActivityInput, validDuplicateActivityPosition } from "../activityOperationState";
-import { smartBuilderEmptyActions } from "../smartBuilderPresentation";
+import { smartBuilderEmptyAction } from "../smartBuilderPresentation";
 
 function parseId(value: string | undefined) {
   const id = Number(value);
@@ -526,7 +526,7 @@ function Studio({
               </Button>
             )}
             {activities.length === 0 ? (
-              editable ? <div className="mt-5 rounded-xl border border-dashed border-blue-200 bg-blue-50 p-4"><h3 className="font-bold text-slate-950">Build your first activity</h3><p className="mt-2 text-sm leading-6 text-slate-600">Choose a starting point to build your lesson.</p><div className="mt-4 grid gap-2">{smartBuilderEmptyActions.map((label) => <button key={label} type="button" onClick={() => setIsPickerOpen(true)} className="admin-focus min-h-11 rounded-lg border border-blue-200 bg-white px-3 text-left text-sm font-semibold text-blue-800 hover:bg-blue-100">{label}</button>)}</div></div> : <p className="mt-5 rounded-xl bg-slate-50 p-4 text-sm text-slate-500">This lesson does not contain any activities to view.</p>
+              editable ? <div className="mt-5 rounded-xl border border-dashed border-blue-200 bg-blue-50 p-4"><h3 className="font-bold text-slate-950">Build your first activity</h3><p className="mt-2 text-sm leading-6 text-slate-600">Create a blank activity now, or explore template previews, favorites, and recently viewed ideas in the Smart Content Builder.</p><button type="button" onClick={() => setIsPickerOpen(true)} className="admin-focus mt-4 min-h-11 rounded-lg border border-blue-200 bg-white px-4 text-sm font-semibold text-blue-800 hover:bg-blue-100">{smartBuilderEmptyAction}</button></div> : <p className="mt-5 rounded-xl bg-slate-50 p-4 text-sm text-slate-500">This lesson does not contain any activities to view.</p>
             ) : (
               <ol className="mt-4 space-y-2">
                 {activities.map((activity, index) => (
