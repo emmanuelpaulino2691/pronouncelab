@@ -1,5 +1,5 @@
 export const studentNavigationItems = [
-  { label: "Dashboard", to: "/" },
+  { label: "Home", to: "/" },
   { label: "Courses", to: "/courses" },
   { label: "Progress" },
   { label: "Badges" },

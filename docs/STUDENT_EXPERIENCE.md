@@ -1,5 +1,7 @@
 # Student Experience
 
+> Read the [Student Experience Manifesto](STUDENT_EXPERIENCE_MANIFESTO.md) first. It is the canonical source for learner experience philosophy; this document records the current learner architecture and behavior.
+
 ## Responsive Student shell
 
 The learner `MainLayout` owns one `StudentLayoutMode` contract shared by its header, sidebar, navigation drawer, and content region. Normal learner routes use `auto`; Teacher Preview may force Desktop, Tablet, or Phone without changing learner data or runtime behavior. Desktop keeps the permanent navigation sidebar. Tablet and Phone use a compact app bar, touch-sized menu control, and focus-trapped slide-out navigation containing the same student navigation items. Lesson previews pass that same mode into `LessonPlayer`, so the outer shell and activity selector cannot disagree.
@@ -10,7 +12,7 @@ Every learner surface answers **What should I do next?** with one primary recomm
 
 | Area | Purpose | Primary next action | Current status |
 | --- | --- | --- | --- |
-| Dashboard `/` | Resume daily learning | Continue the latest incomplete lesson, otherwise browse courses | Implemented with device-local progress |
+| Home `/` | Resume daily learning | Continue the latest incomplete lesson, otherwise start or review available learning | Implemented with device-local progress |
 | Courses `/courses` | Browse published learning paths | Open a course | Implemented |
 | Current Course `/courses/:courseId` | Understand unit sequence and progress | Start or continue the first incomplete unit | Implemented with device-local lesson completion |
 | Current Unit `/units/:unitId` | Choose the next lesson | Start/continue the next relevant lesson; completed lessons remain reviewable | Implemented |
@@ -24,19 +26,32 @@ Every learner surface answers **What should I do next?** with one primary recomm
 
 Navigation uses the same concepts everywhere: **Course → Unit → Lesson → Activity**. “Continue” resumes existing device-local progress, “Start” begins untouched content, “Review” reopens completed content, and “Complete” records an explicit learning action. Teacher terms such as draft, publish, activity editor, and version never appear in the learner application.
 
-## Dashboard architecture
+## Home architecture
 
-The dashboard is ordered by decision value rather than by metric density:
+Home follows the Manifesto hierarchy: **Welcome → Today's Mission → Your Learning Journey**. A quiet **Browse all courses** link follows the journey content rather than creating another Home section. The welcome uses a learner first name only when an authenticated learner identity actually provides one; otherwise it remains the truthful **Welcome back!**. The supporting voice line is **A few focused minutes can make English feel more familiar.** Today's Mission is the single dominant action and presents Start Learning, Continue Learning, Review Lesson, no-content, or everything-completed states from published content and device-local progress.
+
+Your Learning Journey contains only the recommended course, current unit, completed lesson count, accessible progress, and Open Course action. Home does not display isolated XP, level, streak, weekly activity, recent activity, or future-feature placeholder cards.
+
+The implemented next-action resolver evaluates published, available lessons with at least one activity in a fixed order: resume the latest valid incomplete lesson in device-local started-lesson history; select the first incomplete lesson in the current course; select the first lesson in the first non-empty published course; otherwise return no recommendation. Stale lesson IDs are ignored.
+
+The Home action opens the stable lesson route, where `LessonPlayer` restores the validated device-local activity index. Untouched lessons say **Start Learning**, incomplete resumed lessons say **Continue Learning**, and a completed fallback says **Review Lesson**. The accessible journey progress uses only published lesson IDs and local completion. Daily goal, streak, achievements, assignments, weekly progress, and Recent Activity are omitted because their required backing data does not exist.
+
+Home is ordered by decision value rather than by metric density:
 
 1. **Continue Learning** — latest incomplete lesson from available published content and valid device-local progress.
 2. **Recommended next lesson** — first available incomplete lesson when no resumable lesson exists. This must be derived, not manually invented.
-3. **Current Course** — course/unit context and real lesson completion.
-4. **Today’s Mission** — **Future:** assignment or recommendation backed by a defined source. Until then, do not imply a personalized daily task.
-5. **Weekly Progress and Recent Activity** — **Future:** require timestamped learning events. Current progress storage has no event dates.
-6. **Upcoming Assignments and Teacher Feedback** — **Future:** require enrollment, assignment, feedback, visibility, and privacy contracts.
-7. **Daily Goal, streak, XP, achievements, and badges** — visible only as clearly marked future capabilities until durable, idempotent learning events exist.
+3. **Your Learning Journey** — course/unit context and real lesson completion.
+4. **Browse all courses** — a quiet secondary action within Your Learning Journey.
 
-The dashboard may summarize current device-local lesson and activity completion, but labels must identify local-only behavior where a learner could reasonably infer account synchronization.
+### Future learner-facing lesson purpose
+
+**Future, not implemented.** A proposed optional `lessonPurpose` field gives curriculum authors one concise, outcome-oriented sentence explaining why a lesson is useful to the learner. It is distinct from the lesson title, internal description, instructions, and completion criteria. Good values describe a practical learning outcome, such as “Practise sentence stress so your main idea is easier to understand,” without promising mastery or a measured result.
+
+Authors would write and preview the purpose alongside core lesson metadata in Lesson Studio. Authoring guidance should require plain learner language, one idea, and a practical connection to listening or speaking. Publication validation may warn when it is absent after the field is established, but existing lessons must remain compatible and no fallback text should be generated from titles.
+
+The same authored purpose can orient learners on Home, help them choose on Course pages, introduce the Lesson, and provide pedagogical context to an AI Speaking Mission. Those surfaces must reuse the authoritative sentence rather than creating competing variants. This improves motivation by answering **Why should I practise this?** before asking for effort. Introducing it requires a separately reviewed content-contract and authoring change; Sprint 49C.1 does not modify lesson models or persistence.
+
+Home may summarize current device-local lesson and activity completion, but labels must identify local-only behavior where a learner could reasonably infer account synchronization.
 
 ## Course and unit experience
 

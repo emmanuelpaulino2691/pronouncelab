@@ -1,5 +1,17 @@
 # Sprint Status
 
+## Sprint 49C.1 — Home Experience Polish
+
+Implemented locally as a frontend-only polish increment. Browse all courses is now a quiet secondary link within Your Learning Journey instead of an independent Home section. The welcome adds the Manifesto-aligned line **A few focused minutes can make English feel more familiar.** Existing lesson titles remain authoritative because the current model has no learner-purpose metadata. Learner-visible Dashboard wording has been removed; internal module names and teacher Dashboard terminology remain unchanged. A future optional `lessonPurpose` authoring concept is documented but not implemented. Browser visual QA remains pending.
+
+## Sprint 49C — Home Experience Phase 1
+
+Implemented locally as a frontend-only learner increment. The learner root and navigation now use **Home**. Its hierarchy is Welcome, Today's Mission, Your Learning Journey, and Browse Courses. The mission presents truthful Start, Continue, Review, unavailable-content, and everything-completed states; the journey shows only current course/unit context and real device-local lesson completion. Isolated statistics and future motivation placeholders no longer render on Home. No learner identity is invented when an authenticated learner name is unavailable. Browser visual QA remains pending.
+
+## Sprint 49B — Next-Action Student Dashboard
+
+Implemented locally as a frontend-only increment. Dashboard now prioritizes a valid incomplete resumed lesson, then the first incomplete lesson in the current course, then the first usable published lesson. Stale progress and empty or unavailable lesson records are ignored. The page presents exact course/unit context, browser-local lesson and course completion, accessible progress, stable loading/error/empty states, and restrained future motivation placeholders without invented values. Recent Activity remains absent because local progress has no timestamps. Browser QA remains pending.
+
 ## Sprint 49A — Student Experience Architecture
 
 Implemented locally as a frontend-only architecture increment. The complete learner information architecture now prioritizes one truthful next action from Dashboard through Lesson Complete and defines future Progress, Achievements, Profile, Settings, Classes, and Assignments boundaries. Current Course displays real device-local unit completion and recommends the first incomplete unit. The dashboard no longer presents isolated local XP, level, or streak values as learning truth; future motivation capabilities are labelled as dependent on learner accounts and synchronized progress. Browser QA remains pending.

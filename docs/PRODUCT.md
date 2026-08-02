@@ -1,5 +1,7 @@
 # Product
 
+> Learner-facing product decisions follow the [Student Experience Manifesto](STUDENT_EXPERIENCE_MANIFESTO.md), the canonical statement of how learning inside PronounceLab should feel.
+
 ## Teacher CMS terminology
 
 The authoring interface consistently calls the overall protected product the **Content Studio**, its lesson workspace **Lesson Studio**, and learner-facing read-only checks **Student Preview**. Stored `theory` activities are presented to teachers as **Learn**. `Create` starts a new hierarchy record, `Add` inserts an activity or block, `Open` navigates to an existing workspace, `Preview` opens mutation-free learner presentation, and `Delete` is reserved for destructive removal with confirmation.
@@ -78,9 +80,11 @@ The UI does not currently expose a complete end-to-end course publication experi
 
 ## Student journey
 
+The learner root is named **Home**, never Dashboard. Home welcomes the learner, presents one truthful **Today's Mission**, places it within **Your Learning Journey**, and keeps **Browse all courses** as a quiet link inside that journey section. It does not behave like a statistics report or advertise unavailable motivation systems. A future authored `lessonPurpose` may explain the practical value of a lesson across learner surfaces, but it is not part of the current content contract.
+
 A learner:
 
-1. opens the local dashboard or course catalog;
+1. opens Home or the course catalog;
 2. chooses a course, unit, and lesson;
 3. enters a guided activity-by-activity lesson;
 4. explicitly completes each activity;
@@ -89,9 +93,11 @@ A learner:
 7. can paste and preview the external result locally;
 8. reviews or restarts the lesson after completion.
 
-The learner information architecture follows **Dashboard → Courses → Current Course → Current Unit → Lesson → Lesson Complete**, with one recommended next action at each step. Current recommendations use only published content and validated device-local progress. Progress, Profile, Settings, Achievements, Classes, Assignments, and Teacher Feedback are future destinations whose data and permissions must be designed before activation. XP, streaks, daily goals, and badges remain truthful placeholders rather than local numeric claims.
+The learner information architecture follows **Home → Courses → Current Course → Current Unit → Lesson → Lesson Complete**, with one recommended next action at each step. Current recommendations use only published content and validated device-local progress. Progress, Profile, Settings, Achievements, Classes, Assignments, and Teacher Feedback are future destinations whose data and permissions must be designed before activation. XP, streaks, daily goals, and badges do not appear on Home without truthful backing data.
 
 Lesson state persists in browser `localStorage`, not a learner account. The lesson does not invent scores, XP, or synchronized progress.
+
+Home deterministically resumes a valid incomplete lesson first, then recommends the first incomplete lesson in the current course, then the first usable published lesson. Empty units, unavailable lessons, and stale local IDs cannot become recommendations. It shows only real browser-local completion; timestamp-based recency and unsupported motivation features are omitted.
 
 ## Course and lesson lifecycle
 

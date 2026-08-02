@@ -1,0 +1,3 @@
+export default function DashboardLoadingState() {
+  return <div role="status" aria-label="Loading Home" className="mt-8 space-y-7"><section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6"><div className="h-4 w-36 animate-pulse rounded bg-slate-200" /><div className="h-9 w-2/3 animate-pulse rounded bg-slate-200" /><div className="h-4 w-1/2 animate-pulse rounded bg-slate-100" /><div className="h-3 animate-pulse rounded bg-slate-100" /><div className="h-12 w-full animate-pulse rounded-xl bg-slate-200 sm:w-44" /></section><div className="h-48 animate-pulse rounded-2xl bg-white" /><span className="sr-only">Loading your next lesson...</span></div>;
+}

@@ -1,5 +1,11 @@
 # Roadmap
 
+## Sprint 49B — Next-Action Student Dashboard
+
+Implemented locally as a frontend-only learner increment. Dashboard now leads with a deterministic Start, Continue, or Review action derived from published usable lessons and validated device-local progress. It shows course and unit context, accessible device-local lesson/course completion, stable loading/error/empty states, and subordinate non-numeric future motivation placeholders. Timestamp-based recent activity remains omitted.
+
+Future dependencies remain learner identity, synchronized and timestamped progress events, Classes enrollment and assignments, teacher-feedback visibility, and durable daily-goal, streak, XP, and achievement rules.
+
 ## Sprint 49A — Student Experience Architecture
 
 Implemented locally as a frontend architecture increment. The canonical learner journey now defines Dashboard, Courses, Current Course, Current Unit, Lesson, Lesson Complete, and future Progress, Achievements, Profile, Settings, Classes, and Assignments. Current Course uses existing device-local completed lesson IDs to show unit progress and recommend the first incomplete unit. Unsupported motivation systems are explicitly placeholder-only.
