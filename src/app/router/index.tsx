@@ -1,26 +1,27 @@
 /* eslint-disable react-refresh/only-export-components */
 import { lazy, Suspense, type ReactNode } from "react";
 import { createBrowserRouter } from "react-router-dom";
-import AdminRoute from "../../features/admin/routing/AdminRoute";
+import { routeModuleLoaders } from "./routeModules";
 
-const DashboardPage = lazy(() => import("../../features/dashboard/DashboardPage"));
-const CoursesPage = lazy(() => import("../../features/courses/CoursesPage"));
-const UnitsPage = lazy(() => import("../../features/units/UnitsPage"));
-const LessonsPage = lazy(() => import("../../features/lessons/LessonsPage"));
-const LessonPage = lazy(() => import("../../features/lesson/LessonPage"));
-const LoginPage = lazy(() => import("../../features/auth/LoginPage"));
-const AdminLayout = lazy(() => import("../../features/admin/layouts/AdminLayout"));
-const AdminDashboardPage = lazy(() => import("../../features/admin/dashboard/AdminDashboardPage"));
-const AdminCoursesPage = lazy(() => import("../../features/admin/courses/AdminCoursesPage"));
-const AdminCourseUnitsPage = lazy(() => import("../../features/admin/units/AdminCourseUnitsPage"));
-const AdminUnitLessonsPage = lazy(() => import("../../features/admin/lessons/AdminUnitLessonsPage"));
-const LessonStudioPage = lazy(() => import("../../features/admin/lesson-studio/pages/LessonStudioPage"));
-const AdminClassesPage = lazy(() => import("../../features/admin/classes/AdminClassesPage"));
-const CreateClassForm = lazy(() => import("../../features/admin/classes/CreateClassForm").then((module) => ({ default: module.CreateClassForm })));
-const ClassWorkspaceLayout = lazy(() => import("../../features/admin/classes/ClassWorkspaceLayout").then((module) => ({ default: module.ClassWorkspaceLayout })));
-const StudentPreviewCoursePage = lazy(() => import("../../features/admin/preview/StudentPreviewCoursePage"));
-const StudentPreviewLessonPage = lazy(() => import("../../features/admin/preview/StudentPreviewLessonPage"));
-const AdminMediaLibraryPage = lazy(() => import("../../features/admin/media/AdminMediaLibraryPage"));
+const AdminRoute = lazy(routeModuleLoaders.adminRoute);
+const DashboardPage = lazy(routeModuleLoaders.dashboard);
+const CoursesPage = lazy(routeModuleLoaders.courses);
+const UnitsPage = lazy(routeModuleLoaders.units);
+const LessonsPage = lazy(routeModuleLoaders.lessons);
+const LessonPage = lazy(routeModuleLoaders.lesson);
+const LoginPage = lazy(routeModuleLoaders.login);
+const AdminLayout = lazy(routeModuleLoaders.adminLayout);
+const AdminDashboardPage = lazy(routeModuleLoaders.adminDashboard);
+const AdminCoursesPage = lazy(routeModuleLoaders.adminCourses);
+const AdminCourseUnitsPage = lazy(routeModuleLoaders.courseWorkspace);
+const AdminUnitLessonsPage = lazy(routeModuleLoaders.unitLessons);
+const LessonStudioPage = lazy(routeModuleLoaders.lessonStudio);
+const AdminClassesPage = lazy(routeModuleLoaders.classes);
+const CreateClassForm = lazy(routeModuleLoaders.createClass);
+const ClassWorkspaceLayout = lazy(routeModuleLoaders.classWorkspace);
+const StudentPreviewCoursePage = lazy(routeModuleLoaders.previewCourse);
+const StudentPreviewLessonPage = lazy(routeModuleLoaders.previewLesson);
+const AdminMediaLibraryPage = lazy(routeModuleLoaders.mediaLibrary);
 
 function LazyRoute({ children }: { children: ReactNode }) {
   return <Suspense fallback={<div role="status" className="grid min-h-64 place-items-center text-sm font-medium text-slate-500">Loading PronounceLab…</div>}>{children}</Suspense>;
@@ -37,7 +38,7 @@ export const router = createBrowserRouter([
   },
   {
     path: "/admin",
-    element: <AdminRoute />,
+    element: <LazyRoute><AdminRoute /></LazyRoute>,
     children: [
       {
         element: <LazyRoute><AdminLayout /></LazyRoute>,

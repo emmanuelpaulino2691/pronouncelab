@@ -1,20 +1,21 @@
 import { lazy, Suspense, useCallback, useRef, useState } from "react";
 import ActivityMetadataEditor from "../components/ActivityMetadataEditor";
 import type { LessonActivity } from "../types";
-import ListeningEditor from "./ListeningEditor";
-import PronunciationEditor from "./PronunciationEditor";
-import QuizEditor from "./QuizEditor";
-import TheoryEditor from "./TheoryEditor";
-import InteractivePracticeEditor from "./InteractivePracticeEditor";
 import LessonStudioWorkspaceToolbar from "../components/LessonStudioWorkspaceToolbar";
 import SavedActivityPreview from "../components/SavedActivityPreview";
 import { activityTypeLabels } from "../types";
 import type { ActivitySectionCollapseController, StudioViewMode } from "../studioViewState";
-import LegacyPracticeEditor from "./LegacyPracticeEditor";
+import EditorChunkBoundary from "../components/EditorChunkBoundary";
+import EditorLoadingState from "../components/EditorLoadingState";
+import { activityEditorLoaders } from "./activityEditorModules";
 
-const AiSpeakingMissionEditor = lazy(
-  () => import("./AiSpeakingMissionEditor")
-);
+const TheoryEditor = lazy(activityEditorLoaders.theory);
+const ListeningEditor = lazy(activityEditorLoaders.listening);
+const PronunciationEditor = lazy(activityEditorLoaders.pronunciation);
+const LegacyPracticeEditor = lazy(activityEditorLoaders.practice);
+const QuizEditor = lazy(activityEditorLoaders.quiz);
+const InteractivePracticeEditor = lazy(activityEditorLoaders.interactive_practice);
+const AiSpeakingMissionEditor = lazy(activityEditorLoaders.ai_speaking_mission);
 
 type Props = {
   activity: LessonActivity;
@@ -68,6 +69,7 @@ export default function ActivityEditor({
         onSave={async (input) => { await onSaveMetadata(input); reportDirty("metadata", false); }}
         onDirtyChange={(dirty) => reportDirty("metadata", dirty)}
       />
+      <EditorChunkBoundary><Suspense fallback={<EditorLoadingState />}>
       {activity.type === "theory" && (
         <TheoryEditor
           key={activity.id}
@@ -115,7 +117,6 @@ export default function ActivityEditor({
         />
       )}
       {activity.type === "ai_speaking_mission" && (
-        <Suspense fallback={<section role="status" className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-600">Loading AI Speaking Mission editor…</section>}>
           <AiSpeakingMissionEditor
             key={activity.id}
             activityId={activity.id}
@@ -123,8 +124,8 @@ export default function ActivityEditor({
             onDirtyChange={(dirty) => reportDirty("ai_speaking_mission", dirty)}
             onSectionControllerChange={registerSectionController}
           />
-        </Suspense>
       )}
+      </Suspense></EditorChunkBoundary>
       </div>
       {viewMode === "split" && <SavedActivityPreview activity={activity} dirty={dirty} />}
       </div>

@@ -4,6 +4,14 @@
 
 Command contracts, registry construction, matching, ranking, history, and keyboard utilities live under `src/domain/command-palette`. `AdminLayout` lazy-loads the visual palette only when opened, keeping it global to protected admin routes without affecting learner bundles. The first registry combines static navigation and templates with IDs already present in the current route; it does not crawl Supabase or introduce a parallel content cache. Future page data can contribute commands through the same typed registry contract.
 
+## Performance boundaries
+
+The router keeps every learner page, admin page, the protected `AdminRoute`, and the admin layout behind explicit dynamic imports. This prevents Supabase authentication and authoring code from entering the application entry chunk before a route needs them. `routeModuleLoaders` is the canonical route-chunk registry.
+
+Lesson Studio loads only the editor matching the selected activity type. Metadata and workspace state remain mounted above the lazy editor boundary, preserving selection, dirty-state coordination, split-preview state, and activity-level controls. Each editor receives a stable skeleton while loading and a scoped, teacher-safe recovery state if its chunk cannot load. The shared learner `ActivityRenderer` remains one small shared chunk because learner routes, Student Preview, and saved Split Preview all use it.
+
+Future features should preserve route-level dynamic imports, place substantial type-specific authoring UI behind activity boundaries, and avoid importing Supabase-backed admin protection into the entry graph. Chunking should follow measured module weight rather than arbitrary vendor grouping.
+
 ## Smart Content Builder foundation
 
 The template registry and browser-preference utilities live under `src/domain/templates`; Lesson Studio consumes them through the shared Activity Picker without embedding template definitions in route code. Favorites and recents are versioned local-storage preferences, not lesson content. Blank activity creation retains the established service path. Template previews, destination-aware activity duplication, and cross-lesson copy do not issue mutations or simulate persistence.

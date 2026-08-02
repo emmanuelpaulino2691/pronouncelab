@@ -1,5 +1,9 @@
 # Roadmap
 
+## Sprint 48D — Performance and Bundle Optimization
+
+Implemented locally. Route and activity-editor lazy boundaries now isolate Supabase and activity-specific authoring code from the main entry path. Future performance work should be driven by production telemetry; possible follow-ups include browser-level chunk failure tests, navigation prefetching for high-frequency routes, and further learner renderer splitting only if shared-renderer growth becomes material.
+
 ### Sprint 48A — Global Search & Command Palette Foundation
 
 **Delivered locally:** lazy global admin Command Palette, typed registry, stable ranked matching, route-context and template commands, client-side navigation, truthful unavailable commands, keyboard/mouse interaction, responsive presentation, and safe twenty-item browser history.

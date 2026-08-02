@@ -1,5 +1,9 @@
 # Sprint Status
 
+## Sprint 48D — Performance and Bundle Optimization
+
+Implemented locally as a frontend-only increment. The protected Admin route now lazy-loads with the rest of the route tree, moving Supabase out of the application entry chunk. Lesson Studio loads Learn, Listening, Pronunciation, Quiz, legacy Practice, Interactive Practice, and AI Speaking Mission editors independently with stable loading and controlled failure states. The production entry chunk decreases from 501.88 kB to approximately 293 kB and the Vite 500 kB advisory no longer appears. Browser performance QA remains pending.
+
 ## Sprint 48C — Responsive Student Shell for Teacher Preview
 
 Implemented locally as a frontend-only increment. Teacher Preview now sends one Desktop, Tablet, or Phone mode through the complete shared Student shell and LessonPlayer. Desktop preserves the permanent sidebar; Tablet and Phone use the compact student app bar and accessible navigation drawer while lesson activity navigation remains full-width. Real learner routes retain automatic browser-responsive behavior. Browser QA remains pending.
