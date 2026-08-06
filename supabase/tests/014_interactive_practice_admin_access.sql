@@ -174,9 +174,7 @@ select results_eq(
   $test$
     select public.can_manage_content()
   $test$,
-  $test$
-    values (false::boolean)
-  $test$,
+  array[false]::boolean[],
   'anonymous users cannot access Studio content'
 );
 select results_eq(
@@ -187,9 +185,7 @@ select results_eq(
       'select'
     )
   $test$,
-  $test$
-    values (false::boolean)
-  $test$,
+  array[false]::boolean[],
   'anonymous users have no direct Interactive Practice table access'
 );
 reset role;
@@ -203,9 +199,7 @@ select results_eq(
   $test$
     select public.can_manage_content()
   $test$,
-  $test$
-    values (false::boolean)
-  $test$,
+  array[false]::boolean[],
   'authenticated learners cannot access Studio content'
 );
 select is(
@@ -225,9 +219,7 @@ select results_eq(
   $test$
     select public.can_manage_content()
   $test$,
-  $test$
-    values (true::boolean)
-  $test$,
+  array[true]::boolean[],
   'editors can access Studio content'
 );
 select is(
@@ -247,9 +239,7 @@ select results_eq(
   $test$
     select public.can_manage_content()
   $test$,
-  $test$
-    values (true::boolean)
-  $test$,
+  array[true]::boolean[],
   'publishers can access Studio content'
 );
 
@@ -261,9 +251,7 @@ select results_eq(
   $test$
     select public.can_manage_content()
   $test$,
-  $test$
-    values (true::boolean)
-  $test$,
+  array[true]::boolean[],
   'administrators can access Studio content'
 );
 
@@ -280,9 +268,7 @@ select results_eq(
   $test$
     select public.can_manage_content()
   $test$,
-  $test$
-    values (true::boolean)
-  $test$,
+  array[true]::boolean[],
   'same-user token refresh preserves administrator access'
 );
 
@@ -291,9 +277,7 @@ select extensions.results_eq(
   $test$
     select public.can_manage_content()
   $test$,
-  $test$
-    values (true::boolean)
-  $test$,
+  array[true]::boolean[],
   'schema-qualified helper resolves with an empty search path'
 );
 select is(
