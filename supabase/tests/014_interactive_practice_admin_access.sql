@@ -272,10 +272,21 @@ select results_eq(
   'same-user token refresh preserves administrator access'
 );
 
+create temporary table empty_search_path_result (
+  can_manage_content boolean not null
+);
+
 set local search_path = '';
+
+insert into pg_temp.empty_search_path_result (can_manage_content)
+select public.can_manage_content();
+
+set local search_path = extensions, pg_catalog;
+
 select extensions.results_eq(
   $test$
-    select public.can_manage_content()
+    select can_manage_content
+    from pg_temp.empty_search_path_result
   $test$,
   array[true]::boolean[],
   'schema-qualified helper resolves with an empty search path'
