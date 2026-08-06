@@ -1,5 +1,11 @@
 # Roadmap
 
+## Sprint 49D — Course Experience
+
+Implemented locally as a frontend-only learner journey refinement. Courses, Course detail, and Unit detail now share the Home recommendation engine and consistent Not started, In progress, Completed, and Empty states. One current or recommended course, unit, or lesson leads each screen; supporting content remains available with lower visual priority. Progress uses only published usable lessons and device-local state, with no fabricated duration, purpose, lock, or outcome.
+
+Future value depends on the separately proposed authored `lessonPurpose`, learner identity and synchronized progress, real pedagogical sequencing rules if locking is ever introduced, and browser-level responsive journey QA.
+
 ## Sprint 49B — Next-Action Student Dashboard
 
 Implemented locally as a frontend-only learner increment. Dashboard now leads with a deterministic Start, Continue, or Review action derived from published usable lessons and validated device-local progress. It shows course and unit context, accessible device-local lesson/course completion, stable loading/error/empty states, and subordinate non-numeric future motivation placeholders. Timestamp-based recent activity remains omitted.

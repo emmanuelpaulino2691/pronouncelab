@@ -1,4 +1,5 @@
-import type { LearnerCourse, LearnerLessonSummary, LearnerUnit } from "../../shared/content/contracts/learnerContent";
+import type { LearnerCourse } from "../../shared/content/contracts/learnerContent";
+import { isUsableLearnerLesson, resolveRecommendedLearnerStep, type RecommendedLearnerStep } from "../learner-journey/learnerJourney";
 
 type LocalProgress = {
   lessonsStarted: readonly string[];
@@ -6,14 +7,7 @@ type LocalProgress = {
   activitiesCompleted: readonly { lessonId: string; activities: readonly number[] }[];
 };
 
-export type DashboardLessonContext = { course: LearnerCourse; unit: LearnerUnit; lesson: LearnerLessonSummary };
-export type NextLearnerAction = DashboardLessonContext & {
-  kind: "start" | "continue" | "review";
-  activityIndex: number;
-  completedActivities: number;
-  lessonProgress: number;
-  href: string;
-};
+export type NextLearnerAction = RecommendedLearnerStep;
 
 export type CurrentCourseSummary = {
   courseId: string;
@@ -31,40 +25,15 @@ export type LearnerDashboardProgress = {
 };
 
 function availableLessons(courses: readonly LearnerCourse[]) {
-  return courses.flatMap((course) => course.units.flatMap((unit) => unit.lessons.filter((lesson) => lesson.available && lesson.activityCount > 0).map((lesson) => ({ course, unit, lesson }))));
-}
-
-function actionFromContext(context: DashboardLessonContext, progress: LocalProgress, activityIndex: number, kind: NextLearnerAction["kind"]): NextLearnerAction {
-  const completedActivities = new Set(progress.activitiesCompleted.find((item) => item.lessonId === context.lesson.id)?.activities.filter((index) => index >= 0 && index < context.lesson.activityCount) ?? []).size;
-  return { ...context, kind, activityIndex, completedActivities, lessonProgress: context.lesson.activityCount === 0 ? 0 : Math.round(completedActivities / context.lesson.activityCount * 100), href: `/lessons/${context.lesson.id}` };
+  return courses.flatMap((course) => course.units.flatMap((unit) => unit.lessons.filter(isUsableLearnerLesson).map((lesson) => ({ course, unit, lesson }))));
 }
 
 export function resolveNextLearnerAction(courses: readonly LearnerCourse[], progress: LocalProgress, resumedActivityByLesson: Readonly<Record<string, number>> = {}): NextLearnerAction | null {
-  const lessons = availableLessons(courses);
-  if (!lessons.length) return null;
-  const byId = new Map<string, DashboardLessonContext>(lessons.map((context) => [context.lesson.id, context]));
-  const completed = new Set<string>(progress.lessonsCompleted);
-
-  const resumed = [...progress.lessonsStarted].reverse().map((id) => byId.get(id)).find((context): context is DashboardLessonContext => Boolean(context && !completed.has(context.lesson.id)));
-  if (resumed) {
-    const storedIndex = resumedActivityByLesson[resumed.lesson.id] ?? 0;
-    const activityIndex = Math.min(Math.max(storedIndex, 0), resumed.lesson.activityCount - 1);
-    return actionFromContext(resumed, progress, activityIndex, "continue");
-  }
-
-  const validHistory = [...progress.lessonsStarted, ...progress.lessonsCompleted].filter((id) => byId.has(id));
-  const current = validHistory.length ? byId.get(validHistory.at(-1)!) : undefined;
-  if (current) {
-    const nextInCourse = lessons.find((context) => context.course.id === current.course.id && !completed.has(context.lesson.id));
-    if (nextInCourse) return actionFromContext(nextInCourse, progress, 0, "start");
-  }
-
-  const first = lessons[0];
-  return actionFromContext(first, progress, 0, completed.has(first.lesson.id) ? "review" : "start");
+  return resolveRecommendedLearnerStep(courses, progress, resumedActivityByLesson);
 }
 
 export function buildCurrentCourseSummary(action: NextLearnerAction, progress: LocalProgress): CurrentCourseSummary {
-  const lessonIds = action.course.units.flatMap((unit) => unit.lessons.filter((lesson) => lesson.available && lesson.activityCount > 0).map((lesson) => lesson.id));
+  const lessonIds = action.course.units.flatMap((unit) => unit.lessons.filter(isUsableLearnerLesson).map((lesson) => lesson.id));
   const completed = new Set<string>(progress.lessonsCompleted);
   const completedLessons = lessonIds.filter((id) => completed.has(id)).length;
   return { courseId: action.course.id, courseTitle: action.course.title, unitTitle: action.unit.title, completedLessons, totalLessons: lessonIds.length, percent: lessonIds.length ? Math.round(completedLessons / lessonIds.length * 100) : 0 };
@@ -72,7 +41,7 @@ export function buildCurrentCourseSummary(action: NextLearnerAction, progress: L
 
 export function calculateLearnerDashboardProgress(courses: readonly LearnerCourse[], progress: LocalProgress): LearnerDashboardProgress {
   const completed = new Set<string>(progress.lessonsCompleted);
-  const courseLessonIds = courses.map((course) => course.units.flatMap((unit) => unit.lessons.filter((lesson) => lesson.available && lesson.activityCount > 0).map((lesson) => lesson.id)));
+  const courseLessonIds = courses.map((course) => course.units.flatMap((unit) => unit.lessons.filter(isUsableLearnerLesson).map((lesson) => lesson.id)));
   const allLessonIds = courseLessonIds.flat();
   return { completedLessons: allLessonIds.filter((id) => completed.has(id)).length, totalLessons: allLessonIds.length, completedCourses: courseLessonIds.filter((ids) => ids.length > 0 && ids.every((id) => completed.has(id))).length };
 }

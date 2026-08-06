@@ -55,9 +55,20 @@ Home may summarize current device-local lesson and activity completion, but labe
 
 ## Course and unit experience
 
-Course cards show published course identity, level, unit count, and completion calculated only from published lessons visible in the current catalog. The Current Course page presents units in curriculum order, shows completed lesson counts and an accessible progress bar, marks one first-incomplete unit as **Recommended next**, and uses Start/Continue/Review actions derived from completion state. Empty units remain visible but cannot become the recommended next action.
+The learner hierarchy is one guided journey: **Courses → Course → Unit → Lesson**. All three hierarchy screens and Home consume the same pure recommendation resolver. It prioritizes a valid resumed incomplete lesson, then the first incomplete lesson in the current scope, then the first usable lesson in the first incomplete unit, and offers review only when every usable lesson in scope is complete. Empty and unavailable lessons are never recommended; stale device-local identifiers are ignored.
 
-The Current Unit page preserves lesson order and distinguishes Not Started, In Progress, and Completed from device-local progress. Future locked lessons must have a pedagogical or assignment rule from an authoritative contract; position alone must not invent locking. Duration appears only when published lesson metadata supplies a reliable estimate.
+Course, unit, and lesson states use the same semantics:
+
+- **Not started:** no valid local activity or completion exists; the action is **Start**.
+- **In progress:** the learner has started the lesson or completed part of the current scope; the action is **Continue**.
+- **Completed:** every usable lesson in the scope is complete; the action is **Review**.
+- **Empty:** no published lesson with at least one learner activity is available; no active learning action is shown.
+
+Courses places the current or recommended journey first and gives supporting courses less visual weight. Course detail presents course context and total lesson progress before one recommended unit and the remaining unit list. Unit detail presents course context and unit progress before one recommended lesson and the remaining lesson list. Recommended content appears once rather than being duplicated in the supporting grid.
+
+Course cards show the published title, an optional non-empty description, completed lessons out of usable lessons, an accessible progress bar, a plain-language state, and a Start/Continue/Review action. They do not expose internal lifecycle status, arbitrary level labels, empty metadata, or duration claims. The Course page presents units in curriculum order with the same state and action semantics. Empty units remain visible but cannot become the recommended next action.
+
+The Unit page preserves lesson order and distinguishes Not started, In progress, and Completed from device-local progress. In-progress lesson cards may show the validated current activity position; untouched and completed cards avoid administrative activity counts. Future locked lessons require an authoritative pedagogical or assignment rule—position alone never invents locking. Duration and `lessonPurpose` appear only when future published contracts supply them.
 
 ## Motivation architecture
 

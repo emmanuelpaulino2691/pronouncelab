@@ -82,6 +82,8 @@ The UI does not currently expose a complete end-to-end course publication experi
 
 The learner root is named **Home**, never Dashboard. Home welcomes the learner, presents one truthful **Today's Mission**, places it within **Your Learning Journey**, and keeps **Browse all courses** as a quiet link inside that journey section. It does not behave like a statistics report or advertise unavailable motivation systems. A future authored `lessonPurpose` may explain the practical value of a lesson across learner surfaces, but it is not part of the current content contract.
 
+Courses are presented as learning journeys rather than catalog records. The current or recommended course leads, followed by supporting choices. Course and Unit pages preserve curriculum order while elevating one truthful next unit or lesson. Start, Continue, and Review are derived consistently from published usable lessons and device-local progress; unavailable content never appears locked and no duration, outcome, or purpose is inferred.
+
 A learner:
 
 1. opens Home or the course catalog;

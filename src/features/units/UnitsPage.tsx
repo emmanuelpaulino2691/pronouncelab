@@ -1,46 +1,43 @@
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import MainLayout from "../../shared/layouts/MainLayout";
-import Card from "../../shared/components/ui/Card";
-import NotFoundState from "../../shared/components/ui/NotFoundState";
 import ProgressBar from "../../shared/components/ui/ProgressBar";
+import NotFoundState from "../../shared/components/ui/NotFoundState";
 import { learnerContentProvider } from "../../shared/content/learnerContentComposition";
 import { useLearnerResource } from "../../shared/content/hooks/useLearnerResource";
 import { isDecimalContentId } from "../../shared/content/contracts/publishedRpcGuards";
 import type { ContentId } from "../../shared/content/contracts/learnerContent";
 import { loadUserProgress } from "../../shared/utils/progressStorage";
-import { getCourseUnitProgress, recommendedUnitIndex, unitActionLabel } from "./courseUnitProgress";
+import { resolveLearnerCourseState, resolveLearnerUnitState, resolveRecommendedLearnerStep } from "../learner-journey/learnerJourney";
+import UnitJourneyCard from "./components/UnitJourneyCard";
 
 export default function UnitsPage() {
   const { courseId = "" } = useParams();
   const navigate = useNavigate();
   const validId = isDecimalContentId(courseId) ? courseId as unknown as ContentId : null;
-  const resource = useLearnerResource(
-    (signal) => validId ? learnerContentProvider.getCourse(validId, signal) : Promise.resolve({ ok: false as const, error: { code: "not_found" as const, message: "Course not found.", retryable: false } }),
-    [validId]
-  );
+  const resource = useLearnerResource((signal) => validId ? learnerContentProvider.getCourse(validId, signal) : Promise.resolve({ ok: false as const, error: { code: "not_found" as const, message: "Course not found.", retryable: false } }), [validId]);
 
-  if (!resource.loading && resource.error?.code !== "not_found") return <MainLayout><Card title="Course could not be loaded"><p>{resource.error?.message}</p><button type="button" onClick={resource.retry} className="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-white">Try again</button></Card></MainLayout>;
-  if (!resource.loading && !resource.value) return <MainLayout><NotFoundState title="Course not found" message="This course does not exist or is no longer published." actionLabel="Browse Courses" onAction={() => navigate("/courses")} /></MainLayout>;
-  if (!resource.value) return <MainLayout><p role="status">Loading published course…</p></MainLayout>;
+  if (!resource.loading && resource.error?.code !== "not_found") return <MainLayout><section className="rounded-2xl border border-red-200 bg-white p-6"><h1 className="text-2xl font-bold">Course could not be loaded</h1><p className="mt-2 text-slate-600">This learning journey is temporarily unavailable.</p><button type="button" onClick={resource.retry} className="mt-5 min-h-11 rounded-xl bg-blue-600 px-5 font-semibold text-white">Try again</button></section></MainLayout>;
+  if (!resource.loading && !resource.value) return <MainLayout><NotFoundState title="Course not found" message="This course does not exist or is no longer available." actionLabel="Browse Courses" onAction={() => navigate("/courses")} /></MainLayout>;
+  if (!resource.value) return <MainLayout><p role="status">Loading your course...</p></MainLayout>;
 
   const course = resource.value;
-  const storedProgress = loadUserProgress();
-  const unitProgress = course.units.map((unit) => getCourseUnitProgress(unit.lessons.map((lesson) => lesson.id), storedProgress.lessonsCompleted));
-  const recommendedIndex = recommendedUnitIndex(unitProgress);
+  const progress = loadUserProgress();
+  const courseJourney = resolveLearnerCourseState(course, progress);
+  const unitJourneys = course.units.map((unit) => resolveLearnerUnitState(unit, progress));
+  const recommended = resolveRecommendedLearnerStep([course], progress, {}, { courseId: course.id });
+  const recommendedJourney = recommended ? unitJourneys.find((journey) => journey.unit.id === recommended.unit.id) : undefined;
+  const otherJourneys = recommendedJourney ? unitJourneys.filter((journey) => journey.unit.id !== recommendedJourney.unit.id) : unitJourneys;
 
   return <MainLayout>
-    <h1 className="break-words text-3xl font-bold sm:text-4xl">{course.emoji} {course.title}</h1>
-    <p className="mt-2 text-slate-600">Continue with the recommended unit or review any available lesson.</p>
-    <div className="mt-8 grid gap-6">
-      {course.units.length === 0 && <Card title="No published units"><p>This course does not have published units yet.</p></Card>}
-      {course.units.map((unit, index) => <Card key={unit.id} title={unit.title}>
-        <p>{unit.description}</p>
-        {unit.lessons.length > 0 ? <>
-          <div className="mt-5 flex flex-wrap items-center justify-between gap-2 text-sm"><span className="font-semibold text-slate-700">{unitProgress[index].completedLessons} of {unitProgress[index].totalLessons} lessons completed</span>{index === recommendedIndex && unitProgress[index].state !== "completed" && <span className="rounded-full bg-blue-50 px-3 py-1 font-semibold text-blue-700">Recommended next</span>}</div>
-          <div className="mt-3"><ProgressBar value={unitProgress[index].percent} label={`${unit.title} progress`} /></div>
-          <button type="button" onClick={() => navigate(`/units/${unit.id}`)} className="mt-5 min-h-11 rounded-lg bg-blue-600 px-5 py-2 font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">{unitActionLabel(unitProgress[index])} →</button>
-        </> : <p className="mt-5 text-sm font-semibold text-slate-700">No published lessons yet</p>}
-      </Card>)}
-    </div>
+    <nav aria-label="Course navigation"><Link to="/courses" className="inline-flex min-h-11 items-center font-semibold text-blue-700 hover:underline">&larr; Your Courses</Link></nav>
+    <header className="mt-3 max-w-4xl"><h1 className="break-words text-3xl font-bold text-slate-950 sm:text-4xl">{course.title}</h1>{course.description.trim() && <p className="mt-3 text-lg leading-7 text-slate-600">{course.description}</p>}</header>
+    {courseJourney.state === "empty" ? <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-7"><h2 className="text-2xl font-bold text-slate-950">This course does not have lessons available yet.</h2><p className="mt-2 text-slate-600">Browse another learning journey while new lessons are prepared.</p><Link to="/courses" className="mt-5 inline-flex min-h-11 items-center font-semibold text-blue-700 hover:underline">Browse other courses</Link></section> : <>
+      <section aria-labelledby="course-progress-heading" className="mt-8 max-w-4xl"><div className="flex flex-wrap items-end justify-between gap-2"><div><p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Course progress</p><h2 id="course-progress-heading" className="mt-1 text-xl font-bold text-slate-950">{courseJourney.completedLessons} of {courseJourney.totalLessons} lessons completed</h2></div>{courseJourney.state === "completed" && <p className="font-semibold text-emerald-700">You completed every available lesson in this course.</p>}</div><div className="mt-3"><ProgressBar value={courseJourney.percent} label={`${course.title} progress`} /></div></section>
+      <div className="mt-10 space-y-10">
+        {recommendedJourney && <section aria-labelledby="recommended-unit-heading"><h2 id="recommended-unit-heading" className="mb-4 text-xl font-bold text-slate-950">{courseJourney.state === "completed" ? "Review a unit" : "Recommended next unit"}</h2><UnitJourneyCard journey={recommendedJourney} recommended /></section>}
+        {otherJourneys.length > 0 && <section aria-labelledby="all-units-heading"><h2 id="all-units-heading" className="text-xl font-bold text-slate-950">All units</h2><div className="mt-4 grid gap-5 md:grid-cols-2">{otherJourneys.map((journey) => <UnitJourneyCard key={journey.unit.id} journey={journey} recommended={false} />)}</div></section>}
+        {courseJourney.state === "completed" && <Link to="/courses" className="inline-flex min-h-11 items-center font-semibold text-blue-700 hover:underline">Browse other courses</Link>}
+      </div>
+    </>}
   </MainLayout>;
 }

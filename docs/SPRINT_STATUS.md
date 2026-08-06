@@ -1,5 +1,9 @@
 # Sprint Status
 
+## Sprint 49D — Course Experience
+
+Implemented locally as a frontend-only increment. Learner Courses, Course detail, and Unit detail now form a visually prioritized Course → Unit → Lesson journey. A shared pure resolver drives Home and hierarchy recommendations, exact activity resume, state labels, progress, and Start/Continue/Review actions. Empty units and unusable lessons remain truthful but cannot be recommended or started. Completion offers review rather than inventing another lesson. Published routes, Lesson Player, Student Preview, teacher workflows, and device-local persistence contracts remain unchanged. Browser visual QA remains pending.
+
 ## Sprint 49C.1 — Home Experience Polish
 
 Implemented locally as a frontend-only polish increment. Browse all courses is now a quiet secondary link within Your Learning Journey instead of an independent Home section. The welcome adds the Manifesto-aligned line **A few focused minutes can make English feel more familiar.** Existing lesson titles remain authoritative because the current model has no learner-purpose metadata. Learner-visible Dashboard wording has been removed; internal module names and teacher Dashboard terminology remain unchanged. A future optional `lessonPurpose` authoring concept is documented but not implemented. Browser visual QA remains pending.

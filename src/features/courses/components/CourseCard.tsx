@@ -1,69 +1,19 @@
-﻿import { useNavigate } from "react-router-dom";
-
-import Card from "../../../shared/components/ui/Card";
+import { Link } from "react-router-dom";
 import ProgressBar from "../../../shared/components/ui/ProgressBar";
+import { learnerJourneyActionLabel, learnerJourneyStateLabel, type LearnerCourseJourney } from "../../learner-journey/learnerJourney";
 
-type Props = {
-  id: string;
-  title: string;
-  level: string;
-  units: number;
-  emoji: string;
-  progress: number;
-};
+type Props = { journey: LearnerCourseJourney; recommended: boolean };
 
-function CourseCard({
-  id,
-  title,
-  level,
-  units,
-  emoji,
-  progress,
-}: Props) {
-
-  const navigate = useNavigate();
-
-  return (
-
-    <Card title={`${emoji} ${title}`}>
-
-      <div className="space-y-4">
-
-        <div className="flex justify-between text-sm">
-
-          <span className="rounded-full bg-slate-100 px-3 py-1">
-            {level}
-          </span>
-
-          <span>
-            {units} Units
-          </span>
-
-        </div>
-
-        <ProgressBar value={progress} />
-
-        <div className="flex items-center justify-between">
-
-          <span className="text-sm text-slate-500">
-            {progress}% completed
-          </span>
-
-          <button
-            type="button"
-            onClick={() => navigate(`/courses/${id}`)}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-white transition hover:bg-blue-700"
-          >
-            Open →
-          </button>
-
-        </div>
-
-      </div>
-
-    </Card>
-
-  );
+export default function CourseCard({ journey, recommended }: Props) {
+  const { course } = journey;
+  return <article className={`rounded-2xl border bg-white p-5 shadow-sm sm:p-6 ${recommended ? "border-blue-300 ring-2 ring-blue-100" : "border-slate-200"}`}>
+    {recommended && <p className="text-xs font-bold uppercase tracking-[0.14em] text-blue-700">{journey.state === "in_progress" ? "Continue your journey" : journey.state === "completed" ? "Ready to review" : "Recommended next"}</p>}
+    <h2 className={`${recommended ? "mt-2 text-2xl" : "text-xl"} break-words font-bold text-slate-950`}>{course.title}</h2>
+    {course.description.trim() && <p className="mt-2 line-clamp-3 leading-6 text-slate-600">{course.description}</p>}
+    {journey.state === "empty" ? <p className="mt-5 font-medium text-slate-600">This course does not have lessons available yet.</p> : <>
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-2 text-sm text-slate-600"><span>{journey.completedLessons} of {journey.totalLessons} lessons completed</span><span className="font-semibold text-slate-700">{learnerJourneyStateLabel(journey.state)}</span></div>
+      <div className="mt-3"><ProgressBar value={journey.percent} label={`${course.title} progress`} /></div>
+      <Link to={`/courses/${course.id}`} className={`mt-5 inline-flex min-h-11 w-full items-center justify-center rounded-xl px-5 font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 sm:w-auto ${recommended ? "bg-blue-600 text-white hover:bg-blue-700" : "border border-blue-600 text-blue-700 hover:bg-blue-50"}`}>{learnerJourneyActionLabel(journey.action!, "course")}</Link>
+    </>}
+  </article>;
 }
-
-export default CourseCard;
