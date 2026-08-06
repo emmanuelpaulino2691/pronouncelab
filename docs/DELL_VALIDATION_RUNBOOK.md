@@ -1,5 +1,25 @@
 # Dell Local Supabase Validation Runbook
 
+## First-pass result and required second pass
+
+The first Dell pass successfully reset the disposable database through all 24
+migrations ending at `202607240002`. The migration ledger was complete, but
+the pgTAP run found three failure classes:
+
+- `enforce_content_ownership()` accessed the course-only
+  `NEW.owner_user_id` field while firing for child-table updates;
+- the installed pgTAP version did not expose `not_ok(boolean, text)`;
+- `publish_course` was safely configured with an empty search path, but test
+  `017` expected `search_path=` instead of PostgreSQL's catalog value
+  `search_path=""`.
+
+The corrective plan adds forward migration
+`202608060001_fix_content_ownership_trigger.sql`, replaces the unsupported
+assertions without weakening them, corrects the catalog assertion, and adds
+focused ownership-trigger regression coverage. Remote deployment remains
+blocked until the second pass resets from zero through all 25 migrations and
+every SQL test through `018` passes.
+
 ## Purpose and safety boundary
 
 Use the Dell only to execute PronounceLab's complete migration chain and SQL tests against a disposable local Supabase database. Prepare and review code and documentation on the Lenovo.
@@ -20,7 +40,7 @@ Stop immediately if a command identifies a remote host/project, if the branch or
 ## Expected handoff
 
 - Branch: `sprint-40-41-teacher-publishing`
-- Baseline commit at preparation time: `312ba40`
+- Baseline commit before this corrective work: `7e30c31`
 - Remote/local ledger before the Dell pass: equal through `202607220007`
 - Local-only migrations, in dependency order:
   1. `202607220008_interactive_practice_foundation.sql`
@@ -30,8 +50,12 @@ Stop immediately if a command identifies a remote host/project, if the branch or
   5. `202607230004_publication_version_activation.sql`
   6. `202607240001_draft_version_mutation_hardening.sql`
   7. `202607240002_publish_course_workflow.sql`
+  8. `202608060001_fix_content_ownership_trigger.sql`
 
-The Lenovo currently has uncommitted Sprint 49D frontend and canonical-documentation work. The Dell cannot pull uncommitted files. Before using this runbook, replace `<HANDOFF_COMMIT>` below with the exact commit that contains the reviewed migrations, SQL tests, and this runbook. Do not use `312ba40` unless those files are present in that commit.
+The corrective migration, SQL tests, and documentation are currently
+uncommitted on the Lenovo. The Dell cannot pull uncommitted files. Before using
+this runbook, replace `<HANDOFF_COMMIT>` below with the exact authorized commit
+that contains the reviewed corrective work.
 
 ## Prerequisites
 
@@ -112,7 +136,7 @@ npx.cmd supabase db reset --local 2>&1 | Tee-Object (Join-Path $ValidationLogs "
 if ($LASTEXITCODE -ne 0) { throw "local db reset failed" }
 ```
 
-Expected: every migration from `202607170001` through `202607240002` executes in filename order, then the local seed completes. This command is destructive only to the local disposable database.
+Expected: every migration from `202607170001` through `202608060001` executes in filename order, then the local seed completes. This command is destructive only to the local disposable database.
 
 Stop on the first SQL error. Save `db-reset.txt`, run `npx.cmd supabase status`, and do not edit or skip the failing migration on the Dell.
 
@@ -123,7 +147,7 @@ npx.cmd supabase test db 2>&1 | Tee-Object (Join-Path $ValidationLogs "db-tests.
 if ($LASTEXITCODE -ne 0) { throw "SQL tests failed" }
 ```
 
-Expected: files `010` through `017` run in lexical order, each plan completes, and there are no failed assertions or plan mismatches. Stop on any failure; do not weaken a test or alter fixtures on the Dell.
+Expected: files `010` through `018` run in lexical order, each plan completes, and there are no failed assertions or plan mismatches. Stop on any failure; do not weaken a test or alter fixtures on the Dell.
 
 ### 6. Inspect local migration and RPC state
 
@@ -206,6 +230,21 @@ The exact repository order is:
 22. `202607230004_publication_version_activation.sql`
 23. `202607240001_draft_version_mutation_hardening.sql`
 24. `202607240002_publish_course_workflow.sql`
+25. `202608060001_fix_content_ownership_trigger.sql`
+
+### `202608060001` — ownership-trigger row-type correction
+
+- Purpose: makes the shared ownership trigger safe on all 13 trigger targets.
+- Creates/changes: replaces only `enforce_content_ownership()` and reasserts
+  that API roles cannot execute the trigger function directly.
+- Security: SECURITY DEFINER with `search_path = ''`; no dynamic SQL; course
+  ownership remains immutable; descendants still resolve the authoritative
+  course before authorization.
+- Data risk: no table or data rewrite. The behavioral change removes invalid
+  child-row field dereferencing while retaining owner, publisher lifecycle,
+  and administrator checks.
+- Disposable execution: required in the second Dell reset before any remote
+  deployment decision.
 
 ## Pending migration audit
 
@@ -325,7 +364,16 @@ Tests run lexically:
 5. `014_interactive_practice_admin_access.sql` — 13 assertions for canonical helper shape, no obsolete helper, anon/learner isolation, editor/publisher/admin access, token refresh, and empty-search-path RLS resolution. Creates four users and a draft graph; mutates and rolls back. Requires `202607220008`; after ownership migration its editor-created course receives ownership through the insert trigger. Likely failures: enum/table migration, role/RLS changes, or helper grants.
 6. `015_teacher_ownership.sql` — 21 assertions for creator ownership, owner isolation, teacher duplication/publication, publisher cross-owner publication, administrator global authority, and learner private-course isolation. Creates five users/two complete private graphs, publishes versions, duplicates data, updates a course, and rolls back. Requires `202607230002` plus the final publication body for effective head behavior. Likely failures: owner position uniqueness, backfill/trigger logic, publication validators, or policy visibility.
 7. `016_draft_version_mutation_hardening.sql` — 4 catalog/privilege assertions only. No fixtures or behavior mutations. Requires `202607230003` and `202607240001`. It can run after reset, but it does not prove drafts beneath published parents are editable or owner-isolated.
-8. `017_publish_course_workflow.sql` — 5 shape/privilege/search-path assertions only. No role or course fixtures and no publication call. Requires `202607240002`. It can run after reset, but it does not prove validation aggregation, rollback, atomic pointer activation, editor denial, or teacher/publisher/admin authority.
+8. `017_publish_course_workflow.sql` — 7 shape, SECURITY DEFINER, privilege,
+   and exact empty-search-path assertions. No role or course fixtures and no
+   publication call. Requires `202607240002`. It can run after reset, but it
+   does not prove validation aggregation, rollback, atomic pointer activation,
+   editor denial, or teacher/publisher/admin authority.
+9. `018_content_ownership_trigger.sql` — 11 behavioral assertions covering
+   course creation, server-assigned ownership, owner updates, immutable
+   ownership, child insertion/resolution, teacher cross-owner isolation, and
+   administrator child authority. Requires `202608060001`; creates isolated
+   users/content and rolls back.
 
 Every test is transaction-scoped and intended to run immediately after a successful local reset. Tests create their own users/fixtures except `011`, `016`, and `017`; they do not require persistent seed users.
 
@@ -347,9 +395,9 @@ Media visibility and quiz answer safety have meaningful coverage in `010`, but s
 
 Do not approve remote deployment until all items are evidenced by captured local output or an added regression test:
 
-- [ ] Full migration chain executes from zero via `db reset --local`.
-- [ ] SQL files `010`–`017` all pass with no plan mismatch.
-- [ ] All seven pending versions appear in the local migration ledger.
+- [ ] Full 25-migration chain executes from zero via `db reset --local`.
+- [ ] SQL files `010`–`018` all pass with no plan mismatch.
+- [ ] All eight post-`202607220007` versions appear in the local migration ledger.
 - [ ] Every RPC signature and return type in the RPC table exists exactly once.
 - [ ] Authenticated execute grants and anon/PUBLIC revocations match the RPC table.
 - [ ] Every SECURITY DEFINER function has an explicit empty search path.
@@ -381,4 +429,10 @@ Also report the first failing migration/test name, exact error, command exit cod
 
 ## Success criteria
 
-The first Dell pass succeeds only when the exact handoff commit is clean, local Supabase starts, reset executes migrations `202607170001`–`202607240002` from zero, all SQL tests pass, local catalog inspection matches the required RPC/security state, all logs are captured, and local services stop cleanly. Passing the current suite does not by itself close the confirmed regression gaps above; those gaps must be tested before remote deployment.
+The corrective Dell pass succeeds only when the exact handoff commit is clean,
+local Supabase starts, reset executes migrations `202607170001`–`202608060001`
+from zero, all SQL tests through `018` pass, local catalog inspection matches
+the required RPC/security state, all logs are captured, and local services
+stop cleanly. Passing the current suite does not by itself close the remaining
+course-publication behavioral gaps above; those gaps must be tested before
+remote deployment.

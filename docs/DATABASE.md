@@ -115,6 +115,15 @@ Legacy editors keep draft-authoring compatibility for courses they own.
 Anonymous and authenticated learners retain access only through published
 content rules and learner-safe RPC projections.
 
+The ownership trigger is shared by `courses` and twelve descendant content
+tables, but `owner_user_id` exists only on `courses`. Migration
+`202608060001` keeps the course as the single ownership authority and replaces
+schema-dependent `NEW.owner_user_id` access with JSONB record inspection. This
+allows the polymorphic trigger to handle child-table updates safely while still
+rejecting every attempted ownership reassignment, including by an
+administrator. Descendant writes continue resolving their course through
+`content_row_course_id` and then applying owner/administrator authorization.
+
 ## Versioning and immutability
 
 The lesson version is the release unit. A transaction-level advisory hierarchy gate serializes publication with all descendant authoring.
@@ -248,6 +257,7 @@ projection.
 | `202607220008_interactive_practice_foundation` | Staff-only Interactive Practice authoring data, controlled mutations, RLS, and publication gating; pending deployment |
 | `202607230001_add_teacher_role` | Adds the first-class `teacher` staff role in a transaction separate from its first use |
 | `202607230002_teacher_ownership_foundation` | Adds course-root ownership, backfill, owner-aware helpers/RLS/RPC protection, and teacher Studio permissions |
+| `202608060001_fix_content_ownership_trigger` | Makes the shared ownership trigger safe across child row types without weakening immutable course ownership |
 
 ## Migration rules
 

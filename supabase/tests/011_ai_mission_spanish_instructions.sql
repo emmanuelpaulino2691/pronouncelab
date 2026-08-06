@@ -54,32 +54,35 @@ select ok(
 )
 from mission_config_fixture;
 
-select not_ok(
+select is(
   public.is_valid_ai_speaking_mission_config(
     config || pg_catalog.jsonb_build_object(
       'studentInstructionsEs', '   '
     )
   ),
+  false,
   'publication validation rejects whitespace-only Spanish instructions'
 )
 from mission_config_fixture;
 
-select not_ok(
+select is(
   public.is_valid_ai_speaking_mission_config(
     config || pg_catalog.jsonb_build_object(
       'studentInstructionsEs', 42
     )
   ),
+  false,
   'publication validation rejects a non-text Spanish field'
 )
 from mission_config_fixture;
 
-select not_ok(
+select is(
   public.is_valid_ai_speaking_mission_config(
     config || pg_catalog.jsonb_build_object(
       'studentInstructionsEs', pg_catalog.repeat('x', 5001)
     )
   ),
+  false,
   'publication validation rejects oversized Spanish instructions'
 )
 from mission_config_fixture;

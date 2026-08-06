@@ -1,5 +1,24 @@
 # Sprint Status
 
+## Backend validation correction — ownership and pgTAP compatibility
+
+The first Dell disposable-database pass successfully executed the complete
+24-migration chain through `202607240002`. The subsequent pgTAP run exposed
+three local-only validation issues: the shared ownership trigger dereferenced
+the course-only `owner_user_id` field during child-table updates; the installed
+pgTAP version does not provide `not_ok(boolean, text)`; and the
+`publish_course` search-path assertion expected the wrong `pg_proc.proconfig`
+text representation.
+
+Implemented locally, pending a second Dell pass: forward migration
+`202608060001` replaces record-field ownership checks with safe JSONB
+inspection; the Spanish-instruction test uses an exact `is(..., false, ...)`
+assertion; the publication test now checks the catalog representation
+`search_path=""`, SECURITY DEFINER status, and grants; and focused ownership
+trigger coverage verifies owner, administrator, child-hierarchy, and
+cross-owner behavior. Remote deployment remains blocked until a fresh Dell
+reset executes all 25 migrations and the full pgTAP suite passes.
+
 ## Sprint 49D — Course Experience
 
 Implemented locally as a frontend-only increment. Learner Courses, Course detail, and Unit detail now form a visually prioritized Course → Unit → Lesson journey. A shared pure resolver drives Home and hierarchy recommendations, exact activity resume, state labels, progress, and Start/Continue/Review actions. Empty units and unusable lessons remain truthful but cannot be recommended or started. Completion offers review rather than inventing another lesson. Published routes, Lesson Player, Student Preview, teacher workflows, and device-local persistence contracts remain unchanged. Browser visual QA remains pending.
