@@ -126,6 +126,26 @@ insert into public.lesson_versions (
   status
 )
 values (915023, 915022, 1, 'draft');
+insert into public.courses (
+  id,
+  slug,
+  title,
+  description,
+  level,
+  emoji,
+  position,
+  status
+)
+values (
+  915003,
+  'teacher-two-draft',
+  'Teacher two draft',
+  '',
+  'A1',
+  '',
+  915003,
+  'draft'
+);
 
 select is(
   (
@@ -150,6 +170,8 @@ select is(
 set local role authenticated;
 set local request.jwt.claim.sub =
   '91500000-0000-4000-8000-000000000001';
+set local request.jwt.claims =
+  '{"sub":"91500000-0000-4000-8000-000000000001","role":"authenticated"}';
 
 select is(
   public.can_manage_content(),
@@ -180,7 +202,7 @@ select results_eq(
   $test$
     select id
     from public.courses
-    where id in (915001, 915002)
+    where id in (915001, 915002, 915003)
     order by id
   $test$,
   $test$
@@ -239,13 +261,15 @@ select throws_ok(
 
 set local request.jwt.claim.sub =
   '91500000-0000-4000-8000-000000000004';
+set local request.jwt.claims =
+  '{"sub":"91500000-0000-4000-8000-000000000004","role":"authenticated"}';
 select is(
   (
     select count(*)::integer
     from public.courses
-    where id in (915001, 915002)
+    where id in (915001, 915002, 915003)
   ),
-  2,
+  3,
   'publisher retains visibility across teacher courses'
 );
 select lives_ok(
@@ -257,13 +281,15 @@ select lives_ok(
 
 set local request.jwt.claim.sub =
   '91500000-0000-4000-8000-000000000003';
+set local request.jwt.claims =
+  '{"sub":"91500000-0000-4000-8000-000000000003","role":"authenticated"}';
 select is(
   (
     select count(*)::integer
     from public.courses
-    where id in (915001, 915002)
+    where id in (915001, 915002, 915003)
   ),
-  2,
+  3,
   'administrator can see every teacher course'
 );
 select is(
@@ -275,21 +301,24 @@ select lives_ok(
   $test$
     update public.courses
     set title = 'Administrator-reviewed course'
-    where id = 915002
+    where id = 915003
   $test$,
-  'administrator can edit another owner course'
+  'administrator can edit another owner draft course'
 );
 
 set local request.jwt.claim.sub =
   '91500000-0000-4000-8000-000000000005';
+set local request.jwt.claims =
+  '{"sub":"91500000-0000-4000-8000-000000000005","role":"authenticated"}';
 select is(
   (
     select count(*)::integer
     from public.courses
-    where id in (915001, 915002)
+    where id in (915001, 915002, 915003)
+      and status = 'draft'
   ),
   0,
-  'authenticated learner cannot see private teacher courses'
+  'authenticated learner cannot see private teacher draft courses'
 );
 
 reset role;

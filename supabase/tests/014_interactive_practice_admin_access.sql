@@ -167,17 +167,29 @@ values (
   }'::jsonb
 );
 
+set local request.jwt.claim.sub = '';
+set local request.jwt.claims = '{"role":"anon"}';
 set local role anon;
-select ok(
-  not public.can_manage_content(),
+select results_eq(
+  $test$
+    select public.can_manage_content()
+  $test$,
+  $test$
+    values (false::boolean)
+  $test$,
   'anonymous users cannot access Studio content'
 );
-select ok(
-  not pg_catalog.has_table_privilege(
-    'anon',
-    'public.interactive_practice_exercises',
-    'select'
-  ),
+select results_eq(
+  $test$
+    select pg_catalog.has_table_privilege(
+      'anon',
+      'public.interactive_practice_exercises',
+      'select'
+    )
+  $test$,
+  $test$
+    values (false::boolean)
+  $test$,
   'anonymous users have no direct Interactive Practice table access'
 );
 reset role;
@@ -185,8 +197,15 @@ reset role;
 set local role authenticated;
 set local request.jwt.claim.sub =
   '91400000-0000-4000-8000-000000000001';
-select ok(
-  not public.can_manage_content(),
+set local request.jwt.claims =
+  '{"sub":"91400000-0000-4000-8000-000000000001","role":"authenticated"}';
+select results_eq(
+  $test$
+    select public.can_manage_content()
+  $test$,
+  $test$
+    values (false::boolean)
+  $test$,
   'authenticated learners cannot access Studio content'
 );
 select is(
@@ -200,8 +219,15 @@ select is(
 
 set local request.jwt.claim.sub =
   '91400000-0000-4000-8000-000000000002';
-select ok(
-  public.can_manage_content(),
+set local request.jwt.claims =
+  '{"sub":"91400000-0000-4000-8000-000000000002","role":"authenticated"}';
+select results_eq(
+  $test$
+    select public.can_manage_content()
+  $test$,
+  $test$
+    values (true::boolean)
+  $test$,
   'editors can access Studio content'
 );
 select is(
@@ -215,15 +241,29 @@ select is(
 
 set local request.jwt.claim.sub =
   '91400000-0000-4000-8000-000000000003';
-select ok(
-  public.can_manage_content(),
+set local request.jwt.claims =
+  '{"sub":"91400000-0000-4000-8000-000000000003","role":"authenticated"}';
+select results_eq(
+  $test$
+    select public.can_manage_content()
+  $test$,
+  $test$
+    values (true::boolean)
+  $test$,
   'publishers can access Studio content'
 );
 
 set local request.jwt.claim.sub =
   '91400000-0000-4000-8000-000000000004';
-select ok(
-  public.can_manage_content(),
+set local request.jwt.claims =
+  '{"sub":"91400000-0000-4000-8000-000000000004","role":"authenticated"}';
+select results_eq(
+  $test$
+    select public.can_manage_content()
+  $test$,
+  $test$
+    values (true::boolean)
+  $test$,
   'administrators can access Studio content'
 );
 
@@ -236,14 +276,24 @@ select set_config(
   }',
   true
 );
-select ok(
-  public.can_manage_content(),
+select results_eq(
+  $test$
+    select public.can_manage_content()
+  $test$,
+  $test$
+    values (true::boolean)
+  $test$,
   'same-user token refresh preserves administrator access'
 );
 
 set local search_path = '';
-select ok(
-  public.can_manage_content(),
+select extensions.results_eq(
+  $test$
+    select public.can_manage_content()
+  $test$,
+  $test$
+    values (true::boolean)
+  $test$,
   'schema-qualified helper resolves with an empty search path'
 );
 select is(
