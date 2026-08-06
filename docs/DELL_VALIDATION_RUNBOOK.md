@@ -40,7 +40,7 @@ Stop immediately if a command identifies a remote host/project, if the branch or
 ## Expected handoff
 
 - Branch: `sprint-40-41-teacher-publishing`
-- Baseline commit before this corrective work: `7e30c31`
+- Corrective handoff commit: `78503f2cb636a465a91c65988221a7f24be940c8`
 - Remote/local ledger before the Dell pass: equal through `202607220007`
 - Local-only migrations, in dependency order:
   1. `202607220008_interactive_practice_foundation.sql`
@@ -52,10 +52,9 @@ Stop immediately if a command identifies a remote host/project, if the branch or
   7. `202607240002_publish_course_workflow.sql`
   8. `202608060001_fix_content_ownership_trigger.sql`
 
-The corrective migration, SQL tests, and documentation are currently
-uncommitted on the Lenovo. The Dell cannot pull uncommitted files. Before using
-this runbook, replace `<HANDOFF_COMMIT>` below with the exact authorized commit
-that contains the reviewed corrective work.
+The corrective migration, SQL tests, and documentation are available from the
+corrective handoff commit above. The Dell must validate that exact commit unless
+a later explicitly reviewed handoff commit supersedes it.
 
 ## Prerequisites
 
@@ -97,7 +96,7 @@ git rev-parse HEAD
 git status --short --branch
 ```
 
-Expected: `HEAD` equals `<HANDOFF_COMMIT>`, the branch tracks `origin/sprint-40-41-teacher-publishing`, and `git status --short` has no file entries.
+Expected: `HEAD` equals `78503f2cb636a465a91c65988221a7f24be940c8`, the branch tracks `origin/sprint-40-41-teacher-publishing`, and `git status --short` has no file entries.
 
 Stop if the worktree is dirty, pull is not fast-forward, the branch differs, or `HEAD` differs. Never reset or discard Dell changes; preserve and resolve them separately.
 
@@ -189,7 +188,9 @@ $InspectionSql | psql $LocalDb -X -v ON_ERROR_STOP=1 2>&1 | Tee-Object (Join-Pat
 if ($LASTEXITCODE -ne 0) { throw "local readiness inspection failed" }
 ```
 
-Expected migration state: all seven formerly pending versions appear locally applied. Expected RPC/security state is listed below.
+Expected migration state: the seven original pending versions plus corrective
+version `202608060001` appear locally applied. Expected RPC/security state is
+listed below.
 
 ### 7. Stop local services
 
