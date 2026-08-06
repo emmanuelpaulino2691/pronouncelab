@@ -436,12 +436,11 @@ select throws_matching(
   'duplicate lesson version numbers are rejected'
 );
 
-select throws_matching(
+select lives_ok(
   $test$
     select public.publish_lesson_version(910015)
   $test$,
-  '.*lesson_versions_one_published.*',
-  'a second published version is rejected'
+  'publishing a new version archives and replaces the active version'
 );
 
 select ok(
@@ -490,12 +489,12 @@ select ok(
 );
 
 select ok(
-  pg_catalog.has_function_privilege(
+  not pg_catalog.has_function_privilege(
     'service_role',
     'public.get_published_lesson(bigint,integer)',
     'EXECUTE'
   ),
-  'service_role can execute lesson RPC'
+  'service_role cannot execute the public lesson RPC'
 );
 
 select ok(
@@ -707,11 +706,12 @@ select lives_ok(
   'service_role can call catalog RPC'
 );
 
-select lives_ok(
+select throws_ok(
   $test$
     select public.get_published_lesson(910003, 1)
   $test$,
-  'service_role can call lesson RPC'
+  'permission denied for function get_published_lesson',
+  'service_role cannot call the public lesson RPC'
 );
 
 reset role;

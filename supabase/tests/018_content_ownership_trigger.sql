@@ -101,31 +101,29 @@ set local role authenticated;
 set local request.jwt.claim.sub =
   '91800000-0000-4000-8000-000000000002';
 
-select is(
-  (
-    with changed as (
-      update public.units
-      set title = 'Forbidden teacher update'
-      where id = 918011
-      returning id
-    )
-    select count(*)::integer from changed
-  ),
-  0,
+select results_eq(
+  $test$
+    update public.units
+    set title = 'Forbidden teacher update'
+    where id = 918011
+    returning id
+  $test$,
+  $test$
+    select null::bigint where false
+  $test$,
   'a teacher cannot update another teacher child hierarchy'
 );
 
-select is(
-  (
-    with changed as (
-      update public.courses
-      set title = 'Forbidden cross-owner update'
-      where id = 918001
-      returning id
-    )
-    select count(*)::integer from changed
-  ),
-  0,
+select results_eq(
+  $test$
+    update public.courses
+    set title = 'Forbidden cross-owner update'
+    where id = 918001
+    returning id
+  $test$,
+  $test$
+    select null::bigint where false
+  $test$,
   'a teacher cannot update another teacher course'
 );
 

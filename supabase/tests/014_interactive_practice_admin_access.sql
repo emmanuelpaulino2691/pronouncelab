@@ -168,18 +168,16 @@ values (
 );
 
 set local role anon;
-select is(
-  public.can_manage_content(),
-  false,
+select ok(
+  not public.can_manage_content(),
   'anonymous users cannot access Studio content'
 );
-select is(
-  pg_catalog.has_table_privilege(
+select ok(
+  not pg_catalog.has_table_privilege(
     'anon',
     'public.interactive_practice_exercises',
     'select'
   ),
-  false,
   'anonymous users have no direct Interactive Practice table access'
 );
 reset role;
@@ -187,9 +185,8 @@ reset role;
 set local role authenticated;
 set local request.jwt.claim.sub =
   '91400000-0000-4000-8000-000000000001';
-select is(
-  public.can_manage_content(),
-  false,
+select ok(
+  not public.can_manage_content(),
   'authenticated learners cannot access Studio content'
 );
 select is(
@@ -203,9 +200,8 @@ select is(
 
 set local request.jwt.claim.sub =
   '91400000-0000-4000-8000-000000000002';
-select is(
+select ok(
   public.can_manage_content(),
-  true,
   'editors can access Studio content'
 );
 select is(
@@ -219,17 +215,15 @@ select is(
 
 set local request.jwt.claim.sub =
   '91400000-0000-4000-8000-000000000003';
-select is(
+select ok(
   public.can_manage_content(),
-  true,
   'publishers can access Studio content'
 );
 
 set local request.jwt.claim.sub =
   '91400000-0000-4000-8000-000000000004';
-select is(
+select ok(
   public.can_manage_content(),
-  true,
   'administrators can access Studio content'
 );
 
@@ -242,16 +236,14 @@ select set_config(
   }',
   true
 );
-select is(
+select ok(
   public.can_manage_content(),
-  true,
   'same-user token refresh preserves administrator access'
 );
 
 set local search_path = '';
-select is(
+select ok(
   public.can_manage_content(),
-  true,
   'schema-qualified helper resolves with an empty search path'
 );
 select is(

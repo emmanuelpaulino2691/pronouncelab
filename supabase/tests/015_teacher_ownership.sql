@@ -188,17 +188,16 @@ select results_eq(
   $test$,
   'teacher RLS shows only the owned private course'
 );
-select is(
-  (
-    with changed as (
-      update public.courses
-      set title = 'Forbidden change'
-      where id = 915002
-      returning id
-    )
-    select count(*)::integer from changed
-  ),
-  0,
+select results_eq(
+  $test$
+    update public.courses
+    set title = 'Forbidden change'
+    where id = 915002
+    returning id
+  $test$,
+  $test$
+    select null::bigint where false
+  $test$,
   'teacher cannot update another teacher course'
 );
 select lives_ok(
