@@ -207,13 +207,18 @@ Storage buckets:
 - private drafts: `content-audio-drafts`, `content-image-drafts`;
 - public releases: `content-audio`, `content-images`.
 
-Media publication is a two-step trusted workflow:
+Media publication is a two-step trusted workflow coordinated by the
+`publish-content` Edge Function:
 
 1. An authenticated publisher/admin calls `prepare_media_publication`. The database locks the media lifecycle, validates the draft object’s owner/MIME/size, and stores a one-time token, source Storage ID/version, requester, and expiry.
 2. A trusted backend copies or uploads the destination with bound metadata, streams both physical objects, computes lowercase SHA-256 values, and calls `finalize_media_publication`.
 3. Finalization is executable only by `service_role`. It rejects expiry, replay, token/source/destination mismatch, malformed or unequal hashes, and records the prepared manager as `published_by`.
 
-Postgres does **not** read or hash file bytes. No trusted backend/Edge Function implementation is present in this repository, so browser-only media publication is intentionally unusable.
+Postgres does **not** read or hash file bytes. Lesson and course publication
+first obtain an ownership-checked media plan. The trusted function copies and
+hashes draft objects, then finalizes the same `media_assets.id` into its public
+bucket before calling the existing publication RPC. The service-role secret is
+used only by the deployed function and is never available to browser code.
 
 Storage deletion/update triggers protect published objects and referenced content.
 

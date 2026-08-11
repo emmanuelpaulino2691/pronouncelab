@@ -171,9 +171,18 @@ action; the RPC remains the authorization and validation boundary.
 
 The media domain under `src/domain/media` defines schema-aligned summaries, queries, stable selections, UI permission predicates, and `MediaLibraryService`. Its Supabase adapter reads the existing `media_assets` table through RLS and applies server-side kind, filename, and sort constraints. Cards resolve private draft objects with temporary signed URLs and intentional public buckets with public URLs; failures remain card-local. Runtime URLs are never selection data. Media Picker returns only the stable asset ID and kind, so Learn, Listening, and Pronunciation reuse one registered asset without copying its Storage object. Direct upload remains editor-specific and automatically feeds the same registry.
 
+Lesson and course publication call the trusted `publish-content` Edge Function.
+Ownership-checked SQL plans enumerate Learn `media_asset_id` and
+Listening/Pronunciation `audio_asset_id` references. The function copies and
+hashes physical Storage bytes through the existing prepare/finalize lifecycle,
+promotes the same media row to its public bucket, and only then invokes content
+publication. Draft signed URLs never enter saved content or published DTOs.
+
 When a published lesson is selected, the Studio presents the published version
 as read-only. `create_lesson_draft_version` creates the next draft version by
-copying the published activity tree and specialist content. Learners continue
+copying the published activity tree, specialist content, and assessment
+descendants with new content IDs while retaining stable media IDs. Authorization
+is course-scoped and does not depend on the published parent status. Learners continue
 to resolve the current published version until the draft is published.
 
 Draft-version mutation authorization is centralized in

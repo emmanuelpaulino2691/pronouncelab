@@ -42,6 +42,7 @@ import {
   type AdminUnit,
 } from "./adminUnitService";
 import { buildStudentPreviewUrl } from "../preview/previewNavigation";
+import { publicationFunctionErrorMessage } from "../lesson-studio/publicationErrors";
 
 type FormState =
   | { mode: "closed" }
@@ -113,7 +114,7 @@ function CourseUnitsContent({
       setWorkspaceActionMessage(result.ok ? "Course published successfully." : `Course cannot be published. ${result.errors.length} issue${result.errors.length === 1 ? "" : "s"} need attention.`);
       if (result.ok) await loadHierarchy();
     } catch (error) {
-      setWorkspaceActionMessage(isMissingCoursePublicationRpcError(error) ? "Course publishing is unavailable until the publication service is deployed." : "The course could not be published. Try again.");
+      setWorkspaceActionMessage(isMissingCoursePublicationRpcError(error) ? "Course publishing is unavailable until the publication service is deployed." : await publicationFunctionErrorMessage(error));
     } finally {
       setWorkspaceActionPending(false);
     }

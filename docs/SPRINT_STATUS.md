@@ -1,5 +1,19 @@
 # Sprint Status
 
+## Sprint 50E — Media Publication and Draft-Version Blockers
+
+Implemented locally. Lesson and course publication coordinate the existing
+media prepare/finalize contract through a trusted Edge Function. Draft media is
+copied and SHA-256 verified, the same stable media row is promoted to its public
+bucket, and publication proceeds only after learner delivery is resolvable.
+
+Published lessons can create a course-authorized draft copy without changing
+the active published pointer. Specialist and assessment descendants receive
+new IDs, including Listening questions omitted by the previous copy branch.
+Known errors are actionable and unexpected backend errors remain sanitized.
+Migration, function deployment, and disposable database/Storage validation are
+pending on Dell. No remote database command ran during Lenovo implementation.
+
 ## Backend validation correction — ownership and pgTAP compatibility
 
 The first Dell disposable-database pass successfully executed the complete

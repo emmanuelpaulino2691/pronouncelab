@@ -86,11 +86,9 @@ export async function createDraftVersion(
 export async function publishLessonVersion(
   lessonVersionId: number
 ) {
-  const { data, error } = await client().rpc(
-    "publish_lesson_version",
-    {
-      requested_lesson_version_id: lessonVersionId,
-    }
+  const { data, error } = await client().functions.invoke(
+    "publish-content",
+    { body: { scope: "lesson", id: lessonVersionId } }
   );
   if (error) throw error;
   return toVersion(data as unknown as VersionRow);

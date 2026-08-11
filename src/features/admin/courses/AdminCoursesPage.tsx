@@ -17,6 +17,7 @@ import { getCourseSaveErrorMessage } from "./courseSaveErrors";
 import { shouldRenderCourseForm } from "./courseFormState";
 import { courseWorkspacePath } from "./courseNavigation";
 import { publicationErrorLabel } from "./coursePublicationState";
+import { publicationFunctionErrorMessage } from "../lesson-studio/publicationErrors";
 import {
   createAdminCourse, deleteDraftCourse, duplicateDraftCourse, listAdminCourses, publishAdminCourse, updateAdminCourse,
   isMissingCoursePublicationRpcError, type AdminCourse, type CourseInput, type CoursePublicationError, type CourseStatus,
@@ -144,7 +145,7 @@ function AdminCoursesPage() {
       setPublicationSummary(`${course.title} was published. ${result.publishedLessons} lesson${result.publishedLessons === 1 ? "" : "s"} updated; ${result.unchangedLessons} unchanged.`);
       setPublishConfirmation(null);
     } catch (error) {
-      setPublicationErrors([{ category: "course", courseId: course.id, courseTitle: course.title, message: isMissingCoursePublicationRpcError(error) ? "Course publishing is not available until the publication service is deployed." : "The course could not be published. Try again." }]);
+      setPublicationErrors([{ category: "course", courseId: course.id, courseTitle: course.title, message: isMissingCoursePublicationRpcError(error) ? "Course publishing is not available until the publication service is deployed." : await publicationFunctionErrorMessage(error) }]);
     } finally {
       setPublishingCourseId(null);
     }

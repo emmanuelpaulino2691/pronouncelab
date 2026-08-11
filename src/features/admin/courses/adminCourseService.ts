@@ -251,8 +251,8 @@ export async function duplicateDraftCourse(courseId: number) {
 }
 
 export async function publishAdminCourse(courseId: number): Promise<CoursePublicationResult> {
-  const { data, error } = await requireSupabase().rpc("publish_course", {
-    requested_course_id: courseId,
+  const { data, error } = await requireSupabase().functions.invoke("publish-content", {
+    body: { scope: "course", id: courseId },
   });
   if (error) throw error;
   if (!data || typeof data !== "object") {

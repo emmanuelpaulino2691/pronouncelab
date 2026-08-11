@@ -44,6 +44,7 @@ import {
 } from "../services/lessonStudioService";
 import { ContentOperationDialog, QuickActionsMenu } from "../../content-operations";
 import { canOfferLessonPublication } from "../publicationState";
+import { publicationFunctionErrorMessage, publicationOperationErrorMessage } from "../publicationErrors";
 import {
   type ActivityType,
   type LessonActivity,
@@ -290,7 +291,8 @@ function Studio({
 
   async function run<T>(
     action: () => Promise<T>,
-    apply: (value: T) => void
+    apply: (value: T) => void | Promise<void>,
+    errorMessage: (reason: unknown) => string | Promise<string> = publicationOperationErrorMessage
   ) {
     if (mutationInFlightRef.current) return false;
     mutationInFlightRef.current = true;
@@ -304,7 +306,7 @@ function Studio({
         active.current &&
         request === mutation.current
       ) {
-        apply(value);
+        await apply(value);
         setSaved("Saved");
         return true;
       }
@@ -314,8 +316,7 @@ function Studio({
         active.current &&
         request === mutation.current
       ) {
-        void reason;
-        setError("The action could not be completed. Your content is unchanged. Try again.");
+        setError(await errorMessage(reason));
         setSaved("Save failed");
       }
       return false;
@@ -358,7 +359,8 @@ function Studio({
       (published) => {
         setVersion(published);
         setSaved("Published");
-      }
+      },
+      publicationFunctionErrorMessage
     );
   }
 
