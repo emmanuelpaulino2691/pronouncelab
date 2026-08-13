@@ -265,7 +265,7 @@ select lives_ok(
   'teacher can save AI mission configuration'
 );
 
-select results_eq(
+select throws_ok(
   $test$
     insert into public.media_assets (
       kind, bucket, object_path, original_filename,
@@ -278,10 +278,8 @@ select results_eq(
     )
     returning status
   $test$,
-  $test$
-    values ('draft'::public.content_status)
-  $test$,
-  'teacher can register and return uploaded draft media'
+  'permission denied for table media_assets',
+  'teacher media registration must use trusted byte verification'
 );
 
 select is(

@@ -12,6 +12,7 @@ import {
   isSupabaseConfigured,
   supabase,
 } from "../../shared/lib/supabaseClient";
+import { verifyStoredSession } from "./staleSession";
 
 type LoginLocationState = {
   from?: unknown;
@@ -119,29 +120,35 @@ function LoginPage() {
         isActive = false;
       };
     }
+    const auth = supabase.auth;
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(
+    } = auth.onAuthStateChange(
       (event, session) => {
         if (
           isActive &&
           event === "SIGNED_IN" &&
           session
         ) {
-          navigate(returnPath, { replace: true });
+          window.setTimeout(() => {
+            void verifyStoredSession(auth, session).then((verified) => {
+              if (isActive && verified) navigate(returnPath, { replace: true });
+            });
+          }, 0);
         }
       }
     );
 
-    void supabase.auth
+    void auth
       .getSession()
-      .then(({ data, error }) => {
+      .then(async ({ data, error }) => {
         if (!isActive) {
           return;
         }
 
         if (error) {
+          void auth.signOut({ scope: "local" });
           setErrorMessage(
             "Your existing session could not be restored. Please sign in again."
           );
@@ -149,7 +156,13 @@ function LoginPage() {
           return;
         }
 
-        if (data.session) {
+        const verifiedSession = await verifyStoredSession(
+          auth,
+          data.session
+        );
+        if (!isActive) return;
+
+        if (verifiedSession) {
           navigate(returnPath, { replace: true });
           return;
         }

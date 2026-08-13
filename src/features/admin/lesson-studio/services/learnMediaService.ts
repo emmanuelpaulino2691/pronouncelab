@@ -1,5 +1,6 @@
 import { supabase } from "../../../../shared/lib/supabaseClient";
 import { uploadListeningAudio } from "./listeningMediaService";
+import { registerUploadedMedia } from "./mediaRegistrationService";
 
 export type LearnMediaAssetRow = {
   id: string;
@@ -37,11 +38,15 @@ export async function uploadDraftLearnImage(activityId: number, file: File) {
   const bucket = "content-image-drafts";
   const uploaded = await supabase.storage.from(bucket).upload(path, file, { contentType: file.type, upsert: false });
   if (uploaded.error) throw new Error("Image upload failed. Try another file.");
-  const registered = await supabase.from("media_assets").insert({ kind: "image", bucket, object_path: path, original_filename: file.name, mime_type: file.type, size_bytes: file.size, status: "draft", uploaded_by: auth.user.id }).select("id").single();
-  if (registered.error) throw new Error("The image uploaded but could not be saved to the media library.");
-  const signed = await supabase.storage.from(bucket).createSignedUrl(path, 3600);
-  if (signed.error) throw new Error("Image uploaded, but its preview could not be loaded.");
-  return { id: String((registered.data as { id: string }).id), previewUrl: signed.data.signedUrl, filename: file.name };
+  let registered;
+  try {
+    registered = await registerUploadedMedia({ kind: "image", bucket, objectPath: path, filename: file.name, mimeType: file.type, sizeBytes: file.size });
+  } catch {
+    await supabase.storage.from(bucket).remove([path]);
+    throw new Error("The image uploaded but could not be saved to the media library.");
+  }
+  const asset = await getLearnMediaAsset(registered.id, "image");
+  return { id: asset.id, previewUrl: asset.previewUrl, filename: asset.filename };
 }
 
 async function getLearnMediaAssetRow(assetId: string, kind: "image" | "audio") {

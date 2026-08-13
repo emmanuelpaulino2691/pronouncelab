@@ -169,7 +169,14 @@ version creation, publication, and quiz compound writes. Authorized teachers,
 publishers, and administrators receive an explicit lesson-version publication
 action; the RPC remains the authorization and validation boundary.
 
-The media domain under `src/domain/media` defines schema-aligned summaries, queries, stable selections, UI permission predicates, and `MediaLibraryService`. Its Supabase adapter reads the existing `media_assets` table through RLS and applies server-side kind, filename, and sort constraints. Cards resolve private draft objects with temporary signed URLs and intentional public buckets with public URLs; failures remain card-local. Runtime URLs are never selection data. Media Picker returns only the stable asset ID and kind, so Learn, Listening, and Pronunciation reuse one registered asset without copying its Storage object. Direct upload remains editor-specific and automatically feeds the same registry.
+The media domain under `src/domain/media` defines schema-aligned summaries, queries, stable selections, UI permission predicates, and `MediaLibraryService`. Its Supabase adapter reads the owner-scoped `media_assets` registry through RLS and applies server-side kind, filename, and sort constraints. Cards resolve private draft objects with temporary signed URLs and intentional public buckets with public URLs; failures remain card-local. Runtime URLs are never selection data. Media Picker returns only the stable asset ID and kind, so Learn, Listening, and Pronunciation reuse one registered asset without copying its Storage object.
+
+Editor uploads first write a private draft Storage object, then call the trusted
+`register-media` Edge Function. The function hashes the stored bytes and an
+atomic service-only RPC resolves `(owner, kind, SHA-256)` to one stable asset.
+The losing object in a duplicate race is removed. Browser hashes are not
+trusted and browser roles cannot insert registry rows directly. See
+[ADR 0010](ADR/0010-owner-scoped-media-content-identity.md).
 
 Lesson and course publication call the trusted `publish-content` Edge Function.
 Ownership-checked SQL plans enumerate Learn `media_asset_id` and

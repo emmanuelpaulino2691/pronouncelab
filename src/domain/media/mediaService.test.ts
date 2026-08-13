@@ -4,7 +4,7 @@ import { controlledMediaQueryError, mediaListQueryPlan, mediaSelectionFromAsset,
 const row: MediaAssetRow = { id: "asset-id", kind: "image", original_filename: "lesson.png", mime_type: "image/png", bucket: "content-image-drafts", object_path: "private/lesson.png", created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-02T00:00:00Z", uploaded_by: "teacher-id" };
 
 describe("Supabase media library service contracts", () => {
-  it("queries the existing media_assets registry and normalizes its schema", () => { expect(mediaListQueryPlan({ kind: "all", search: "", sort: "newest" }).table).toBe("media_assets"); expect(normalizeMediaAssetRow(row)).toMatchObject({ id: "asset-id", filename: "lesson.png", objectPath: "private/lesson.png" }); });
+  it("queries the canonical owner-scoped presentation and normalizes its schema", () => { expect(mediaListQueryPlan({ kind: "all", search: "", sort: "newest" }).table).toBe("media_library_assets"); expect(normalizeMediaAssetRow(row)).toMatchObject({ id: "asset-id", filename: "lesson.png", objectPath: "private/lesson.png" }); });
   it.each(["image", "audio"] as const)("applies the %s filter", (kind) => expect(mediaListQueryPlan({ kind, search: "", sort: "newest" }).kind).toBe(kind));
   it("applies filename search", () => expect(mediaListQueryPlan({ kind: "all", search: "  lesson  ", sort: "newest" }).search).toBe("lesson"));
   it("maps RLS denial to a controlled permission error", () => expect(controlledMediaQueryError({ code: "42501" }).code).toBe("permission"));

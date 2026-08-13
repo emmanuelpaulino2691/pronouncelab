@@ -1,5 +1,28 @@
 # Sprint Status
 
+## Sprint 51C — Media Library Content Deduplication
+
+Implemented locally. Audio and image uploads are registered by trusted SHA-256
+of stored bytes and deduplicated within the uploading owner and media kind.
+Concurrent equal registrations serialize at the database, return one stable
+UUID, and remove the redundant draft Storage object. Published stable media is
+reused without changing Version 2 publication behavior. Media Library reads
+use an RLS-preserving canonical view, so trusted historical duplicates collapse
+to one card without rewriting immutable references. Media Library access
+and draft mutations are owner-scoped for teachers and platform-wide for admins.
+Historical duplicate rows and immutable references are not rewritten. See
+[ADR 0010](ADR/0010-owner-scoped-media-content-identity.md).
+
+## Sprint 51C prerequisite — Reproducible Local Bootstrap
+
+Implemented locally. Destructive local resets are followed by one idempotent
+bootstrap command that recreates the Admin and Teacher Auth accounts, their
+roles, and a minimal teacher-owned Course → Unit → Lesson → Draft Version 1
+fixture. Manual fixtures remain separate from schema migrations and pgTAP so
+empty-catalog database tests stay deterministic. Invalid sessions left by a
+reset are verified and locally signed out instead of bouncing between Login
+and Admin routes; learner progress storage is not cleared.
+
 ## Sprint 51B — Learner Progression and Controlled Draft Cleanup
 
 Implemented locally. Learn audio blocks deliver their saved label and transcript

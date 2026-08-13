@@ -1,6 +1,7 @@
 import { supabase } from "../../../../shared/lib/supabaseClient";
 
 import { getListeningAudioFileError } from "../listeningValidation";
+import { registerUploadedMedia } from "./mediaRegistrationService";
 
 const draftAudioBucket = "content-audio-drafts";
 
@@ -108,25 +109,11 @@ export async function uploadListeningAudio(
     });
   if (uploadError) throw new ListeningMediaError("upload");
 
-  const { data, error } = await storageClient
-    .from("media_assets")
-    .insert({
-      kind: "audio",
-      bucket: draftAudioBucket,
-      object_path: objectPath,
-      original_filename: file.name,
-      mime_type: "audio/mpeg",
-      size_bytes: file.size,
-      status: "draft",
-      uploaded_by: authData.user.id,
-    })
-    .select("id")
-    .single();
-
-  if (error) {
+  try {
+    const registered = await registerUploadedMedia({ kind: "audio", bucket: draftAudioBucket, objectPath, filename: file.name, mimeType: "audio/mpeg", sizeBytes: file.size });
+    return getListeningAudioAsset(registered.id);
+  } catch {
     await storageClient.storage.from(draftAudioBucket).remove([objectPath]);
     throw new ListeningMediaError("registration");
   }
-
-  return getListeningAudioAsset((data as { id: string }).id);
 }

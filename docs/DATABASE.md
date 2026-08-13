@@ -302,6 +302,11 @@ projection.
 | `202608120007_fix_progressive_append_position` | Makes progressive append-position calculation unambiguous |
 | `202608130001_sprint_51b_progression_publication_and_deletes` | Projects Learn audio transcripts, limits course-update validation to draft lesson versions, and permits owner-scoped draft activity deletion beneath published ancestors |
 | `202608130002_clarify_draft_unit_publication_blocker` | Identifies an empty new draft Unit precisely in Publish updates feedback |
+| `202608130003_owner_scoped_media_deduplication` | Adds verified owner/kind/SHA-256 media identity, atomic registration, and closes direct browser registry inserts |
+| `202608130004_scope_media_library_to_owner` | Separates anonymous published delivery from owner/admin Media Library visibility |
+| `202608130005_harden_media_owner_mutations` | Restricts draft media updates and deletes to the owner or platform administrator |
+| `202608130006_canonical_media_library_presentation` | Adds an RLS-preserving Media Library view that collapses trusted historical fingerprint duplicates without rewriting references |
+| `202608130005_harden_media_owner_mutations` | Restricts draft media updates and deletes to the owner or platform admin |
 
 ## Migration rules
 
@@ -333,6 +338,6 @@ The proposed classroom model is documented separately and is not present in the 
 The frontend domain contracts under `src/domain` describe these future records without asserting that they exist in Postgres. Service interfaces document expected authorization and result boundaries; they do not issue requests or create a parallel data access layer.
 ## Teacher Media Library access
 
-`public.media_assets` remains the single registry for editor uploads and Media Library reads. The existing `media_assets_select_published_or_manager` policy exposes published assets publicly and all RLS-visible assets to authenticated users satisfying `can_manage_content()`. With the teacher ownership migration, that manager predicate includes teachers, legacy editors, publishers, and platform administrators. This is currently a shared content-manager pool, not media ownership scoped to one course or teacher. The frontend does not broaden or filter around this policy.
+`public.media_assets` remains the single registry for editor uploads and stable lesson references. Media Library lists use the `security_invoker` view `public.media_library_assets`, which preserves base-table RLS and presents one canonical row for matching trusted owner/kind fingerprints. This presentation does not rewrite or delete historical rows. Anonymous delivery can resolve published assets; authenticated teachers see and mutate only their own media, while platform administrators retain global visibility. New registry rows require trusted registration and carry an indexed `content_sha256`. The registration RPC serializes owner/kind/hash races and also recognizes the trusted `source_sha256` already stored on previously published media.
 
-Library selection persists only `media_assets.id`; it does not duplicate `storage.objects` bytes or persist signed URLs. Draft buckets remain private and use signed URLs under the existing Storage SELECT policy. Published audio and image buckets remain intentionally public. Shared replacement and deletion stay unavailable because safe cross-reference usage checks and ownership semantics are not implemented.
+Library selection persists only `media_assets.id`; it does not duplicate `storage.objects` bytes or persist signed URLs. Draft buckets remain private and use signed URLs under the existing Storage SELECT policy. Published audio and image buckets remain intentionally public. Removing media from an activity clears only that foreign-key reference; it does not delete a shared asset. Library-level asset deletion remains unavailable pending an explicit usage-count and orphan-cleanup contract.

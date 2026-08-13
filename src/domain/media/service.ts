@@ -25,7 +25,7 @@ export function mediaListOrder(sort: MediaLibraryQuery["sort"]): { column: "crea
   if (sort === "name-desc") return { column: "original_filename", ascending: false };
   return { column: "created_at", ascending: false };
 }
-export function mediaListQueryPlan(query: MediaLibraryQuery) { return { table: "media_assets" as const, kind: query.kind === "all" ? null : query.kind, search: query.search.trim(), order: mediaListOrder(query.sort) }; }
+export function mediaListQueryPlan(query: MediaLibraryQuery) { return { table: "media_library_assets" as const, kind: query.kind === "all" ? null : query.kind, search: query.search.trim(), order: mediaListOrder(query.sort) }; }
 
 function client() { if (!supabase) throw new MediaLibraryUnavailableError("Supabase is not configured."); return supabase; }
 export function controlledMediaQueryError(error: { code?: string } | null) { return new MediaLibraryError(error?.code === "42501" ? "permission" : "load"); }

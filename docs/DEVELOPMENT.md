@@ -7,6 +7,7 @@
 - [Plan and implement](#plan-and-implement)
 - [Security-sensitive work](#security-sensitive-work)
 - [Validation](#validation)
+- [Local Supabase reset and bootstrap](#local-supabase-reset-and-bootstrap)
 - [Git and deployment](#git-and-deployment)
 - [Documentation maintenance](#documentation-maintenance)
 
@@ -93,6 +94,56 @@ git status --short
 git diff --stat
 git diff
 ```
+
+## Local Supabase reset and bootstrap
+
+Start the local stack normally, then use this controlled reset workflow:
+
+```powershell
+npx.cmd supabase start
+npx.cmd supabase db reset --local
+npx.cmd supabase test db
+npm.cmd run local:bootstrap
+npm.cmd run dev
+```
+
+Database tests run before the bootstrap because they intentionally assume an
+empty learner catalog. `supabase/config.toml` therefore does not automatically
+seed manual-development data. The single bootstrap command is idempotent and
+uses the supported local Auth Admin API plus a local PostgreSQL transaction; it
+does not alter remote systems or weaken browser/service-role grants.
+
+The local accounts are:
+
+| Role | Email | Default local-only password |
+| --- | --- | --- |
+| Admin | `admin.pronouncelab@gmail.com` | `PronounceLabLocalAdmin!2026` |
+| Teacher | `emmanuelpaulino2691@gmail.com` | `PronounceLabLocalTeacher!2026` |
+
+Override the development passwords without editing tracked files:
+
+```powershell
+$env:PRONOUNCELAB_LOCAL_ADMIN_PASSWORD = "your-local-admin-password"
+$env:PRONOUNCELAB_LOCAL_TEACHER_PASSWORD = "your-local-teacher-password"
+npm.cmd run local:bootstrap
+```
+
+The defaults are deliberately local-only and are never used for a linked or
+remote project. The bootstrap refuses non-loopback Supabase API URLs and reads
+the temporary local service credential from `supabase status`; no service key,
+JWT, or production password is stored in the repository.
+
+The teacher owns this reusable draft hierarchy:
+
+`Local Authoring Fixture → Fixture Unit → Fixture Lesson → Draft Version 1`
+
+After login, open Lesson Studio directly at
+`http://127.0.0.1:3000/admin/lessons/951021/studio`.
+
+A reset invalidates browser sessions because their Auth users no longer exist.
+The application verifies restored sessions before redirecting and clears only
+invalid Supabase Auth state. Learner progress and other PronounceLab local
+storage remain untouched.
 
 ## Git and deployment
 

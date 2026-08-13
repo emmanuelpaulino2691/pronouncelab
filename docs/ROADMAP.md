@@ -1,5 +1,13 @@
 # Roadmap
 
+## Sprint 51C — Media Library Content Deduplication
+
+Implemented locally. Trusted owner-scoped SHA-256 registration prevents future
+duplicate logical audio/image assets, removes duplicate uploaded objects, and
+reuses stable published media. Existing historical duplicates are intentionally
+not consolidated. Future work may add an audited usage-count view and explicit
+orphan-asset cleanup after published-reference retention rules are defined.
+
 ## Sprint 51B — Learner Progression and Controlled Draft Cleanup
 
 Implemented locally. Sequential device-local lesson and unit unlocking, complete

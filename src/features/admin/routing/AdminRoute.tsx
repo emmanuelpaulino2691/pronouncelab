@@ -21,6 +21,7 @@ import {
   isMissingAuthorizationRpcError,
   legacyOwnershipPermissions,
 } from "./adminAuthorizationCompatibility";
+import { verifyStoredSession } from "../../auth/staleSession";
 
 type AccessState =
   | "checking"
@@ -101,11 +102,9 @@ function AdminRoute() {
         return;
       }
 
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser(
-        session.access_token
+      const verifiedSession = await verifyStoredSession(
+        supabase.auth,
+        session
       );
 
       if (
@@ -116,7 +115,7 @@ function AdminRoute() {
         return;
       }
 
-      if (userError || !user) {
+      if (!verifiedSession) {
         authorizedUserIdRef.current = null;
         setPermissions(null);
         setAccessState("signed-out");
@@ -217,7 +216,7 @@ function AdminRoute() {
         ...ownershipPermissions,
       };
 
-      authorizedUserIdRef.current = user.id;
+      authorizedUserIdRef.current = verifiedSession.user.id;
 
       setPermissions(nextPermissions);
       setAccessState(
