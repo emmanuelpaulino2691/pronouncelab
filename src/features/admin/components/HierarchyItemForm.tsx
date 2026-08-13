@@ -30,6 +30,7 @@ type HierarchyItemFormProps = {
   onCancel: () => void;
   onBack?: () => void;
   onSubmit: (input: HierarchyItemInput) => void;
+  appendPosition?: boolean;
 };
 
 function inputsMatch(first: HierarchyItemInput, second: HierarchyItemInput) {
@@ -47,6 +48,7 @@ function HierarchyItemForm({
   onCancel,
   onBack,
   onSubmit,
+  appendPosition = false,
 }: HierarchyItemFormProps) {
   const formId = useId();
   const titleRef = useRef<HTMLInputElement>(null);
@@ -131,7 +133,7 @@ function HierarchyItemForm({
             placeholder={`Describe this ${itemType}.`}
           />
         </FormField>
-        <FormField label="Position" htmlFor={`${formId}-position`} hint={`Choose where this ${itemType} appears in the learning order.`} required>
+        <FormField label="Position" htmlFor={`${formId}-position`} hint={appendPosition ? `New ${itemType}s are appended after existing content.` : `Choose where this ${itemType} appears in the learning order.`} required>
           <TextInput
             id={`${formId}-position`}
             aria-describedby={`${formId}-position-hint`}
@@ -139,6 +141,7 @@ function HierarchyItemForm({
             type="number"
             min={0}
             value={input.position}
+            disabled={appendPosition}
             onChange={(event) => setInput((current) => ({ ...current, position: Number(event.target.value) }))}
           />
         </FormField>

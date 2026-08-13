@@ -190,6 +190,13 @@ Draft-version mutation authorization is centralized in
 course must be editable by the authenticated owner or administrator. Parent
 hierarchy lifecycle status does not determine draft editability.
 
+Progressive structural authoring preserves that separation. A published course
+can receive a new draft unit, and a published unit can receive a new draft
+lesson. Creation RPCs append under the hierarchy lock; lesson creation also
+creates Version 1 transactionally. Published siblings remain read-only. Course
+**Publish updates** releases validated additions without interrupting the
+already-published learner hierarchy.
+
 ## Ownership model
 
 Course ownership is the root authorization boundary for private educational
@@ -255,7 +262,14 @@ These are current facts, not proposals:
 - Migration 009 hardens AI configuration, creation, concurrency, and publication locally; it must be reviewed and applied before the linked database has those guarantees.
 ## Course-wide publication
 
-Course publication is handled by the controlled `public.publish_course(bigint)` RPC. It locks the hierarchy, validates courses, units, lessons, draft versions, activities, and specialist content, and returns structured errors without writes when validation fails. When validation succeeds, eligible draft lesson versions are published through the existing lesson-version lifecycle and the hierarchy is activated. Published versions remain immutable; lessons without a new draft continue serving their current published version.
+Course publication is handled by the controlled `public.publish_course(bigint)` RPC. It locks the hierarchy, validates new draft structure, draft lesson versions, activities, and specialist content, and returns structured errors without writes when validation fails. Sealed historical versions are retained and counted but are not revalidated during an unrelated update. When validation succeeds, eligible draft lesson versions are published through the existing lesson-version lifecycle and the hierarchy is activated. Published versions remain immutable; lessons without a new draft continue serving their current published version.
+
+Learner Course and Unit routes apply a shared sequential policy to published,
+usable content: the first item is available, each following Lesson requires the
+previous Lesson's completion, and each following Unit requires the previous
+Unit's completion. Recommended cards duplicate the current item as a prominent
+next action; complete lists still contain every item. Route-level checks prevent
+direct navigation from bypassing locks. Progress remains device-local.
 
 ## Teacher workspace
 

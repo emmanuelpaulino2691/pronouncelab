@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { LearnerCourse } from "../../shared/content/contracts/learnerContent";
-import { courseDetailHierarchy, coursePageHierarchy, isUsableLearnerLesson, learnerJourneyActionLabel, resolveLearnerCourseState, resolveLearnerLessonState, resolveLearnerUnitState, resolveRecommendedLearnerStep, unitDetailHierarchy } from "./learnerJourney";
+import { courseDetailHierarchy, coursePageHierarchy, isLearnerLessonUnlocked, isLearnerUnitUnlocked, isUsableLearnerLesson, learnerJourneyActionLabel, resolveLearnerCourseState, resolveLearnerLessonState, resolveLearnerUnitState, resolveRecommendedLearnerStep, resolveSequentialLessonJourneys, resolveSequentialUnitJourneys, unitDetailHierarchy } from "./learnerJourney";
 
 const makeCourse = (id: string, units: Array<{ id: string; lessons: Array<{ id: string; available?: boolean; activityCount?: number }> }>): LearnerCourse => ({
   id, slug: id, title: `Course ${id}`, description: "", level: "", emoji: "", position: 0, unitCount: units.length,
@@ -81,7 +81,7 @@ describe("shared learner journey", () => {
   });
 
   it("uses the same resolver for Home, Course, and Unit scopes", () => {
-    const stored = progress(["lesson-2"]);
+    const stored = progress(["lesson-2"], ["lesson-1"]);
     expect(resolveRecommendedLearnerStep([course], stored)?.lesson.id).toBe("lesson-2");
     expect(resolveRecommendedLearnerStep([course], stored, {}, { courseId: "course-a" })?.lesson.id).toBe("lesson-2");
     expect(resolveRecommendedLearnerStep([course], stored, {}, { unitId: "unit-a" })?.lesson.id).toBe("lesson-2");
@@ -91,11 +91,34 @@ describe("shared learner journey", () => {
     expect(resolveRecommendedLearnerStep([course], progress(["missing"], ["gone"]))?.lesson.id).toBe("lesson-1");
   });
 
-  it("does not invent duration, purpose, or locked state", () => {
+  it("does not invent duration or lesson purpose", () => {
     const summary = resolveLearnerLessonState(course.units[0].lessons[0], progress());
     expect(summary).not.toHaveProperty("duration");
     expect(summary).not.toHaveProperty("lessonPurpose");
-    expect(summary).not.toHaveProperty("locked");
+  });
+
+  it("unlocks lessons sequentially and preserves completed review access", () => {
+    const initial = resolveSequentialLessonJourneys(course.units[0], progress());
+    expect(initial.map(({ locked, current }) => ({ locked, current }))).toEqual([
+      { locked: false, current: true },
+      { locked: true, current: false },
+    ]);
+    const advanced = resolveSequentialLessonJourneys(course.units[0], progress([], ["lesson-1"]));
+    expect(advanced.map(({ locked, current }) => ({ locked, current }))).toEqual([
+      { locked: false, current: false },
+      { locked: false, current: true },
+    ]);
+    expect(isLearnerLessonUnlocked(course.units[0], "lesson-2", progress())).toBe(false);
+  });
+
+  it("unlocks units only after all usable lessons in the prior unit are complete", () => {
+    const sequenced = makeCourse("sequence", [
+      { id: "unit-1", lessons: [{ id: "lesson-1" }] },
+      { id: "unit-2", lessons: [{ id: "lesson-2" }] },
+    ]);
+    expect(resolveSequentialUnitJourneys(sequenced, progress()).map(({ locked }) => locked)).toEqual([false, true]);
+    expect(isLearnerUnitUnlocked(sequenced, "unit-2", progress([], ["lesson-1"]))).toBe(true);
+    expect(resolveRecommendedLearnerStep([sequenced], progress())?.lesson.id).toBe("lesson-1");
   });
 
   it("keeps recommendation first in each responsive page hierarchy", () => {

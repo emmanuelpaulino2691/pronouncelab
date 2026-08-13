@@ -36,6 +36,7 @@ function LessonCreationDialog({
         nextPosition={nextPosition}
         isSaving={isSaving}
         errorMessage={errorMessage}
+        appendPosition
         onCancel={onClose}
         onBack={() => setStage(returnToLessonChoice())}
         onSubmit={onSubmit}

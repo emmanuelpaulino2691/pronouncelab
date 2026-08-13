@@ -223,11 +223,11 @@ function AdminCoursesPage() {
         isOpen={publishConfirmation !== null}
         onClose={() => { if (publishingCourseId === null) setPublishConfirmation(null); }}
         title="Publish course"
-        description={publishConfirmation ? `Review and publish “${publishConfirmation.title}”. The complete course will be validated before any learner-facing content changes.` : undefined}
+        description={publishConfirmation ? `Review and publish “${publishConfirmation.title}”. Draft additions and lesson updates are validated before learner-facing content changes.` : undefined}
         preventClose={publishingCourseId !== null}
         footer={<><Button type="button" variant="secondary" disabled={publishingCourseId !== null} onClick={() => setPublishConfirmation(null)}>Cancel</Button><Button type="button" isLoading={publishingCourseId !== null} onClick={() => { if (publishConfirmation) void handlePublish(publishConfirmation); }}>Publish course</Button></>}
       >
-        <p className="text-sm text-slate-600">All units, lessons, activities, and draft versions must be complete. If anything is missing, you will receive the full list of issues and nothing will be published.</p>
+        <p className="text-sm text-slate-600">New draft units, lessons, activities, and draft lesson versions must be complete. Already-published content remains unchanged. Every draft blocker is listed and nothing is published until all blockers are resolved.</p>
       </Dialog>
     </section>
   );

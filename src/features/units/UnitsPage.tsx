@@ -8,7 +8,7 @@ import { isDecimalContentId } from "../../shared/content/contracts/publishedRpcG
 import { hasLearnerLoadFailure } from "../../shared/content/learnerResourcePresentation";
 import type { ContentId } from "../../shared/content/contracts/learnerContent";
 import { loadUserProgress } from "../../shared/utils/progressStorage";
-import { resolveLearnerCourseState, resolveLearnerUnitState, resolveRecommendedLearnerStep } from "../learner-journey/learnerJourney";
+import { resolveLearnerCourseState, resolveRecommendedLearnerStep, resolveSequentialUnitJourneys } from "../learner-journey/learnerJourney";
 import UnitJourneyCard from "./components/UnitJourneyCard";
 
 export default function UnitsPage() {
@@ -24,10 +24,9 @@ export default function UnitsPage() {
   const course = resource.value;
   const progress = loadUserProgress();
   const courseJourney = resolveLearnerCourseState(course, progress);
-  const unitJourneys = course.units.map((unit) => resolveLearnerUnitState(unit, progress));
+  const unitJourneys = resolveSequentialUnitJourneys(course, progress);
   const recommended = resolveRecommendedLearnerStep([course], progress, {}, { courseId: course.id });
   const recommendedJourney = recommended ? unitJourneys.find((journey) => journey.unit.id === recommended.unit.id) : undefined;
-  const otherJourneys = recommendedJourney ? unitJourneys.filter((journey) => journey.unit.id !== recommendedJourney.unit.id) : unitJourneys;
 
   return <MainLayout>
     <nav aria-label="Course navigation"><Link to="/courses" className="inline-flex min-h-11 items-center font-semibold text-blue-700 hover:underline">&larr; Your Courses</Link></nav>
@@ -36,7 +35,7 @@ export default function UnitsPage() {
       <section aria-labelledby="course-progress-heading" className="mt-8 max-w-4xl"><div className="flex flex-wrap items-end justify-between gap-2"><div><p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Course progress</p><h2 id="course-progress-heading" className="mt-1 text-xl font-bold text-slate-950">{courseJourney.completedLessons} of {courseJourney.totalLessons} lessons completed</h2></div>{courseJourney.state === "completed" && <p className="font-semibold text-emerald-700">You completed every available lesson in this course.</p>}</div><div className="mt-3"><ProgressBar value={courseJourney.percent} label={`${course.title} progress`} /></div></section>
       <div className="mt-10 space-y-10">
         {recommendedJourney && <section aria-labelledby="recommended-unit-heading"><h2 id="recommended-unit-heading" className="mb-4 text-xl font-bold text-slate-950">{courseJourney.state === "completed" ? "Review a unit" : "Recommended next unit"}</h2><UnitJourneyCard journey={recommendedJourney} recommended /></section>}
-        {otherJourneys.length > 0 && <section aria-labelledby="all-units-heading"><h2 id="all-units-heading" className="text-xl font-bold text-slate-950">All units</h2><div className="mt-4 grid gap-5 md:grid-cols-2">{otherJourneys.map((journey) => <UnitJourneyCard key={journey.unit.id} journey={journey} recommended={false} />)}</div></section>}
+        {unitJourneys.length > 0 && <section aria-labelledby="all-units-heading"><h2 id="all-units-heading" className="text-xl font-bold text-slate-950">All units</h2><div className="mt-4 grid gap-5 md:grid-cols-2">{unitJourneys.map((journey) => <UnitJourneyCard key={journey.unit.id} journey={journey} recommended={false} />)}</div></section>}
         {courseJourney.state === "completed" && <Link to="/courses" className="inline-flex min-h-11 items-center font-semibold text-blue-700 hover:underline">Browse other courses</Link>}
       </div>
     </>}

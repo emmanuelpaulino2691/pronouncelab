@@ -42,6 +42,8 @@ function BlockRenderer({ block }: Props) {
     return (
       <AudioBlock
         src={block.src}
+        label={block.label}
+        transcript={block.transcript}
       />
     );
 

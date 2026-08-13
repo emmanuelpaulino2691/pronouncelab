@@ -17,6 +17,8 @@ export type LearnerLessonJourney = {
   totalActivities: number;
   percent: number;
   activityIndex: number;
+  locked: boolean;
+  current: boolean;
 };
 
 export type LearnerUnitJourney = {
@@ -26,6 +28,8 @@ export type LearnerUnitJourney = {
   completedLessons: number;
   totalLessons: number;
   percent: number;
+  locked: boolean;
+  current: boolean;
 };
 
 export type LearnerCourseJourney = {
@@ -60,7 +64,7 @@ function completedActivityIndexes(lesson: LearnerLessonSummary, progress: Learne
 }
 
 export function resolveLearnerLessonState(lesson: LearnerLessonSummary, progress: LearnerJourneyProgress, activityIndex = 0): LearnerLessonJourney {
-  if (!isUsableLearnerLesson(lesson)) return { lesson, state: "empty", action: null, completedActivities: 0, totalActivities: 0, percent: 0, activityIndex: 0 };
+  if (!isUsableLearnerLesson(lesson)) return { lesson, state: "empty", action: null, completedActivities: 0, totalActivities: 0, percent: 0, activityIndex: 0, locked: false, current: false };
   const completedActivities = completedActivityIndexes(lesson, progress).size;
   const complete = progress.lessonsCompleted.includes(lesson.id);
   const started = progress.lessonsStarted.includes(lesson.id) || completedActivities > 0;
@@ -73,16 +77,52 @@ export function resolveLearnerLessonState(lesson: LearnerLessonSummary, progress
     totalActivities: lesson.activityCount,
     percent: complete ? 100 : Math.round(completedActivities / lesson.activityCount * 100),
     activityIndex: safeActivityIndex,
+    locked: false,
+    current: false,
   };
 }
 
 export function resolveLearnerUnitState(unit: LearnerUnit, progress: LearnerJourneyProgress): LearnerUnitJourney {
   const lessons = unit.lessons.filter(isUsableLearnerLesson);
-  if (!lessons.length) return { unit, state: "empty", action: null, completedLessons: 0, totalLessons: 0, percent: 0 };
+  if (!lessons.length) return { unit, state: "empty", action: null, completedLessons: 0, totalLessons: 0, percent: 0, locked: false, current: false };
   const completedLessons = lessons.filter((lesson) => progress.lessonsCompleted.includes(lesson.id)).length;
   const started = lessons.some((lesson) => progress.lessonsStarted.includes(lesson.id) || progress.activitiesCompleted.some((item) => item.lessonId === lesson.id && item.activities.length > 0));
   const state = completedLessons === lessons.length ? "completed" : completedLessons > 0 || started ? "in_progress" : "not_started";
-  return { unit, state, action: state === "completed" ? "review" : state === "in_progress" ? "continue" : "start", completedLessons, totalLessons: lessons.length, percent: Math.round(completedLessons / lessons.length * 100) };
+  return { unit, state, action: state === "completed" ? "review" : state === "in_progress" ? "continue" : "start", completedLessons, totalLessons: lessons.length, percent: Math.round(completedLessons / lessons.length * 100), locked: false, current: false };
+}
+
+export function resolveSequentialLessonJourneys(unit: LearnerUnit, progress: LearnerJourneyProgress, activityPositions: Readonly<Record<string, number>> = {}) {
+  let prerequisiteComplete = true;
+  let currentAssigned = false;
+  return unit.lessons.map((lesson) => {
+    const journey = resolveLearnerLessonState(lesson, progress, activityPositions[lesson.id] ?? 0);
+    const locked = isUsableLearnerLesson(lesson) && !prerequisiteComplete;
+    const current = !locked && !currentAssigned && isUsableLearnerLesson(lesson) && journey.state !== "completed";
+    if (current) currentAssigned = true;
+    if (isUsableLearnerLesson(lesson) && journey.state !== "completed") prerequisiteComplete = false;
+    return { ...journey, locked, current, action: locked ? null : journey.action };
+  });
+}
+
+export function resolveSequentialUnitJourneys(course: LearnerCourse, progress: LearnerJourneyProgress) {
+  let prerequisiteComplete = true;
+  let currentAssigned = false;
+  return course.units.map((unit) => {
+    const journey = resolveLearnerUnitState(unit, progress);
+    const locked = journey.state !== "empty" && !prerequisiteComplete;
+    const current = !locked && !currentAssigned && journey.state !== "empty" && journey.state !== "completed";
+    if (current) currentAssigned = true;
+    if (journey.state !== "empty" && journey.state !== "completed") prerequisiteComplete = false;
+    return { ...journey, locked, current, action: locked ? null : journey.action };
+  });
+}
+
+export function isLearnerUnitUnlocked(course: LearnerCourse, unitId: string, progress: LearnerJourneyProgress) {
+  return resolveSequentialUnitJourneys(course, progress).find((item) => item.unit.id === unitId)?.locked === false;
+}
+
+export function isLearnerLessonUnlocked(unit: LearnerUnit, lessonId: string, progress: LearnerJourneyProgress) {
+  return resolveSequentialLessonJourneys(unit, progress).find((item) => item.lesson.id === lessonId)?.locked === false;
 }
 
 export function resolveLearnerCourseState(course: LearnerCourse, progress: LearnerJourneyProgress): LearnerCourseJourney {
@@ -94,8 +134,8 @@ export function resolveLearnerCourseState(course: LearnerCourse, progress: Learn
   return { course, state, action: state === "completed" ? "review" : state === "in_progress" ? "continue" : "start", completedLessons, totalLessons: lessons.length, percent: Math.round(completedLessons / lessons.length * 100) };
 }
 
-function availableLessonContexts(courses: readonly LearnerCourse[]) {
-  return courses.flatMap((course) => course.units.flatMap((unit) => unit.lessons.filter(isUsableLearnerLesson).map((lesson) => ({ course, unit, lesson }))));
+function availableLessonContexts(courses: readonly LearnerCourse[], progress: LearnerJourneyProgress) {
+  return courses.flatMap((course) => resolveSequentialUnitJourneys(course, progress).filter((unitJourney) => !unitJourney.locked).flatMap(({ unit }) => resolveSequentialLessonJourneys(unit, progress).filter((lessonJourney) => !lessonJourney.locked && isUsableLearnerLesson(lessonJourney.lesson)).map(({ lesson }) => ({ course, unit, lesson }))));
 }
 
 function stepFromContext(context: LessonContext, progress: LearnerJourneyProgress, activityPositions: Readonly<Record<string, number>>, kind: LearnerJourneyAction): RecommendedLearnerStep {
@@ -104,7 +144,7 @@ function stepFromContext(context: LessonContext, progress: LearnerJourneyProgres
 }
 
 export function resolveRecommendedLearnerStep(courses: readonly LearnerCourse[], progress: LearnerJourneyProgress, activityPositions: Readonly<Record<string, number>> = {}, scope: RecommendationScope = {}): RecommendedLearnerStep | null {
-  const allContexts = availableLessonContexts(courses);
+  const allContexts = availableLessonContexts(courses, progress);
   const contexts = allContexts.filter(({ course, unit }) => (!scope.courseId || course.id === scope.courseId) && (!scope.unitId || unit.id === scope.unitId));
   if (!contexts.length) return null;
   const completed = new Set<string>(progress.lessonsCompleted);

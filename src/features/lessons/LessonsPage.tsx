@@ -11,7 +11,7 @@ import { contentFailure, contentSuccess } from "../../shared/content/errors/cont
 import { loadUserProgress } from "../../shared/utils/progressStorage";
 import { loadLessonState } from "../../shared/utils/lessonStorage";
 import { normalizeLessonState } from "../lesson/studentExperience";
-import { resolveLearnerLessonState, resolveLearnerUnitState, resolveRecommendedLearnerStep } from "../learner-journey/learnerJourney";
+import { isLearnerUnitUnlocked, resolveLearnerUnitState, resolveRecommendedLearnerStep, resolveSequentialLessonJourneys } from "../learner-journey/learnerJourney";
 import LessonJourneyCard from "./components/LessonJourneyCard";
 
 type UnitContext = { unit: LearnerUnit; course: LearnerCourse };
@@ -35,12 +35,12 @@ export default function LessonsPage() {
 
   const { unit, course } = resource.value;
   const progress = loadUserProgress();
+  if (!isLearnerUnitUnlocked(course, unit.id, progress)) return <MainLayout><NotFoundState title="Unit locked" message="Complete the previous unit to unlock this one." actionLabel="Return to course" onAction={() => navigate(`/courses/${course.id}`)} /></MainLayout>;
   const activityPositions = Object.fromEntries(unit.lessons.map((lesson) => [lesson.id, normalizeLessonState(loadLessonState(lesson.id), lesson.activityCount).currentActivity]));
   const unitJourney = resolveLearnerUnitState(unit, progress);
-  const lessonJourneys = unit.lessons.map((lesson) => resolveLearnerLessonState(lesson, progress, activityPositions[lesson.id]));
+  const lessonJourneys = resolveSequentialLessonJourneys(unit, progress, activityPositions);
   const recommended = resolveRecommendedLearnerStep([course], progress, activityPositions, { unitId: unit.id });
   const recommendedJourney = recommended ? lessonJourneys.find((journey) => journey.lesson.id === recommended.lesson.id) : undefined;
-  const otherJourneys = recommendedJourney ? lessonJourneys.filter((journey) => journey.lesson.id !== recommendedJourney.lesson.id) : lessonJourneys;
 
   return <MainLayout>
     <nav aria-label="Unit navigation"><Link to={`/courses/${course.id}`} className="inline-flex min-h-11 items-center font-semibold text-blue-700 hover:underline">&larr; {course.title}</Link></nav>
@@ -49,7 +49,7 @@ export default function LessonsPage() {
       <section aria-labelledby="unit-progress-heading" className="mt-8 max-w-4xl"><p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Unit progress</p><h2 id="unit-progress-heading" className="mt-1 text-xl font-bold text-slate-950">{unitJourney.completedLessons} of {unitJourney.totalLessons} lessons completed</h2><div className="mt-3"><ProgressBar value={unitJourney.percent} label={`${unit.title} progress`} /></div>{unitJourney.state === "completed" && <p className="mt-3 font-semibold text-emerald-700">You completed every available lesson in this unit.</p>}</section>
       <div className="mt-10 space-y-10">
         {recommendedJourney && <section aria-labelledby="recommended-lesson-heading"><h2 id="recommended-lesson-heading" className="mb-4 text-xl font-bold text-slate-950">{unitJourney.state === "completed" ? "Review a lesson" : "Recommended next lesson"}</h2><LessonJourneyCard journey={recommendedJourney} recommended /></section>}
-        {otherJourneys.length > 0 && <section aria-labelledby="all-lessons-heading"><h2 id="all-lessons-heading" className="text-xl font-bold text-slate-950">All lessons</h2><div className="mt-4 grid gap-5 md:grid-cols-2">{otherJourneys.map((journey) => <LessonJourneyCard key={journey.lesson.id} journey={journey} recommended={false} />)}</div></section>}
+        {lessonJourneys.length > 0 && <section aria-labelledby="all-lessons-heading"><h2 id="all-lessons-heading" className="text-xl font-bold text-slate-950">All lessons</h2><div className="mt-4 grid gap-5 md:grid-cols-2">{lessonJourneys.map((journey) => <LessonJourneyCard key={journey.lesson.id} journey={journey} recommended={false} />)}</div></section>}
       </div>
     </>}
   </MainLayout>;

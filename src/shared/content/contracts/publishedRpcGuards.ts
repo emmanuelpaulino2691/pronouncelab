@@ -179,7 +179,9 @@ function isTheoryBlock(
     case "audio":
       return (
         isMedia(value.media) &&
-        value.media.kind === "audio"
+        value.media.kind === "audio" &&
+        (value.label === undefined || isText(value.label)) &&
+        (value.transcript === undefined || isText(value.transcript))
       );
     default:
       return false;

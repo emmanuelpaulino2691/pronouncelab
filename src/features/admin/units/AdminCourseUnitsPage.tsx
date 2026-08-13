@@ -43,6 +43,7 @@ import {
 } from "./adminUnitService";
 import { buildStudentPreviewUrl } from "../preview/previewNavigation";
 import { publicationFunctionErrorMessage } from "../lesson-studio/publicationErrors";
+import { canCreateDraftUnit, canEditDraftUnit } from "../hierarchyAuthoring";
 
 type FormState =
   | { mode: "closed" }
@@ -202,6 +203,7 @@ function CourseUnitsContent({
           ) + 1,
     [units]
   );
+  const canCreateUnit = canCreateDraftUnit(canEditDrafts, course?.status ?? null);
 
   async function handleSave(
     input: HierarchyItemInput
@@ -326,7 +328,7 @@ function CourseUnitsContent({
         description={course?.description || "Manage this course and its learning content."}
         breadcrumbs={[{ label: "Courses", to: "/admin/courses" }, { label: course?.title ?? "Course" }]}
         meta={course ? <StatusBadge status={course.status} /> : undefined}
-        actions={<><ButtonLink icon="arrow-left" variant="secondary" to="/admin/courses">Back to courses</ButtonLink><ButtonLink variant="secondary" to={buildStudentPreviewUrl({ courseId, returnTo: `${location.pathname}${location.search}` })}>Preview as Student</ButtonLink>{activeTab !== "curriculum" && <ButtonLink variant="secondary" to="?tab=curriculum">Open curriculum</ButtonLink>}{canPublish && course?.status !== "archived" && <Button type="button" isLoading={workspaceActionPending} onClick={() => void handleWorkspacePublish()}>Publish Course</Button>}{canEditDrafts && course?.status === "draft" && <Button type="button" variant="secondary" isLoading={workspaceActionPending} onClick={() => void handleWorkspaceDuplicate()}>Duplicate Course</Button>}{activeTab === "curriculum" && canEditDrafts && course?.status === "draft" && <Button icon="plus" onClick={() => { setFormErrorMessage(null); setFormState({ mode: "create" }); }}>Create unit</Button>}</>}
+        actions={<><ButtonLink icon="arrow-left" variant="secondary" to="/admin/courses">Back to courses</ButtonLink><ButtonLink variant="secondary" to={buildStudentPreviewUrl({ courseId, returnTo: `${location.pathname}${location.search}` })}>Preview as Student</ButtonLink>{activeTab !== "curriculum" && <ButtonLink variant="secondary" to="?tab=curriculum">Open curriculum</ButtonLink>}{canPublish && course?.status !== "archived" && <Button type="button" isLoading={workspaceActionPending} onClick={() => void handleWorkspacePublish()}>{course?.status === "published" ? "Publish updates" : "Publish Course"}</Button>}{canEditDrafts && course?.status === "draft" && <Button type="button" variant="secondary" isLoading={workspaceActionPending} onClick={() => void handleWorkspaceDuplicate()}>Duplicate Course</Button>}{activeTab === "curriculum" && canCreateUnit && <Button icon="plus" onClick={() => { setFormErrorMessage(null); setFormState({ mode: "create" }); }}>Create unit</Button>}</>}
       />
       {workspaceActionMessage && <div className="mt-5"><Alert tone={workspaceActionMessage.startsWith("Course published") ? "info" : "error"}>{workspaceActionMessage}</Alert></div>}
       <nav aria-label="Course workspace" className="mt-6 flex gap-2 overflow-x-auto border-b border-slate-200">
@@ -344,7 +346,8 @@ function CourseUnitsContent({
         <section><h2 className="text-lg font-bold text-slate-950">Future course areas</h2><div className="mt-4 grid gap-4 md:grid-cols-2"><Card className="p-5"><h3 className="font-semibold text-slate-900">Classes</h3><p className="mt-2 text-sm text-slate-600">This course can be assigned to classes once the Classroom module is available.</p></Card><Card className="p-5"><h3 className="font-semibold text-slate-900">Students</h3><p className="mt-2 text-sm text-slate-600">Student enrollment will appear here.</p></Card><Card className="p-5"><h3 className="font-semibold text-slate-900">Assignments</h3><p className="mt-2 text-sm text-slate-600">Assignments will become available after the Classroom module.</p></Card><Card className="p-5"><h3 className="font-semibold text-slate-900">Analytics</h3><p className="mt-2 text-sm text-slate-600">Course analytics will appear after students begin using this course.</p></Card></div></section>
       </div>}
       {activeTab === "curriculum" && <>
-      {(!canEditDrafts || course?.status !== "draft") && <div className="mt-5"><Alert>{course?.status === "draft" ? "You can view this curriculum, but your role does not allow editing draft units." : "You can view this curriculum, but editing is unavailable because the course is no longer a draft."}</Alert></div>}
+      {!canEditDrafts && <div className="mt-5"><Alert>You can view this curriculum, but your role does not allow authoring draft units.</Alert></div>}
+      {canEditDrafts && course?.status === "published" && <div className="mt-5"><Alert><strong>Published course.</strong> Published units remain read-only. You can append new draft units; learners will not see them until you publish course updates.</Alert></div>}
 
       {errorMessage && (
         <div className="mt-6"><Alert tone="error" action={<Button variant="secondary" onClick={() => void loadHierarchy()}>Try again</Button>}>{errorMessage}</Alert></div>
@@ -352,7 +355,7 @@ function CourseUnitsContent({
 
       <div className="mt-8 grid gap-4">
         {units.length === 0 ? (
-          <EmptyState title="No units yet" description={canEditDrafts && course?.status === "draft" ? "Create the first unit to begin shaping this curriculum." : "This course does not contain any units to view."} action={canEditDrafts && course?.status === "draft" ? <Button icon="plus" onClick={() => { setFormErrorMessage(null); setFormState({ mode: "create" }); }}>Create unit</Button> : undefined} />
+          <EmptyState title="No units yet" description={canCreateUnit ? "Create the first draft unit to begin shaping this curriculum." : "This course does not contain any units to view."} action={canCreateUnit ? <Button icon="plus" onClick={() => { setFormErrorMessage(null); setFormState({ mode: "create" }); }}>Create unit</Button> : undefined} />
         ) : (
           units.map((unit) => {
             const isDraft =
@@ -361,7 +364,7 @@ function CourseUnitsContent({
             return (
               <Card
                 key={unit.id}
-                draggable={canEditDrafts && isDraft && course?.status === "draft"}
+                draggable={canEditDraftUnit(canEditDrafts, unit.status)}
                 onDragStart={() => setDraggedUnitId(unit.id)}
                 onDragOver={(event) => { event.preventDefault(); setDropUnitId(unit.id); }}
                 onDragEnd={() => { setDraggedUnitId(null); setDropUnitId(null); }}
@@ -390,9 +393,7 @@ function CourseUnitsContent({
                     <ButtonLink to={`/admin/courses/${courseId}/units/${unit.id}`}>
                       Manage lessons
                     </ButtonLink>
-                    {isDraft &&
-                      canEditDrafts &&
-                      course?.status === "draft" && (
+                    {isDraft && canEditDraftUnit(canEditDrafts, unit.status) && (
                         <>
                           <button
                             type="button"
@@ -458,6 +459,7 @@ function CourseUnitsContent({
           onSubmit={(input) =>
             void handleSave(input)
           }
+          appendPosition={formState.mode === "create"}
         />
       )}
       <ConfirmDeleteDialog

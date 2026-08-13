@@ -37,6 +37,8 @@ export type PublishedRpcTheoryBlock =
   | {
       type: "audio";
       media: PublishedRpcMedia;
+      label?: string;
+      transcript?: string;
     };
 
 export type PublishedRpcAiMissionConfig = {

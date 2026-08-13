@@ -303,6 +303,8 @@ function mapTheoryBlock(
         {
           type: "audio",
           media: media.value,
+          label: block.label?.trim() || undefined,
+          transcript: block.transcript?.trim() || undefined,
         },
         staticRevision
       );

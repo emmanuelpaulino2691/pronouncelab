@@ -215,6 +215,15 @@ version, publishes the requested draft, and atomically advances
 lesson row's original `published_at`; the version row records each release's
 own timestamp. Direct status promotion is rejected by lifecycle triggers.
 
+### Progressive hierarchy authoring
+
+`create_draft_unit` and `create_draft_lesson` acquire the hierarchy gate,
+require owning teacher or administrator authority, and append after the maximum
+sibling position without updating published siblings. Lesson creation inserts
+draft Version 1 atomically. Draft additions remain editable and deletable even
+below published parents. Learner projections still require the complete
+published course, unit, lesson, and version chain.
+
 Assessment listening references use a composite foreign key so the listening item belongs to the same activity.
 
 ### Media
@@ -289,6 +298,10 @@ projection.
 | `202608120003_fix_published_draft_copy` | Allows the trusted published-to-draft copy transaction to reproduce AI activity rows through the private creation marker |
 | `202608120004_fix_ai_draft_version_guard` | Authorizes AI configuration mutations through the editable draft version beneath published parent metadata |
 | `202608120005_fix_lesson_republication_activation` | Preserves the lesson's first publication timestamp while atomically activating a later published version |
+| `202608120006_progressive_course_authoring` | Adds append-only draft Unit/Lesson creation beneath published parents, atomic Lesson Version 1 creation, and progressive draft deletion |
+| `202608120007_fix_progressive_append_position` | Makes progressive append-position calculation unambiguous |
+| `202608130001_sprint_51b_progression_publication_and_deletes` | Projects Learn audio transcripts, limits course-update validation to draft lesson versions, and permits owner-scoped draft activity deletion beneath published ancestors |
+| `202608130002_clarify_draft_unit_publication_blocker` | Identifies an empty new draft Unit precisely in Publish updates feedback |
 
 ## Migration rules
 
@@ -311,7 +324,7 @@ Never duplicate migration SQL in documentation. Read the effective object across
 These are hardening opportunities, not implemented guarantees.
 ## Course publication lifecycle
 
-`public.publish_course(bigint)` is the transaction boundary for course-wide publication. It is available only to authenticated users with administrator, publisher, or owner-teacher publication authority. Validation is aggregated before any status, pointer, or archive update. The operation prefers the newest draft lesson version, otherwise retains the active published version, and never republishes archived history. Learner queries therefore observe only the newly activated published hierarchy after a successful transaction.
+`public.publish_course(bigint)` is the transaction boundary for course-wide publication. It is available only to authenticated users with administrator, publisher, or owner-teacher publication authority. Validation is aggregated before any status, pointer, or archive update. The operation validates the newest draft lesson version when one exists; otherwise it retains the active sealed version without applying newer validators to history. It never republishes archived history. Learner queries therefore observe only the newly activated published hierarchy after a successful transaction.
 
 ## Classroom model (future)
 

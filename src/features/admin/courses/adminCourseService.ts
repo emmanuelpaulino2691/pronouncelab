@@ -36,6 +36,7 @@ export type CoursePublicationError = {
   lessonTitle?: string;
   lessonVersionId?: number;
   activityId?: number;
+  activityTitle?: string;
   activityType?: string;
   category: string;
   message: string;

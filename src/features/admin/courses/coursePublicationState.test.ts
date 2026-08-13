@@ -8,8 +8,13 @@ describe("course publication state", () => {
       { category: "activity", unitTitle: "Review", lessonTitle: "Final", activityType: "interactive_practice", message: "Incomplete." },
     ];
     expect(hasPublicationErrors(errors)).toBe(true);
-    expect(publicationErrorLabel(errors[0])).toBe("Vowels — Short A — listening");
+    expect(publicationErrorLabel(errors[0])).toBe("Vowels — Short A — listening:");
     expect(errors).toHaveLength(2);
+  });
+
+  it("names the exact activity when publication provides it", () => {
+    expect(publicationErrorLabel({ category: "activity", unitTitle: "Vowels", lessonTitle: "Short A", activityTitle: "Listen and choose", activityType: "interactive_practice", message: "Add an answer." }))
+      .toBe("Vowels — Short A — Listen and choose (interactive practice):");
   });
 
   it("recognizes an empty validation result", () => {

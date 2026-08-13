@@ -493,12 +493,12 @@ function Studio({
       {!version ? (
         <div className="mt-6 rounded-2xl border border-dashed border-blue-300 bg-blue-50 p-8 text-center">
           <h2 className="font-semibold text-blue-950">
-            {canEditDrafts && course.status === "draft" && unit.status === "draft" && lesson.status === "draft" ? "Start authoring this lesson" : "No lesson draft to view"}
+            {canEditDrafts && lesson.status === "draft" ? "Start authoring this lesson" : "No lesson draft to view"}
           </h2>
           <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-blue-900">
-            {canEditDrafts && course.status === "draft" && unit.status === "draft" && lesson.status === "draft" ? "Start the lesson draft before adding activities." : "A lesson draft has not been started, and editing is unavailable for this lesson."}
+            {canEditDrafts && lesson.status === "draft" ? "Start the lesson draft before adding activities." : "A lesson draft has not been started, and editing is unavailable for this lesson."}
           </p>
-          {canEditDrafts && course.status === "draft" && unit.status === "draft" && lesson.status === "draft" && <Button isLoading={busy} icon="sparkle"
+          {canEditDrafts && lesson.status === "draft" && <Button isLoading={busy} icon="sparkle"
             onClick={() =>
               void run(
                 () =>

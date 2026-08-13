@@ -20,6 +20,8 @@ export type TheoryBlock =
   | {
       type: "audio";
       src: string;
+      label?: string;
+      transcript?: string;
     }
   | {
       type: "example";

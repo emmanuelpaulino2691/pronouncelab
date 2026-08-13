@@ -124,19 +124,14 @@ export async function createAdminLesson(
   unitId: number,
   input: HierarchyItemInput
 ) {
-  const userId = await getCurrentUserId();
-  const { data, error } = await requireSupabase()
-    .from("lessons")
-    .insert({
-      ...input,
-      unit_id: unitId,
-      status: "draft",
-      current_published_version_id: null,
-      created_by: userId,
-      updated_by: userId,
-    })
-    .select(lessonColumns)
-    .single();
+  const { data, error } = await requireSupabase().rpc(
+    "create_draft_lesson",
+    {
+      requested_unit_id: unitId,
+      requested_title: input.title,
+      requested_description: input.description,
+    }
+  );
 
   if (error) {
     throw error;

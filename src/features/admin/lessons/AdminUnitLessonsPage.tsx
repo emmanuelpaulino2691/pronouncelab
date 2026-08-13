@@ -46,6 +46,7 @@ import {
 import LessonCreationDialog from "./LessonCreationDialog";
 import { canStartLessonCreation } from "./lessonCreationState";
 import { buildStudentPreviewUrl } from "../preview/previewNavigation";
+import { canCreateDraftLesson, canEditDraftLesson } from "../hierarchyAuthoring";
 
 type FormState =
   | { mode: "closed" }
@@ -207,6 +208,11 @@ function UnitLessonsContent({
             )
           ) + 1,
     [lessons]
+  );
+  const canCreateLesson = canCreateDraftLesson(
+    canEditDrafts,
+    course?.status ?? null,
+    unit?.status ?? null
   );
 
   async function handleSave(
@@ -372,9 +378,10 @@ function UnitLessonsContent({
         description={unit?.description || "Manage the ordered lessons and open the authoring studio."}
         breadcrumbs={[{ label: "Courses", to: "/admin/courses" }, { label: course?.title ?? "Course", to: `/admin/courses/${courseId}` }, { label: unit?.title ?? "Unit" }]}
         meta={unit ? <StatusBadge status={unit.status} /> : undefined}
-        actions={<><ButtonLink icon="arrow-left" variant="secondary" to={`/admin/courses/${courseId}`}>Back to curriculum</ButtonLink>{canEditDrafts && course?.status === "draft" && unit?.status === "draft" && <Button icon="plus" onClick={() => { creationCompletedRef.current = false; setFormErrorMessage(null); setFormState({ mode: "create" }); }}>Create lesson</Button>}</>}
+        actions={<><ButtonLink icon="arrow-left" variant="secondary" to={`/admin/courses/${courseId}`}>Back to curriculum</ButtonLink>{canCreateLesson && <Button icon="plus" onClick={() => { creationCompletedRef.current = false; setFormErrorMessage(null); setFormState({ mode: "create" }); }}>Create lesson</Button>}</>}
       />
-      {(!canEditDrafts || course?.status !== "draft" || unit?.status !== "draft") && <div className="mt-5"><Alert>{course?.status === "draft" && unit?.status === "draft" ? "You can view these lessons, but your role does not allow editing drafts." : "You can view these lessons, but editing is unavailable because the course or unit is no longer a draft."}</Alert></div>}
+      {!canEditDrafts && <div className="mt-5"><Alert>You can view these lessons, but your role does not allow authoring drafts.</Alert></div>}
+      {canEditDrafts && unit?.status === "published" && <div className="mt-5"><Alert><strong>Published unit.</strong> Published lessons remain read-only. You can append new draft lessons; learners will not see them until you publish updates.</Alert></div>}
 
       {errorMessage && (
         <div className="mt-6"><Alert tone="error" action={<Button variant="secondary" onClick={() => void loadHierarchy()}>Try again</Button>}>{errorMessage}</Alert></div>
@@ -382,7 +389,7 @@ function UnitLessonsContent({
 
       <Card className="mt-8 overflow-hidden">
         {lessons.length === 0 ? (
-          <EmptyState title="No lessons yet" description={canEditDrafts && course?.status === "draft" && unit?.status === "draft" ? "Create the first lesson to begin authoring this unit." : "This unit does not contain any lessons to view."} action={canEditDrafts && course?.status === "draft" && unit?.status === "draft" ? <Button icon="plus" onClick={() => { creationCompletedRef.current = false; setFormErrorMessage(null); setFormState({ mode: "create" }); }}>Create lesson</Button> : undefined} />
+          <EmptyState title="No lessons yet" description={canCreateLesson ? "Create the first draft lesson to begin authoring this unit." : "This unit does not contain any lessons to view."} action={canCreateLesson ? <Button icon="plus" onClick={() => { creationCompletedRef.current = false; setFormErrorMessage(null); setFormState({ mode: "create" }); }}>Create lesson</Button> : undefined} />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-3xl text-left">
@@ -408,7 +415,7 @@ function UnitLessonsContent({
                     lesson.status === "draft";
 
                   return (
-                    <tr key={lesson.id} draggable={canEditDrafts && isDraft && course?.status === "draft" && unit?.status === "draft"} onDragStart={() => setDraggedLessonId(lesson.id)} onDragOver={(event) => { event.preventDefault(); setDropLessonId(lesson.id); }} onDragEnd={() => { setDraggedLessonId(null); setDropLessonId(null); }} onDrop={(event) => { event.preventDefault(); if (draggedLessonId !== null && draggedLessonId !== lesson.id) { setReorderAnnouncement("Lesson order was not changed because persistent reordering is unavailable."); setUnavailableOperation("Reorder lessons"); } setDraggedLessonId(null); setDropLessonId(null); }} className={dropLessonId === lesson.id && draggedLessonId !== lesson.id ? "border-t-4 border-t-blue-500" : ""}>
+                    <tr key={lesson.id} draggable={canEditDraftLesson(canEditDrafts, lesson.status, lesson.currentPublishedVersionId)} onDragStart={() => setDraggedLessonId(lesson.id)} onDragOver={(event) => { event.preventDefault(); setDropLessonId(lesson.id); }} onDragEnd={() => { setDraggedLessonId(null); setDropLessonId(null); }} onDrop={(event) => { event.preventDefault(); if (draggedLessonId !== null && draggedLessonId !== lesson.id) { setReorderAnnouncement("Lesson order was not changed because persistent reordering is unavailable."); setUnavailableOperation("Reorder lessons"); } setDraggedLessonId(null); setDropLessonId(null); }} className={dropLessonId === lesson.id && draggedLessonId !== lesson.id ? "border-t-4 border-t-blue-500" : ""}>
                       <td className="px-6 py-5">
                         <p className="font-semibold text-slate-950">
                           {lesson.title}
@@ -429,10 +436,11 @@ function UnitLessonsContent({
                         <div className="flex justify-end gap-2">
                           <ButtonLink icon="sparkle" to={`/admin/courses/${courseId}/units/${unitId}/lessons/${lesson.id}/studio`}>Open Studio</ButtonLink>
                           <ButtonLink variant="secondary" to={buildStudentPreviewUrl({ courseId, lessonId: lesson.id, returnTo: `${location.pathname}${location.search}` })}>Preview as Student</ButtonLink>
-                        {isDraft &&
-                        canEditDrafts &&
-                        course?.status === "draft" &&
-                        unit?.status === "draft" ? (
+                        {isDraft && canEditDraftLesson(
+                          canEditDrafts,
+                          lesson.status,
+                          lesson.currentPublishedVersionId
+                        ) ? (
                           <>
                             <button
                               type="button"

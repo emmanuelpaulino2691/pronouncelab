@@ -1,5 +1,33 @@
 # Sprint Status
 
+## Sprint 51B — Learner Progression and Controlled Draft Cleanup
+
+Implemented locally. Learn audio blocks deliver their saved label and transcript
+to learners without changing Listening's optional transcript toggle. Course and
+Unit pages retain the recommended-next highlight while their complete lists now
+include the current item and show sequential Current, In progress, Completed,
+and Locked states. Direct future Unit and Lesson routes enforce the same
+device-local completion prerequisites.
+
+Publish updates validates new draft structure and draft lesson versions without
+revalidating sealed historical lesson versions. Blockers name the Unit, Lesson,
+activity, activity type, and missing requirement. Draft activity deletion now
+works under published ancestors through an owner-scoped, parent-scoped,
+leaf-first RPC; published activities and versions remain protected.
+
+## Sprint 51A — Progressive Course Authoring
+
+Implemented and validated locally. Published courses accept new draft units and
+published units accept new draft lessons without making released rows mutable.
+Creation is RPC-only, owner-scoped, hierarchy-gated, and append-only. New
+lessons receive draft Version 1 atomically. Draft additions remain editable,
+safely deletable, and learner-invisible.
+
+After the first release, publication is presented as **Publish updates**. It
+retains all-or-nothing validation: incomplete additions stay private while
+existing learner content remains available. See
+[ADR 0009](ADR/0009-progressive-course-authoring.md).
+
 ## Sprint 50G Follow-up — Version 2 Republication
 
 Implemented and validated locally against the preserved Version 1 → Version 2

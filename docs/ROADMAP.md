@@ -1,8 +1,24 @@
 # Roadmap
 
+## Sprint 51B — Learner Progression and Controlled Draft Cleanup
+
+Implemented locally. Sequential device-local lesson and unit unlocking, complete
+learner lists, Learn audio transcripts, draft-only publication feedback, and
+controlled draft deletion complete the progressive-authoring follow-up.
+
+Future progression work should replace device-local completion with an
+authenticated, synchronized event model before assignments or cross-device
+learning paths depend on these locks.
+
+## Sprint 51A — Progressive Course Authoring
+
+Implemented locally. Published courses and units grow through append-only draft
+descendants while released siblings remain immutable. Controlled mid-list
+structural reorder remains future work.
+
 ## Sprint 49D — Course Experience
 
-Implemented locally as a frontend-only learner journey refinement. Courses, Course detail, and Unit detail now share the Home recommendation engine and consistent Not started, In progress, Completed, and Empty states. One current or recommended course, unit, or lesson leads each screen; supporting content remains available with lower visual priority. Progress uses only published usable lessons and device-local state, with no fabricated duration, purpose, lock, or outcome.
+Implemented locally as a frontend-only learner journey refinement. Courses, Course detail, and Unit detail share the Home recommendation engine and device-local progress. Sprint 51B subsequently adds simple sequential Unit/Lesson locks and keeps the current item in each complete list.
 
 Future value depends on the separately proposed authored `lessonPurpose`, learner identity and synchronized progress, real pedagogical sequencing rules if locking is ever introduced, and browser-level responsive journey QA.
 

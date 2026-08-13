@@ -65,20 +65,22 @@ select throws_ok(
 
 select lives_ok(
   $test$
-    insert into public.units (
-      id, course_id, title, description, position, status
-    ) values (
-      918011, 918001, 'Owned unit', '', 0, 'draft'
-    )
+    select public.create_draft_unit(918001, 'Owned unit', '')
   $test$,
-  'owner can insert child content without a child owner column'
+  'owner can create child content through the controlled RPC'
+);
+
+select pg_catalog.set_config(
+  'pronouncelab.test_unit_id',
+  (select id::text from public.units where course_id = 918001),
+  true
 );
 
 select lives_ok(
   $test$
     update public.units
     set title = 'Owner updated unit'
-    where id = 918011
+    where id = current_setting('pronouncelab.test_unit_id')::bigint
   $test$,
   'owner can update child content without a child owner column'
 );
@@ -89,7 +91,7 @@ select is(
   public.content_row_course_id(
     'units',
     pg_catalog.jsonb_build_object(
-      'id', 918011,
+      'id', current_setting('pronouncelab.test_unit_id')::bigint,
       'course_id', 918001
     )
   ),
@@ -105,7 +107,7 @@ select results_eq(
   $test$
     update public.units
     set title = 'Forbidden teacher update'
-    where id = 918011
+    where id = current_setting('pronouncelab.test_unit_id')::bigint
     returning id
   $test$,
   $test$
@@ -134,7 +136,7 @@ select lives_ok(
   $test$
     update public.units
     set title = 'Administrator reviewed unit'
-    where id = 918011
+    where id = current_setting('pronouncelab.test_unit_id')::bigint
   $test$,
   'administrator can update another owner child hierarchy'
 );

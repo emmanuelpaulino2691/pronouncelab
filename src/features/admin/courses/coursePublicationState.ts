@@ -1,9 +1,12 @@
 import type { CoursePublicationError } from "./adminCourseService";
 
 export function publicationErrorLabel(error: CoursePublicationError): string {
-  return [error.unitTitle, error.lessonTitle, error.activityType]
+  const activity = error.activityTitle
+    ? `${error.activityTitle}${error.activityType ? ` (${error.activityType.replaceAll("_", " ")})` : ""}`
+    : error.activityType?.replaceAll("_", " ");
+  return [error.unitTitle, error.lessonTitle, activity]
     .filter((value): value is string => Boolean(value))
-    .join(" — ");
+    .join(" — ") + ":";
 }
 
 export function hasPublicationErrors(errors: readonly CoursePublicationError[]): boolean {

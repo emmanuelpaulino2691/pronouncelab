@@ -115,18 +115,14 @@ export async function createAdminUnit(
   courseId: number,
   input: HierarchyItemInput
 ) {
-  const userId = await getCurrentUserId();
-  const { data, error } = await requireSupabase()
-    .from("units")
-    .insert({
-      ...input,
-      course_id: courseId,
-      status: "draft",
-      created_by: userId,
-      updated_by: userId,
-    })
-    .select(unitColumns)
-    .single();
+  const { data, error } = await requireSupabase().rpc(
+    "create_draft_unit",
+    {
+      requested_course_id: courseId,
+      requested_title: input.title,
+      requested_description: input.description,
+    }
+  );
 
   if (error) {
     throw error;

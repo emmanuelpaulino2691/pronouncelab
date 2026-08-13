@@ -13,7 +13,8 @@ const progress = (started: string[] = [], completed: string[] = [], activitiesCo
 
 describe("next-action Home experience", () => {
   it("uses a learner name only when one is available", () => { expect(getHomeWelcomeHeading("Emmanuel")).toBe("Welcome back, Emmanuel!"); expect(getHomeWelcomeHeading()).toBe("Welcome back!"); expect(getHomeWelcomeHeading("  ")).toBe("Welcome back!"); });
-  it("gives a valid resume mission highest priority and restores its activity", () => { const action = resolveNextLearnerAction([course("a", ["1", "2"])], progress(["2"], [], [{ lessonId: "2", activities: [0] }]), { "2": 1 }); expect(action).toMatchObject({ kind: "continue", lesson: { id: "2" }, activityIndex: 1, href: "/lessons/2" }); });
+  it("gives an unlocked resume mission highest priority and restores its activity", () => { const action = resolveNextLearnerAction([course("a", ["1", "2"])], progress(["2"], ["1"], [{ lessonId: "2", activities: [0] }]), { "2": 1 }); expect(action).toMatchObject({ kind: "continue", lesson: { id: "2" }, activityIndex: 1, href: "/lessons/2" }); });
+  it("does not let stale future progress bypass sequential locking", () => { expect(resolveNextLearnerAction([course("a", ["1", "2"])], progress(["2"]))).toMatchObject({ kind: "start", lesson: { id: "1" } }); });
   it("ignores stale progress and recommends published content", () => expect(resolveNextLearnerAction([course("a", ["1"])], progress(["missing"]))).toMatchObject({ kind: "start", lesson: { id: "1" } }));
   it("recommends the first incomplete lesson in the current course", () => expect(resolveNextLearnerAction([course("a", ["1", "2"])], progress(["1"], ["1"]))).toMatchObject({ kind: "start", lesson: { id: "2" } }));
   it("skips empty units and chooses the first published lesson for a new learner", () => expect(resolveNextLearnerAction([course("a", ["1"], true)], progress())).toMatchObject({ unit: { title: "Unit a" }, lesson: { id: "1" } }));

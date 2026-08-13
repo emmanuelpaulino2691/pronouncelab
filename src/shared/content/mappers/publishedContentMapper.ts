@@ -122,6 +122,8 @@ function mapTheoryBlock(
       return {
         type: "audio",
         media: mapMedia(block.media)!,
+        label: block.label?.trim() || undefined,
+        transcript: block.transcript?.trim() || undefined,
       };
   }
 }
