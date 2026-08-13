@@ -23,7 +23,7 @@ export default function LessonPlayer({ lesson, returnPath = "/courses", contextL
   const activities = lesson.activities;
   const {
     progress: userProgress, startLesson, completeLesson,
-    completeActivity: saveActivityProgress, resetLessonProgress,
+    completeActivity: saveActivityProgress, resetLessonProgress, syncActivity, syncLesson,
   } = useUserProgress();
   const {
     state, previousActivity, completeActivity, goToActivity,
@@ -35,7 +35,11 @@ export default function LessonPlayer({ lesson, returnPath = "/courses", contextL
     () => !isPreview && userProgress.lessonsCompleted.includes(lesson.id)
   );
 
-  useEffect(() => { if (!isPreview) startLesson(lesson.id); }, [isPreview, lesson.id, startLesson]);
+  useEffect(() => {
+    if (isPreview) return;
+    startLesson(lesson.id);
+    void syncLesson(lesson.id, activities);
+  }, [activities, isPreview, lesson.id, startLesson, syncLesson]);
 
   const current = state.currentActivity;
   const activity = activities[current];
@@ -62,7 +66,10 @@ export default function LessonPlayer({ lesson, returnPath = "/courses", contextL
   function markCurrentComplete() {
     if (!activity || !canCompleteCurrent) return;
     completeActivity(current);
-    if (shouldPersistLearnerMutation(runtimeMode)) saveActivityProgress(lesson.id, current);
+    if (shouldPersistLearnerMutation(runtimeMode)) {
+      saveActivityProgress(lesson.id, current);
+      syncActivity(activity.id);
+    }
     if (isLastActivity) {
       if (shouldPersistLearnerMutation(runtimeMode)) {
         completeLesson(lesson.id);

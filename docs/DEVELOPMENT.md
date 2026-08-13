@@ -119,12 +119,20 @@ The local accounts are:
 | --- | --- | --- |
 | Admin | `admin.pronouncelab@gmail.com` | `PronounceLabLocalAdmin!2026` |
 | Teacher | `emmanuelpaulino2691@gmail.com` | `PronounceLabLocalTeacher!2026` |
+| Learner | `learner.pronouncelab@gmail.com` | `PronounceLabLocalLearner!2026` |
+
+Supabase Auth intentionally shares one session across tabs on the same browser
+origin. For simultaneous staff and learner browser testing, use a normal Chrome
+profile for Admin/Teacher and an Incognito window or separate browser profile
+for Learner. Signing in as a different account in another tab replaces the
+session for every tab; the application does not emulate per-tab identities.
 
 Override the development passwords without editing tracked files:
 
 ```powershell
 $env:PRONOUNCELAB_LOCAL_ADMIN_PASSWORD = "your-local-admin-password"
 $env:PRONOUNCELAB_LOCAL_TEACHER_PASSWORD = "your-local-teacher-password"
+$env:PRONOUNCELAB_LOCAL_LEARNER_PASSWORD = "your-local-learner-password"
 npm.cmd run local:bootstrap
 ```
 
@@ -133,12 +141,39 @@ remote project. The bootstrap refuses non-loopback Supabase API URLs and reads
 the temporary local service credential from `supabase status`; no service key,
 JWT, or production password is stored in the repository.
 
+The bootstrap creates two deliberately separate fixtures.
+
+### Authoring fixture
+
 The teacher owns this reusable draft hierarchy:
 
 `Local Authoring Fixture → Fixture Unit → Fixture Lesson → Draft Version 1`
 
 After login, open Lesson Studio directly at
 `http://127.0.0.1:3000/admin/lessons/951021/studio`.
+
+This fixture remains draft and learner-invisible. It is for Lesson Studio,
+authoring, Version 1, and publication testing.
+
+### Learner progression fixture
+
+`Local Learner Course` (`952001`) is fully published through the normal course
+publication RPC. It contains:
+
+- `Progression Unit 1` (`952011`): Lessons `952021`, `952022`, and `952023`;
+- `Progression Unit 2` (`952012`): Lessons `952024` and `952025`.
+
+Each Lesson has one small published Learn activity and requires no Storage or
+external service. The learner starts with no progress: Unit 1 and Lesson 1 are
+available, later Lessons are sequentially locked, and Unit 2 unlocks only after
+all three Unit 1 Lessons are complete.
+
+Useful learner URLs:
+
+- Home: `http://127.0.0.1:3000/`
+- Course: `http://127.0.0.1:3000/courses/952001`
+- Unit 1: `http://127.0.0.1:3000/units/952011`
+- First Lesson: `http://127.0.0.1:3000/lessons/952021`
 
 A reset invalidates browser sessions because their Auth users no longer exist.
 The application verifies restored sessions before redirecting and clears only

@@ -3,7 +3,7 @@ import MainLayout from "../../shared/layouts/MainLayout";
 import ProgressBar from "../../shared/components/ui/ProgressBar";
 import { learnerContentProvider } from "../../shared/content/learnerContentComposition";
 import { useLearnerResource } from "../../shared/content/hooks/useLearnerResource";
-import { loadUserProgress } from "../../shared/utils/progressStorage";
+import { useUserProgress } from "../../shared/hooks/useUserProgress";
 import { loadLessonState } from "../../shared/utils/lessonStorage";
 import { normalizeLessonState } from "../lesson/studentExperience";
 import DashboardLoadingState from "./components/DashboardLoadingState";
@@ -11,10 +11,10 @@ import NextActionCard from "./components/NextActionCard";
 import { buildCurrentCourseSummary, getHomeWelcomeHeading, hasCompletedEveryAvailableLesson, hasLearnerProgress, resolveNextLearnerAction } from "./learnerDashboard";
 
 export default function DashboardPage() {
+  const { progress: stored } = useUserProgress();
   const navigate = useNavigate();
   const resource = useLearnerResource((signal) => learnerContentProvider.listCourses(signal), []);
   const courses = resource.value ?? [];
-  const stored = loadUserProgress();
   const activityPositions = Object.fromEntries(courses.flatMap((course) => course.units.flatMap((unit) => unit.lessons.map((lesson) => [lesson.id, normalizeLessonState(loadLessonState(lesson.id), lesson.activityCount).currentActivity]))));
   const action = resolveNextLearnerAction(courses, stored, activityPositions);
   const currentCourse = action ? buildCurrentCourseSummary(action, stored) : null;

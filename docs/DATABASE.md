@@ -329,6 +329,10 @@ Never duplicate migration SQL in documentation. Read the effective object across
 These are hardening opportunities, not implemented guarantees.
 ## Course publication lifecycle
 
+## Learner identity and progress
+
+Authenticated users without a row in `user_roles` are learner identities; the role table remains staff-only. `learner_activity_progress` records idempotent completion by stable published activity ID. `learner_lesson_progress` records start, last access/activity, and monotonic completion. Security-definer visit/completion RPCs derive identity from `auth.uid()`, reject staff and anonymous callers, validate the current published Course → Unit → Lesson → Version hierarchy, and derive Lesson completion. Direct browser mutation grants are absent. Learners select only their own rows; teachers receive no visibility; administrators retain platform support visibility. See [ADR 0011](ADR/0011-authenticated-learner-progress.md).
+
 `public.publish_course(bigint)` is the transaction boundary for course-wide publication. It is available only to authenticated users with administrator, publisher, or owner-teacher publication authority. Validation is aggregated before any status, pointer, or archive update. The operation validates the newest draft lesson version when one exists; otherwise it retains the active sealed version without applying newer validators to history. It never republishes archived history. Learner queries therefore observe only the newly activated published hierarchy after a successful transaction.
 
 ## Classroom model (future)

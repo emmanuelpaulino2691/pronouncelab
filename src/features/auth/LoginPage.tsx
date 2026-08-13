@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useMemo,
   useState,
@@ -13,6 +14,7 @@ import {
   supabase,
 } from "../../shared/lib/supabaseClient";
 import { verifyStoredSession } from "./staleSession";
+import { authenticatedDestination, resolveAuthenticatedIdentity } from "./identityRouting";
 
 type LoginLocationState = {
   from?: unknown;
@@ -96,7 +98,7 @@ function LoginPage() {
         (location.state as
           | LoginLocationState
           | null)?.from
-      ) ?? "/admin",
+      ),
     [location.state]
   );
   const [email, setEmail] = useState("");
@@ -111,6 +113,12 @@ function LoginPage() {
     useState<string | null>(null);
   const [recoveryMessage, setRecoveryMessage] =
     useState<string | null>(null);
+
+  const routeAuthenticatedSession = useCallback(async (session: NonNullable<Awaited<ReturnType<NonNullable<typeof supabase>["auth"]["getSession"]>>["data"]["session"]>) => {
+    if (!supabase) return;
+    const identity = await resolveAuthenticatedIdentity(session, supabase);
+    navigate(authenticatedDestination(identity.kind, returnPath), { replace: true });
+  }, [navigate, returnPath]);
 
   useEffect(() => {
     let isActive = true;
@@ -133,8 +141,8 @@ function LoginPage() {
         ) {
           window.setTimeout(() => {
             void verifyStoredSession(auth, session).then((verified) => {
-              if (isActive && verified) navigate(returnPath, { replace: true });
-            });
+              if (isActive && verified) void routeAuthenticatedSession(verified);
+            }).catch(() => { if (isActive) { setErrorMessage("We could not verify your account access. Please try again."); setIsRestoring(false); } });
           }, 0);
         }
       }
@@ -163,7 +171,7 @@ function LoginPage() {
         if (!isActive) return;
 
         if (verifiedSession) {
-          navigate(returnPath, { replace: true });
+          await routeAuthenticatedSession(verifiedSession);
           return;
         }
 
@@ -174,7 +182,7 @@ function LoginPage() {
       isActive = false;
       subscription.unsubscribe();
     };
-  }, [navigate, returnPath]);
+  }, [routeAuthenticatedSession]);
 
   async function handleSubmit(
     event: React.FormEvent<HTMLFormElement>
@@ -216,7 +224,7 @@ function LoginPage() {
     setIsSigningIn(true);
 
     try {
-      const { error } =
+      const { data, error } =
         await supabase.auth.signInWithPassword({
           email: normalizedEmail,
           password,
@@ -229,7 +237,8 @@ function LoginPage() {
         return;
       }
 
-      navigate(returnPath, { replace: true });
+      if (!data.session) throw new Error("Authentication did not return a session.");
+      await routeAuthenticatedSession(data.session);
     } catch (error) {
       setErrorMessage(
         error instanceof Error
@@ -281,20 +290,19 @@ function LoginPage() {
 
         <div className="relative max-w-2xl">
           <p className="text-sm font-semibold uppercase tracking-[0.24em] text-blue-400">
-            Content Studio
+            PronounceLab account
           </p>
           <h1 className="mt-6 text-5xl font-bold leading-tight tracking-tight xl:text-6xl">
             Improve your English every day.
           </h1>
           <p className="mt-6 max-w-xl text-lg leading-8 text-slate-300">
-            Create thoughtful pronunciation lessons
-            and manage the learning experience from one
-            secure workspace.
+            Continue learning or open your authorized
+            Content Studio workspace from one secure account.
           </p>
         </div>
 
         <p className="relative text-sm text-slate-500">
-          PronounceLab administration
+          PronounceLab learning and authoring
         </p>
       </section>
 
@@ -312,14 +320,13 @@ function LoginPage() {
           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-950/5 sm:p-9">
             <div>
               <p className="text-sm font-semibold text-blue-700">
-                Content Studio
+                PronounceLab
               </p>
               <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-950">
                 Welcome back
               </h1>
               <p className="mt-3 text-sm leading-6 text-slate-600">
-                Sign in with your PronounceLab staff
-                account.
+                Sign in with your PronounceLab account.
               </p>
             </div>
 
@@ -453,8 +460,7 @@ function LoginPage() {
           </div>
 
           <p className="mt-6 text-center text-xs leading-5 text-slate-500">
-            Access is limited to authorized editors,
-            publishers, and administrators.
+            Learners return to learning after sign-in. Staff access remains role-protected.
           </p>
         </div>
       </section>

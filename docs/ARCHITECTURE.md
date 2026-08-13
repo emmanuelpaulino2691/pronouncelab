@@ -282,6 +282,12 @@ direct navigation from bypassing locks. Progress remains device-local.
 
 ## Student Preview
 
+Student Preview remains isolated from synchronized progress. `teacher_preview` suppresses local and server learner mutations, and staff identities are rejected by learner-progress RPCs as defense in depth.
+
+## Synchronized learner progress
+
+Ordinary authenticated users without a staff role are learners. Learner routes remain publicly readable, while the account entry in the learner header enables synchronization. `useUserProgress` retains the established local snapshot as an offline cache, merges server snapshots monotonically, and uploads only local activity indexes that map to activity IDs in the currently loaded published lesson. Server RPCs revalidate the current published hierarchy before accepting those IDs. Course and Unit completion, sequential locks, and Continue Learning remain derived from the merged Lesson/activity snapshot rather than persisted separately.
+
 Student Preview uses dedicated lazy-loaded `/admin/preview/courses/:courseId` and `/admin/preview/courses/:courseId/lessons/:lessonId` routes. It reuses the learner `LessonPlayer` and activity renderers with a `teacher_preview` runtime mode. The mode prevents learner progress, completion, XP, scoring, assignment, and AI mission mutations while retaining local interaction. Preview content is resolved through the authorized draft adapter, then published learner-safe content, then local learner content.
 
 Preview resolution is centralized in `teacherPreviewResolver`: saved draft first, published second, local learner content third, and unavailable last. Draft loading reuses existing admin hierarchy/version/activity services and never exposes draft content through `/learn`.

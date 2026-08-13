@@ -7,11 +7,12 @@ import { useLearnerResource } from "../../shared/content/hooks/useLearnerResourc
 import { isDecimalContentId } from "../../shared/content/contracts/publishedRpcGuards";
 import { hasLearnerLoadFailure } from "../../shared/content/learnerResourcePresentation";
 import type { ContentId } from "../../shared/content/contracts/learnerContent";
-import { loadUserProgress } from "../../shared/utils/progressStorage";
+import { useUserProgress } from "../../shared/hooks/useUserProgress";
 import { resolveLearnerCourseState, resolveRecommendedLearnerStep, resolveSequentialUnitJourneys } from "../learner-journey/learnerJourney";
 import UnitJourneyCard from "./components/UnitJourneyCard";
 
 export default function UnitsPage() {
+  const { progress } = useUserProgress();
   const { courseId = "" } = useParams();
   const navigate = useNavigate();
   const validId = isDecimalContentId(courseId) ? courseId as unknown as ContentId : null;
@@ -22,7 +23,6 @@ export default function UnitsPage() {
   if (!resource.value) return <MainLayout><p role="status">Loading your course...</p></MainLayout>;
 
   const course = resource.value;
-  const progress = loadUserProgress();
   const courseJourney = resolveLearnerCourseState(course, progress);
   const unitJourneys = resolveSequentialUnitJourneys(course, progress);
   const recommended = resolveRecommendedLearnerStep([course], progress, {}, { courseId: course.id });

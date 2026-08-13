@@ -7,6 +7,7 @@ import {
 import {
   Navigate,
   Outlet,
+  Link,
   useLocation,
 } from "react-router-dom";
 
@@ -22,6 +23,7 @@ import {
   legacyOwnershipPermissions,
 } from "./adminAuthorizationCompatibility";
 import { verifyStoredSession } from "../../auth/staleSession";
+import { signOutAccount } from "../../auth/sessionActions";
 
 type AccessState =
   | "checking"
@@ -357,6 +359,10 @@ function AdminRoute() {
             Your account does not have an editor,
             publisher, or administrator role.
           </p>
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
+            <Link to="/" className="inline-flex min-h-11 items-center justify-center rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">Back to learner Home</Link>
+            <button type="button" onClick={() => { if (supabase) void signOutAccount(supabase.auth); }} className="min-h-11 rounded-xl border border-slate-300 px-5 text-sm font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">Sign out</button>
+          </div>
         </section>
       </main>
     );

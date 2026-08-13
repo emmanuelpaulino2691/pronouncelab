@@ -8,7 +8,7 @@ import { isDecimalContentId } from "../../shared/content/contracts/publishedRpcG
 import { hasLearnerLoadFailure } from "../../shared/content/learnerResourcePresentation";
 import type { ContentId, LearnerCourse, LearnerUnit } from "../../shared/content/contracts/learnerContent";
 import { contentFailure, contentSuccess } from "../../shared/content/errors/contentErrors";
-import { loadUserProgress } from "../../shared/utils/progressStorage";
+import { useUserProgress } from "../../shared/hooks/useUserProgress";
 import { loadLessonState } from "../../shared/utils/lessonStorage";
 import { normalizeLessonState } from "../lesson/studentExperience";
 import { isLearnerUnitUnlocked, resolveLearnerUnitState, resolveRecommendedLearnerStep, resolveSequentialLessonJourneys } from "../learner-journey/learnerJourney";
@@ -17,6 +17,7 @@ import LessonJourneyCard from "./components/LessonJourneyCard";
 type UnitContext = { unit: LearnerUnit; course: LearnerCourse };
 
 export default function LessonsPage() {
+  const { progress } = useUserProgress();
   const { unitId = "" } = useParams();
   const navigate = useNavigate();
   const validId = isDecimalContentId(unitId) ? unitId as unknown as ContentId : null;
@@ -34,7 +35,6 @@ export default function LessonsPage() {
   if (!resource.value) return <MainLayout><p role="status">Loading your lessons...</p></MainLayout>;
 
   const { unit, course } = resource.value;
-  const progress = loadUserProgress();
   if (!isLearnerUnitUnlocked(course, unit.id, progress)) return <MainLayout><NotFoundState title="Unit locked" message="Complete the previous unit to unlock this one." actionLabel="Return to course" onAction={() => navigate(`/courses/${course.id}`)} /></MainLayout>;
   const activityPositions = Object.fromEntries(unit.lessons.map((lesson) => [lesson.id, normalizeLessonState(loadLessonState(lesson.id), lesson.activityCount).currentActivity]));
   const unitJourney = resolveLearnerUnitState(unit, progress);

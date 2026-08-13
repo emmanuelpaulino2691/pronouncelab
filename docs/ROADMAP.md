@@ -1,5 +1,11 @@
 # Roadmap
 
+## Sprint 52A — Learner Identity and Synced Progress Foundation
+
+Implemented locally. Ordinary authenticated users are learners, published activity completion is recorded idempotently through learner-scoped RPCs, and local progress merges monotonically with server snapshots for offline resilience and cross-device continuity. Sequential locks and Continue Learning consume the merged snapshot. Student Preview and staff identities cannot create learner progress.
+
+Sprint 52B should add learner account/session presentation, explicit sync status and retry UX, browser integration coverage, and the first enrollment contract. Attempts, scoring, assignments, and teacher reporting remain future work.
+
 ## Sprint 51C — Media Library Content Deduplication
 
 Implemented locally. Trusted owner-scoped SHA-256 registration prevents future

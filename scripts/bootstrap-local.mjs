@@ -3,8 +3,10 @@ import process from "node:process";
 
 const adminEmail = "admin.pronouncelab@gmail.com";
 const teacherEmail = "emmanuelpaulino2691@gmail.com";
+const learnerEmail = "learner.pronouncelab@gmail.com";
 const adminPassword = process.env.PRONOUNCELAB_LOCAL_ADMIN_PASSWORD ?? "PronounceLabLocalAdmin!2026";
 const teacherPassword = process.env.PRONOUNCELAB_LOCAL_TEACHER_PASSWORD ?? "PronounceLabLocalTeacher!2026";
+const learnerPassword = process.env.PRONOUNCELAB_LOCAL_LEARNER_PASSWORD ?? "PronounceLabLocalLearner!2026";
 function localStatus() {
   const output = process.platform === "win32"
     ? execFileSync(process.env.ComSpec ?? "cmd.exe", ["/d", "/s", "/c", "npx.cmd supabase status -o env"], { encoding: "utf8" })
@@ -44,9 +46,9 @@ async function ensureUser(email, password) {
   return user;
 }
 
-function seedFixture(adminId, teacherId) {
+function seedFixture(adminId, teacherId, learnerId) {
   const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  if (!uuid.test(adminId) || !uuid.test(teacherId)) throw new Error("Auth Admin API returned an invalid user ID.");
+  if (!uuid.test(adminId) || !uuid.test(teacherId) || !uuid.test(learnerId)) throw new Error("Auth Admin API returned an invalid user ID.");
   const containerOutput = execFileSync("docker", ["ps", "--format", "{{.Names}}"], { encoding: "utf8" });
   const databaseContainer = containerOutput.split(/\r?\n/).find((name) => name.startsWith("supabase_db_"));
   if (!databaseContainer) throw new Error("The local Supabase database container is not running.");
@@ -68,6 +70,77 @@ on conflict (id) do update set created_by = excluded.created_by, updated_by = ex
 insert into public.lesson_versions (id, lesson_id, version_number, status, created_by)
 values (951031, 951021, 1, 'draft', '${teacherId}')
 on conflict (id) do nothing;
+
+-- A separate published hierarchy for learner progression testing. Keep these
+-- IDs distinct from the draft authoring fixture and publish through the real
+-- course lifecycle rather than setting sealed statuses directly.
+insert into public.courses (id, slug, title, description, level, emoji, position, status, owner_user_id, created_by, updated_by)
+values (952001, 'local-learner-course', 'Local Learner Course', 'Deterministic published course for learner progression testing.', 'A1', '🎓', coalesce((select max(position) + 1 from public.courses where owner_user_id = '${teacherId}' and id <> 952001), 0), 'draft', '${teacherId}', '${teacherId}', '${teacherId}')
+on conflict (id) do nothing;
+insert into public.units (id, course_id, title, description, position, status, created_by, updated_by) values
+  (952011, 952001, 'Progression Unit 1', 'Complete these lessons in order.', 0, 'draft', '${teacherId}', '${teacherId}'),
+  (952012, 952001, 'Progression Unit 2', 'Unlocked after Unit 1 is complete.', 1, 'draft', '${teacherId}', '${teacherId}')
+on conflict (id) do nothing;
+insert into public.lessons (id, unit_id, title, description, position, status, created_by, updated_by) values
+  (952021, 952011, 'Unit 1 · Lesson 1', 'The first available learner lesson.', 0, 'draft', '${teacherId}', '${teacherId}'),
+  (952022, 952011, 'Unit 1 · Lesson 2', 'Unlocks after Lesson 1.', 1, 'draft', '${teacherId}', '${teacherId}'),
+  (952023, 952011, 'Unit 1 · Lesson 3', 'Completes the first unit.', 2, 'draft', '${teacherId}', '${teacherId}'),
+  (952024, 952012, 'Unit 2 · Lesson 1', 'Unlocks after Unit 1.', 0, 'draft', '${teacherId}', '${teacherId}'),
+  (952025, 952012, 'Unit 2 · Lesson 2', 'Final progression fixture lesson.', 1, 'draft', '${teacherId}', '${teacherId}')
+on conflict (id) do nothing;
+insert into public.lesson_versions (id, lesson_id, version_number, status, created_by) values
+  (952031, 952021, 1, 'draft', '${teacherId}'),
+  (952032, 952022, 1, 'draft', '${teacherId}'),
+  (952033, 952023, 1, 'draft', '${teacherId}'),
+  (952034, 952024, 1, 'draft', '${teacherId}'),
+  (952035, 952025, 1, 'draft', '${teacherId}')
+on conflict (id) do nothing;
+insert into public.lesson_activities (id, lesson_version_id, type, title, position)
+select fixture.id, fixture.lesson_version_id, fixture.type::public.lesson_activity_type, fixture.title, fixture.position from (values
+  (952041, 952031, 'theory', 'Learn: Welcome', 0),
+  (952042, 952032, 'theory', 'Learn: Keep going', 0),
+  (952043, 952033, 'theory', 'Learn: Finish Unit 1', 0),
+  (952044, 952034, 'theory', 'Learn: Start Unit 2', 0),
+  (952045, 952035, 'theory', 'Learn: Finish the course', 0)
+) as fixture(id, lesson_version_id, type, title, position)
+where not exists (select 1 from public.lesson_activities existing where existing.id = fixture.id);
+insert into public.theory_blocks (id, activity_id, block_type, position, text)
+select fixture.id, fixture.activity_id, fixture.block_type, fixture.position, fixture.text from (values
+  (952051, 952041, 'paragraph', 0, 'Complete this short Learn activity to unlock the next lesson.'),
+  (952052, 952042, 'paragraph', 0, 'This lesson proves sequential lesson unlocking.'),
+  (952053, 952043, 'paragraph', 0, 'Completing this lesson unlocks the next unit.'),
+  (952054, 952044, 'paragraph', 0, 'Unit 2 is now available for continued practice.'),
+  (952055, 952045, 'paragraph', 0, 'You completed the local learner progression fixture.')
+) as fixture(id, activity_id, block_type, position, text)
+where not exists (select 1 from public.theory_blocks existing where existing.id = fixture.id);
+
+do $$
+declare
+  result jsonb;
+begin
+  if (select status = 'draft' from public.courses where id = 952001) then
+    result := public.publish_course(952001);
+    if not coalesce((result ->> 'ok')::boolean, false) then
+      raise exception 'Local learner fixture publication failed: %', result;
+    end if;
+  end if;
+end;
+$$;
+
+do $$
+begin
+  if not public.learner_lesson_is_eligible('${learnerId}', 952021) then
+    raise exception 'Learner fixture first lesson must be eligible';
+  end if;
+  if public.learner_lesson_is_eligible('${learnerId}', 952022)
+    or public.learner_lesson_is_eligible('${learnerId}', 952023)
+    or public.learner_lesson_is_eligible('${learnerId}', 952024)
+    or public.learner_lesson_is_eligible('${learnerId}', 952025)
+  then
+    raise exception 'Learner fixture later lessons must begin locked';
+  end if;
+end;
+$$;
 commit;`;
   execFileSync("docker", ["exec", "-i", databaseContainer, "psql", "-v", "ON_ERROR_STOP=1", "-U", "postgres", "-d", "postgres"], {
     input: sql,
@@ -77,7 +150,8 @@ commit;`;
 
 const admin = await ensureUser(adminEmail, adminPassword);
 const teacher = await ensureUser(teacherEmail, teacherPassword);
-seedFixture(admin.id, teacher.id);
+const learner = await ensureUser(learnerEmail, learnerPassword);
+seedFixture(admin.id, teacher.id, learner.id);
 
 async function verifyLogin(email, password, expectedId) {
   const response = await fetch(`${apiUrl}/auth/v1/token?grant_type=password`, {
@@ -93,6 +167,7 @@ async function verifyLogin(email, password, expectedId) {
 
 await verifyLogin(adminEmail, adminPassword, admin.id);
 const teacherSession = await verifyLogin(teacherEmail, teacherPassword, teacher.id);
+const learnerSession = await verifyLogin(learnerEmail, learnerPassword, learner.id);
 const teacherHeaders = { apikey: anonKey, Authorization: `Bearer ${teacherSession.access_token}` };
 const lessonResponse = await fetch(`${apiUrl}/rest/v1/lessons?id=eq.951021&select=id,status`, {
   headers: teacherHeaders,
@@ -107,10 +182,33 @@ if (visibleLessons[0]?.status !== "draft" || visibleVersions[0]?.status !== "dra
   throw new Error("Teacher cannot load the fixture Lesson and Draft Version 1.");
 }
 
+const learnerHeaders = { apikey: anonKey, Authorization: `Bearer ${learnerSession.access_token}`, "Content-Type": "application/json" };
+const catalogResponse = await fetch(`${apiUrl}/rest/v1/rpc/get_published_learning_catalog`, {
+  method: "POST", headers: learnerHeaders, body: JSON.stringify({ requested_schema_version: 1 }),
+});
+const progressResponse = await fetch(`${apiUrl}/rest/v1/rpc/get_my_learner_progress`, {
+  method: "POST", headers: learnerHeaders, body: "{}",
+});
+if (!catalogResponse.ok || !progressResponse.ok) throw new Error(`Learner fixture verification failed (${catalogResponse.status}/${progressResponse.status}).`);
+const catalog = await catalogResponse.json();
+const progress = await progressResponse.json();
+const courses = catalog?.courses ?? catalog?.catalog?.courses ?? [];
+const learnerCourse = courses.find((course) => String(course.id) === "952001");
+if (!learnerCourse || courses.some((course) => String(course.id) === "951001")) throw new Error("Published learner fixture visibility is incorrect.");
+const units = learnerCourse.units ?? [];
+const lessons = units.flatMap((unit) => unit.lessons ?? []);
+if (units.length !== 2 || lessons.length !== 5 || lessons.some((lesson) => lesson.activityCount !== 1)) throw new Error("Published learner fixture hierarchy is incomplete.");
+if ((progress?.lessons ?? []).length !== 0 || (progress?.activities ?? []).length !== 0) throw new Error("Local learner fixture must start without progress.");
+
 console.log("Local PronounceLab bootstrap complete.");
 console.log(`Admin:   ${adminEmail}`);
 console.log(`Teacher: ${teacherEmail}`);
-console.log("Both local password logins verified.");
+console.log(`Learner: ${learnerEmail}`);
+console.log("All local password logins verified.");
 console.log("Teacher fixture visibility verified through RLS.");
+console.log("Published learner fixture visibility and zero-progress state verified.");
 console.log("Lesson Studio: http://127.0.0.1:3000/admin/lessons/951021/studio");
+console.log("Learner Home:  http://127.0.0.1:3000/");
+console.log("Learner Course: http://127.0.0.1:3000/courses/952001");
+console.log("Learner Unit 1: http://127.0.0.1:3000/units/952011");
 console.log("Passwords use documented local defaults unless PRONOUNCELAB_LOCAL_*_PASSWORD overrides were set.");

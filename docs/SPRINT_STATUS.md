@@ -1,5 +1,11 @@
 # Sprint Status
 
+## Sprint 52A — Learner Identity and Synced Progress Foundation
+
+**Status:** Implemented locally; manual browser QA and deployment pending.
+
+Delivered ordinary authenticated learner identity, owner-scoped monotonic Lesson/activity progress, current-published-content validation, local/server reconciliation, offline-safe local writes, cross-device server reads, synchronized journey derivation, Preview isolation, a deterministic local learner account, pgTAP/Vitest coverage, and ADR 0011. Classes, enrollment, assignments, attempts, scoring, reset of authoritative history, and teacher reporting are not implemented.
+
 ## Sprint 51C — Media Library Content Deduplication
 
 Implemented locally. Audio and image uploads are registered by trusted SHA-256

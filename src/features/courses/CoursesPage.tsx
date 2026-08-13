@@ -1,15 +1,15 @@
 import MainLayout from "../../shared/layouts/MainLayout";
 import { learnerContentProvider } from "../../shared/content/learnerContentComposition";
 import { useLearnerResource } from "../../shared/content/hooks/useLearnerResource";
-import { loadUserProgress } from "../../shared/utils/progressStorage";
+import { useUserProgress } from "../../shared/hooks/useUserProgress";
 import { loadLessonState } from "../../shared/utils/lessonStorage";
 import { normalizeLessonState } from "../lesson/studentExperience";
 import { resolveLearnerCourseState, resolveRecommendedLearnerStep } from "../learner-journey/learnerJourney";
 import CourseCard from "./components/CourseCard";
 
 export default function CoursesPage() {
+  const { progress } = useUserProgress();
   const resource = useLearnerResource((signal) => learnerContentProvider.listCourses(signal), []);
-  const progress = loadUserProgress();
   const courses = resource.value ?? [];
   const activityPositions = Object.fromEntries(courses.flatMap((course) => course.units.flatMap((unit) => unit.lessons.map((lesson) => [lesson.id, normalizeLessonState(loadLessonState(lesson.id), lesson.activityCount).currentActivity]))));
   const recommended = resolveRecommendedLearnerStep(courses, progress, activityPositions);

@@ -8,12 +8,13 @@ import { hasLearnerLoadFailure } from "../../shared/content/learnerResourcePrese
 import type { ContentId, LearnerCourse, LearnerLesson, LearnerUnit } from "../../shared/content/contracts/learnerContent";
 import { contentFailure, contentSuccess } from "../../shared/content/errors/contentErrors";
 import LessonPlayer from "./LessonPlayer";
-import { loadUserProgress } from "../../shared/utils/progressStorage";
+import { useUserProgress } from "../../shared/hooks/useUserProgress";
 import { isLearnerLessonUnlocked, isLearnerUnitUnlocked } from "../learner-journey/learnerJourney";
 
 type LessonContext = { lesson: LearnerLesson; unit: LearnerUnit; course: LearnerCourse };
 
 function LessonPage() {
+  const { progress } = useUserProgress();
   const { lessonId = "" } = useParams();
   const navigate = useNavigate();
   const validId = isDecimalContentId(lessonId) ? lessonId as unknown as ContentId : null;
@@ -33,7 +34,6 @@ function LessonPage() {
   if (!resource.value) return <MainLayout immersive><p role="status">Loading published lesson…</p></MainLayout>;
 
   const { lesson, unit, course } = resource.value;
-  const progress = loadUserProgress();
   if (!isLearnerUnitUnlocked(course, unit.id, progress) || !isLearnerLessonUnlocked(unit, lesson.id, progress)) return <MainLayout><NotFoundState title="Lesson locked" message="Complete the previous learning content to unlock this lesson." actionLabel="Return to course" onAction={() => navigate(`/courses/${course.id}`)} /></MainLayout>;
   return <MainLayout immersive><LessonPlayer key={lesson.id} lesson={lesson} returnPath={`/units/${unit.id}`} contextLabel={unit.title} /></MainLayout>;
 }
