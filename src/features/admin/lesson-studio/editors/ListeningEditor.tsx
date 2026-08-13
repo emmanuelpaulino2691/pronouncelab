@@ -19,6 +19,7 @@ import type { ListeningItem } from "../types";
 import type { ActivitySectionCollapseController } from "../studioViewState";
 import { useEditorSectionCollapse } from "../useEditorSectionCollapse";
 import CollapsibleEditorSection from "../components/CollapsibleEditorSection";
+import { lessonStudioMutationErrorMessage } from "../mutationErrors";
 
 export default function ListeningEditor({
   activityId,
@@ -76,9 +77,9 @@ export default function ListeningEditor({
       onDirtyChange(false);
       setMessageTone("success");
       setMessage("Listening content saved.");
-    } catch {
+    } catch (error) {
       setMessageTone("error");
-      setMessage("The listening content could not be saved. Your changes are still here. Try again.");
+      setMessage(lessonStudioMutationErrorMessage(error, "save listening content"));
     } finally {
       setBusy(false);
     }

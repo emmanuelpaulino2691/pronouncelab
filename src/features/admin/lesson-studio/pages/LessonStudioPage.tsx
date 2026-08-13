@@ -66,6 +66,7 @@ import { buildStudentPreviewUrl } from "../../preview/previewNavigation";
 import { setRememberedActivityCollapse, type StudioViewMode } from "../studioViewState";
 import { canOfferActivityOperations, validCopyActivityInput, validDuplicateActivityPosition } from "../activityOperationState";
 import { smartBuilderEmptyAction } from "../smartBuilderPresentation";
+import { lessonStudioMutationErrorMessage } from "../mutationErrors";
 
 function parseId(value: string | undefined) {
   const id = Number(value);
@@ -398,7 +399,8 @@ function Studio({
         await reorderActivities(version.id, ids);
         return refreshActivities(version.id);
       },
-      setActivities
+      setActivities,
+      (reason) => lessonStudioMutationErrorMessage(reason, "reorder activities")
     );
   }
 
@@ -632,7 +634,8 @@ function Studio({
                             ? updated
                             : item
                         )
-                      )
+                      ),
+                    (reason) => lessonStudioMutationErrorMessage(reason, "save activity")
                   );
                 }}
               />
@@ -680,7 +683,8 @@ function Studio({
               );
               setActivities(next.activities);
               selectActivity(next.selectedActivityId);
-            }
+            },
+            (reason) => lessonStudioMutationErrorMessage(reason, "delete activity")
           ).then((succeeded) => {
             setDeleteConfirmation((current) =>
               succeeded

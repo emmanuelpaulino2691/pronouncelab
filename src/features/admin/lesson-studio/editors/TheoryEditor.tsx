@@ -15,9 +15,10 @@ import type {
 import { learnBlockRegistry, getLearnBlockDefinition } from "../learnBlockRegistry";
 import { validateLearnBlock } from "../learnBlockState";
 import { getLearnMediaAsset, uploadDraftLearnAudio, uploadDraftLearnImage } from "../services/learnMediaService";
-import { canMoveLearnBlock, deletionFocusTarget, insertDuplicatedLearnBlock, isLearnBlockPopulated, learnBlockSummary, removeLearnBlock, reorderLearnBlocks, toggleLearnBlockCollapsed } from "../learnBlockState";
+import { canMoveLearnBlock, canMutateLearnBlockMedia, deletionFocusTarget, insertDuplicatedLearnBlock, isLearnBlockPopulated, learnBlockSummary, removeLearnBlock, reorderLearnBlocks, toggleLearnBlockCollapsed } from "../learnBlockState";
 import { ConfirmDeleteDialog } from "../../ui";
 import type { ActivitySectionCollapseController } from "../studioViewState";
+import { lessonStudioMutationErrorMessage, type LessonStudioMutationOperation } from "../mutationErrors";
 import MediaPicker from "../../media/MediaPicker";
 
 const blockTypes: TheoryBlockType[] = learnBlockRegistry.map((block) => block.type);
@@ -125,7 +126,10 @@ export default function TheoryEditor({
     return () => onSectionControllerChange(null);
   }, [blockIds, collapsed, onSectionControllerChange]);
 
-  async function run(action: () => Promise<unknown>) {
+  async function run(
+    action: () => Promise<unknown>,
+    operation: LessonStudioMutationOperation
+  ) {
     setBusy(true);
     setError(null);
     try {
@@ -133,9 +137,7 @@ export default function TheoryEditor({
       await refresh();
     } catch (reason) {
       setError(
-        reason instanceof Error
-          ? reason.message
-          : "Unable to save theory."
+        lessonStudioMutationErrorMessage(reason, operation)
       );
     } finally {
       setBusy(false);
@@ -154,7 +156,7 @@ export default function TheoryEditor({
       setMediaFilenames((current) => ({ ...current, [block.id]: result.filename }));
       setPreviewFailures((current) => { const next = new Set(current); next.delete(block.id); return next; });
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Media upload failed. Try again.");
+      setError(lessonStudioMutationErrorMessage(reason, "upload media"));
     } finally { setUploading(null); }
   }
 
@@ -178,7 +180,7 @@ export default function TheoryEditor({
       await reorderTheoryBlocks(activityId, orderedIds);
       setOrderDirty(false);
       setAnnouncement("Block order saved.");
-    } catch (reason) { setError(reason instanceof Error ? reason.message : "Unable to save block order."); }
+    } catch (reason) { setError(lessonStudioMutationErrorMessage(reason, "save block order")); }
     finally { setBusy(false); }
   }
 
@@ -189,7 +191,7 @@ export default function TheoryEditor({
       setBlocks((current) => current.map((item) => item.id === saved.id ? saved : item));
       setDirtyIds((current) => { const next = new Set(current); next.delete(saved.id); return next; });
       setAnnouncement(`${getLearnBlockDefinition(saved.blockType).title} saved.`);
-    } catch (reason) { setError(reason instanceof Error ? reason.message : "Unable to save block."); }
+    } catch (reason) { setError(lessonStudioMutationErrorMessage(reason, "save block")); }
     finally { setBusy(false); }
   }
 
@@ -205,7 +207,7 @@ export default function TheoryEditor({
       setOrderDirty(false);
       setAnnouncement(`${getLearnBlockDefinition(block.blockType).title} duplicated.`);
       window.requestAnimationFrame(() => blockRefs.current.get(created.id)?.focus());
-    } catch (reason) { setError(reason instanceof Error ? reason.message : "Unable to duplicate block."); }
+    } catch (reason) { setError(lessonStudioMutationErrorMessage(reason, "duplicate block")); }
     finally { setBusy(false); }
   }
 
@@ -223,7 +225,7 @@ export default function TheoryEditor({
       setOrderDirty(false);
       setAnnouncement(`${getLearnBlockDefinition(block.blockType).title} deleted.`);
       window.requestAnimationFrame(() => target === "add" ? addBlockRef.current?.focus() : blockRefs.current.get(target)?.focus());
-    } catch (reason) { setBlocks(previous); setError(reason instanceof Error ? reason.message : "Unable to delete block."); }
+    } catch (reason) { setBlocks(previous); setError(lessonStudioMutationErrorMessage(reason, "delete block")); }
     finally { setBusy(false); }
   }
 
@@ -249,8 +251,8 @@ export default function TheoryEditor({
               const value = event.target
                 .value as TheoryBlockType;
               if (value) {
-                void run(() =>
-                  addTheoryBlock(
+                void run(
+                  () => addTheoryBlock(
                     activityId,
                     blocks.length === 0
                       ? 0
@@ -260,7 +262,8 @@ export default function TheoryEditor({
                           )
                         ) + 1,
                     value
-                  )
+                  ),
+                  "add block"
                 );
                 event.target.value = "";
               }
@@ -346,10 +349,10 @@ export default function TheoryEditor({
             />}
             {!collapsed.has(block.id) && (block.blockType === "image" || block.blockType === "audio") && (
               <div className="mt-3 rounded-lg border border-dashed border-slate-300 p-3 text-sm text-slate-600">
-                <input id={`learn-media-${block.id}`} className="sr-only" type="file" accept={block.blockType === "image" ? "image/*" : "audio/*"} disabled={!editable || uploading === block.id} onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadMedia(block, file); event.currentTarget.value = ""; }} />
+                {canMutateLearnBlockMedia(editable) && <><input id={`learn-media-${block.id}`} className="sr-only" type="file" accept={block.blockType === "image" ? "image/*" : "audio/*"} disabled={uploading === block.id} onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadMedia(block, file); event.currentTarget.value = ""; }} />
                 <label htmlFor={`learn-media-${block.id}`} className="inline-flex min-h-10 cursor-pointer items-center rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white">{uploading === block.id ? "Uploading..." : block.mediaAssetId ? `Replace ${block.blockType === "image" ? "Image" : "Audio"}` : `Select ${block.blockType === "image" ? "Image" : "Audio"}`}</label>
-                <button type="button" disabled={!editable || uploading === block.id} onClick={() => setLibraryPicker({ blockId: block.id, kind: block.blockType as "image" | "audio" })} className="ml-2 min-h-10 rounded-lg border border-slate-300 px-3 text-sm font-semibold text-slate-700">Choose from Library</button>
-                {block.mediaAssetId && <button type="button" className="ml-2 min-h-10 text-sm font-semibold text-red-700" disabled={uploading === block.id} onClick={() => { updateBlock(block.id, { mediaAssetId: null }); setPreviewUrls((current) => { const next = { ...current }; delete next[block.id]; return next; }); setMediaFilenames((current) => { const next = { ...current }; delete next[block.id]; return next; }); setPreviewFailures((current) => { const next = new Set(current); next.delete(block.id); return next; }); }}>Remove {block.blockType === "image" ? "Image" : "Audio"}</button>}
+                <button type="button" disabled={uploading === block.id} onClick={() => setLibraryPicker({ blockId: block.id, kind: block.blockType as "image" | "audio" })} className="ml-2 min-h-10 rounded-lg border border-slate-300 px-3 text-sm font-semibold text-slate-700">Choose from Library</button>
+                {block.mediaAssetId && <button type="button" className="ml-2 min-h-10 text-sm font-semibold text-red-700" disabled={uploading === block.id} onClick={() => { updateBlock(block.id, { mediaAssetId: null }); setPreviewUrls((current) => { const next = { ...current }; delete next[block.id]; return next; }); setMediaFilenames((current) => { const next = { ...current }; delete next[block.id]; return next; }); setPreviewFailures((current) => { const next = new Set(current); next.delete(block.id); return next; }); }}>Remove {block.blockType === "image" ? "Image" : "Audio"}</button>}</>}
                 {previewUrls[block.id] && block.blockType === "image" && <img src={previewUrls[block.id]} alt={block.altText ?? "Learn block preview"} className="mt-3 max-h-48 rounded-lg object-contain" />}
                 {previewUrls[block.id] && block.blockType === "audio" && <audio controls src={previewUrls[block.id]} className="mt-3 w-full" />}
                 {previewFailures.has(block.id) && <p role="status" className="mt-2 text-amber-700">Media remains saved, but its secure preview could not be loaded. Retry by refreshing this page.</p>}

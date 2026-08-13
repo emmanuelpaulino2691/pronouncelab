@@ -37,6 +37,26 @@ function safeMessage(message: string | undefined) {
     "The publication service could not complete the request.";
 }
 
+function logPublicationError(
+  operation: string,
+  scope: Scope,
+  id: number,
+  error: unknown,
+) {
+  const value = error && typeof error === "object"
+    ? error as Record<string, unknown>
+    : { message: String(error) };
+  console.error("publish-content failure", {
+    operation,
+    scope,
+    id,
+    code: value.code,
+    message: value.message,
+    details: value.details,
+    hint: value.hint,
+  });
+}
+
 async function sha256(blob: Blob) {
   const bytes = await blob.arrayBuffer();
   const digest = await crypto.subtle.digest("SHA-256", bytes);
@@ -69,7 +89,10 @@ Deno.serve(async (request) => {
     ? { requested_lesson_version_id: id }
     : { requested_course_id: id };
   const { data: planData, error: planError } = await caller.rpc(planFunction, planArgument);
-  if (planError) return json({ message: safeMessage(planError.message) }, 400);
+  if (planError) {
+    logPublicationError("build-media-plan", scope, id, planError);
+    return json({ message: safeMessage(planError.message) }, 400);
+  }
 
   const rows = (planData ?? []) as MediaPlanRow[];
   const assets = [...new Map(rows.map((row) => [row.media_asset_id, row])).values()];
@@ -86,6 +109,7 @@ Deno.serve(async (request) => {
       { requested_media_asset_id: asset.media_asset_id },
     );
     if (prepareError || !preparedData?.[0]) {
+      logPublicationError("prepare-media", scope, id, prepareError ?? new Error("Preparation returned no row"));
       return json({
         message: `${asset.reference_kind} in ${asset.activity_type} item ${asset.item_id} could not be prepared. Re-upload the media and try again.`,
       }, 400);
@@ -94,6 +118,7 @@ Deno.serve(async (request) => {
     const { data: source, error: downloadError } = await service.storage
       .from(prepared.source_bucket).download(prepared.object_path);
     if (downloadError || !source) {
+      logPublicationError("download-draft-media", scope, id, downloadError ?? new Error("Download returned no body"));
       return json({ message: `${asset.reference_kind} in ${asset.activity_type} item ${asset.item_id} is missing from Storage. Re-upload it and try again.` }, 400);
     }
     const hash = await sha256(source);
@@ -111,6 +136,7 @@ Deno.serve(async (request) => {
         },
       });
     if (uploadError) {
+      logPublicationError("copy-media-to-public-bucket", scope, id, uploadError);
       return json({ message: `${asset.reference_kind} in ${asset.activity_type} item ${asset.item_id} could not be copied for learner delivery. Try again.` }, 409);
     }
     const { error: finalizeError } = await service.rpc("finalize_media_publication", {
@@ -120,6 +146,7 @@ Deno.serve(async (request) => {
       trusted_destination_sha256: hash,
     });
     if (finalizeError) {
+      logPublicationError("finalize-media", scope, id, finalizeError);
       await caller.storage.from(prepared.destination_bucket).remove([prepared.object_path]);
       return json({ message: `${asset.reference_kind} in ${asset.activity_type} item ${asset.item_id} could not be verified for learner delivery. Try again.` }, 409);
     }
@@ -130,6 +157,9 @@ Deno.serve(async (request) => {
     ? { requested_lesson_version_id: id }
     : { requested_course_id: id };
   const { data, error } = await caller.rpc(publishFunction, publishArgument);
-  if (error) return json({ message: safeMessage(error.message) }, 400);
+  if (error) {
+    logPublicationError("activate-content", scope, id, error);
+    return json({ message: safeMessage(error.message) }, 400);
+  }
   return json(data);
 });

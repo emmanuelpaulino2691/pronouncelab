@@ -1,5 +1,9 @@
 import type { TheoryBlock } from "./types";
 
+export function canMutateLearnBlockMedia(editable: boolean) {
+  return editable;
+}
+
 export function reorderLearnBlocks(blocks: readonly TheoryBlock[], from: number, to: number): TheoryBlock[] {
   if (from < 0 || to < 0 || from >= blocks.length || to >= blocks.length || from === to) return [...blocks];
   const next = [...blocks];

@@ -14,6 +14,7 @@ import type {
   QuizQuestion,
 } from "../types";
 import type { ActivitySectionCollapseController } from "../studioViewState";
+import { lessonStudioMutationErrorMessage, type LessonStudioMutationOperation } from "../mutationErrors";
 import { useEditorSectionCollapse } from "../useEditorSectionCollapse";
 import CollapsibleEditorSection from "../components/CollapsibleEditorSection";
 
@@ -81,7 +82,8 @@ export default function QuizEditor({
 
   async function run(
     action: () => Promise<unknown>,
-    success: string
+    success: string,
+    operation: LessonStudioMutationOperation
   ) {
     setBusy(true);
     setMessage(null);
@@ -91,11 +93,7 @@ export default function QuizEditor({
       setMessage(success);
       onDirtyChange?.(false);
     } catch (error) {
-      setMessage(
-        error instanceof Error
-          ? error.message
-          : "Unable to save quiz."
-      );
+      setMessage(lessonStudioMutationErrorMessage(error, operation));
     } finally {
       setBusy(false);
     }
@@ -124,10 +122,7 @@ export default function QuizEditor({
       setMessage("Question saved.");
       onDirtyChange?.(false);
     } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : "Unable to save quiz.";
+      const message = lessonStudioMutationErrorMessage(error, "save question");
       if (
         message
           .toLowerCase()
@@ -216,7 +211,8 @@ export default function QuizEditor({
                     );
                     setAssessment(saved);
                   },
-                  "Quiz settings saved."
+                  "Quiz settings saved.",
+                  "save quiz settings"
                 )
               }
               className="rounded-lg bg-slate-900 px-3 py-2 text-sm font-semibold text-white"
@@ -240,7 +236,8 @@ export default function QuizEditor({
                             )
                           ) + 1
                     ),
-                  "Question added."
+                  "Question added.",
+                  "add question"
                 )
               }
               className="rounded-lg border border-blue-300 px-3 py-2 text-sm font-semibold text-blue-700"
@@ -287,7 +284,8 @@ export default function QuizEditor({
                             assessment.id,
                             ids
                           ),
-                        "Questions reordered."
+                        "Questions reordered.",
+                        "reorder questions"
                       );
                     }}
                     className="disabled:opacity-30"
@@ -318,7 +316,8 @@ export default function QuizEditor({
                             assessment.id,
                             ids
                           ),
-                        "Questions reordered."
+                        "Questions reordered.",
+                        "reorder questions"
                       );
                     }}
                     className="disabled:opacity-30"
@@ -335,7 +334,8 @@ export default function QuizEditor({
                             question.id,
                             assessment.id
                           ),
-                        "Question deleted."
+                        "Question deleted.",
+                        "delete question"
                       )
                     }
                     className="text-red-700"

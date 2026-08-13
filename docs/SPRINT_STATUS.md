@@ -1,5 +1,57 @@
 # Sprint Status
 
+## Sprint 50G Follow-up — Version 2 Republication
+
+Implemented and validated locally against the preserved Version 1 → Version 2
+reproduction. Version 2 publication had passed every content and media
+validator, but `publish_lesson_version` rewrote the already-published lesson's
+`published_at` while advancing `current_published_version_id`; the sealed-row
+trigger correctly rejected that unrelated timestamp mutation. The forward fix
+preserves the lesson's first publication timestamp while the new version keeps
+its own release timestamp. Version 1 becomes archived immutable history and
+Version 2 becomes the current learner-visible publication in one database
+transaction.
+
+Published stable media UUIDs remain reusable and are skipped by media
+prepare/finalize. Edge Function failures now log the failing orchestration step
+and unsanitized backend diagnostics server-side while keeping unexpected
+details out of browser responses. Regression coverage exercises Version 1
+publication, draft copying and editing, stable-media reuse, owner isolation,
+Version 2 activation, learner delivery, immutable history, and atomic rejection
+of incomplete content.
+
+## Sprint 50G — Published Lifecycle and Learner Delivery Audit
+
+Implemented and validated locally. Published Learn media controls are absent
+from read-only editors, while RLS and hierarchy triggers continue rejecting
+published descendant changes for teachers and administrators. Draft Version 2
+copying now crosses both AI creation guards without granting direct AI inserts;
+it preserves the complete descendant tree and stable media UUIDs while Version
+1 remains the active immutable publication.
+
+Course publication on the preserved hierarchy completed successfully in the
+database and Edge Function. The learner Course, Unit, and Lesson routes had
+mistaken a successful resource state (`error === null`) for an infrastructure
+failure; they now distinguish success, not-found, loading, and actual errors.
+The learner SQL projection continues requiring published course, unit, lesson,
+and active lesson-version parents.
+
+## Sprint 50F — Lesson Studio Mutation Regression Audit
+
+Implemented and validated locally. Direct Lesson Studio mutations now cross
+the private hierarchy-lock boundary through security-definer trigger entry
+points while the underlying gate remains unavailable to browser roles. A
+parent-scoped quiz-question delete RPC preserves leaf-first locking and delete
+order. Teacher-owned Learn, Quiz, Listening, AI mission, and media-registration
+mutations retain draft-only and course-owner authorization, and published
+content remains immutable.
+
+Lesson Studio mutation failures now use operation-specific sanitized messages.
+The local publication hostname failure was traced to an Edge Runtime container
+that had not started because its generated function mount was missing; a clean
+local stack restart restored it. No remote database, function, or Storage
+operation was performed.
+
 ## Sprint 50E — Media Publication and Draft-Version Blockers
 
 Implemented locally. Lesson and course publication coordinate the existing

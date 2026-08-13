@@ -607,12 +607,19 @@ export async function deleteQuestion(
   questionId: number,
   expectedAssessmentId: number
 ) {
-  const { error } = await client()
-    .from("questions")
-    .delete()
-    .eq("id", questionId)
-    .eq("assessment_set_id", expectedAssessmentId);
+  const { data, error } = await client().rpc(
+    "delete_draft_quiz_question",
+    {
+      requested_question_id: questionId,
+      expected_assessment_set_id: expectedAssessmentId,
+    }
+  );
   if (error) throw error;
+  if (data !== questionId) {
+    throw new Error(
+      "Draft question was not deleted from the expected assessment."
+    );
+  }
 }
 
 export async function reorderQuestions(

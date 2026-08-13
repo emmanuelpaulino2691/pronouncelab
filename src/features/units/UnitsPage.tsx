@@ -5,6 +5,7 @@ import NotFoundState from "../../shared/components/ui/NotFoundState";
 import { learnerContentProvider } from "../../shared/content/learnerContentComposition";
 import { useLearnerResource } from "../../shared/content/hooks/useLearnerResource";
 import { isDecimalContentId } from "../../shared/content/contracts/publishedRpcGuards";
+import { hasLearnerLoadFailure } from "../../shared/content/learnerResourcePresentation";
 import type { ContentId } from "../../shared/content/contracts/learnerContent";
 import { loadUserProgress } from "../../shared/utils/progressStorage";
 import { resolveLearnerCourseState, resolveLearnerUnitState, resolveRecommendedLearnerStep } from "../learner-journey/learnerJourney";
@@ -16,7 +17,7 @@ export default function UnitsPage() {
   const validId = isDecimalContentId(courseId) ? courseId as unknown as ContentId : null;
   const resource = useLearnerResource((signal) => validId ? learnerContentProvider.getCourse(validId, signal) : Promise.resolve({ ok: false as const, error: { code: "not_found" as const, message: "Course not found.", retryable: false } }), [validId]);
 
-  if (!resource.loading && resource.error?.code !== "not_found") return <MainLayout><section className="rounded-2xl border border-red-200 bg-white p-6"><h1 className="text-2xl font-bold">Course could not be loaded</h1><p className="mt-2 text-slate-600">This learning journey is temporarily unavailable.</p><button type="button" onClick={resource.retry} className="mt-5 min-h-11 rounded-xl bg-blue-600 px-5 font-semibold text-white">Try again</button></section></MainLayout>;
+  if (hasLearnerLoadFailure(resource.loading, resource.error)) return <MainLayout><section className="rounded-2xl border border-red-200 bg-white p-6"><h1 className="text-2xl font-bold">Course could not be loaded</h1><p className="mt-2 text-slate-600">This learning journey is temporarily unavailable.</p><button type="button" onClick={resource.retry} className="mt-5 min-h-11 rounded-xl bg-blue-600 px-5 font-semibold text-white">Try again</button></section></MainLayout>;
   if (!resource.loading && !resource.value) return <MainLayout><NotFoundState title="Course not found" message="This course does not exist or is no longer available." actionLabel="Browse Courses" onAction={() => navigate("/courses")} /></MainLayout>;
   if (!resource.value) return <MainLayout><p role="status">Loading your course...</p></MainLayout>;
 

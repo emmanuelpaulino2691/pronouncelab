@@ -5,6 +5,7 @@ import NotFoundState from "../../shared/components/ui/NotFoundState";
 import { learnerContentProvider } from "../../shared/content/learnerContentComposition";
 import { useLearnerResource } from "../../shared/content/hooks/useLearnerResource";
 import { isDecimalContentId } from "../../shared/content/contracts/publishedRpcGuards";
+import { hasLearnerLoadFailure } from "../../shared/content/learnerResourcePresentation";
 import type { ContentId, LearnerCourse, LearnerUnit } from "../../shared/content/contracts/learnerContent";
 import { contentFailure, contentSuccess } from "../../shared/content/errors/contentErrors";
 import { loadUserProgress } from "../../shared/utils/progressStorage";
@@ -28,7 +29,7 @@ export default function LessonsPage() {
     return contentSuccess({ unit: unitResult.value, course: courseResult.value }, unitResult.revision);
   }, [validId]);
 
-  if (!resource.loading && resource.error?.code !== "not_found") return <MainLayout><section className="rounded-2xl border border-red-200 bg-white p-6"><h1 className="text-2xl font-bold">Lessons could not be loaded</h1><p className="mt-2 text-slate-600">This unit is temporarily unavailable.</p><button type="button" onClick={resource.retry} className="mt-5 min-h-11 rounded-xl bg-blue-600 px-5 font-semibold text-white">Try again</button></section></MainLayout>;
+  if (hasLearnerLoadFailure(resource.loading, resource.error)) return <MainLayout><section className="rounded-2xl border border-red-200 bg-white p-6"><h1 className="text-2xl font-bold">Lessons could not be loaded</h1><p className="mt-2 text-slate-600">This unit is temporarily unavailable.</p><button type="button" onClick={resource.retry} className="mt-5 min-h-11 rounded-xl bg-blue-600 px-5 font-semibold text-white">Try again</button></section></MainLayout>;
   if (!resource.loading && !resource.value) return <MainLayout><NotFoundState title="Unit not found" message="This unit does not exist or is no longer available." actionLabel="Browse Courses" onAction={() => navigate("/courses")} /></MainLayout>;
   if (!resource.value) return <MainLayout><p role="status">Loading your lessons...</p></MainLayout>;
 

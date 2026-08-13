@@ -7,6 +7,12 @@ import { AdminIcon, Avatar, Badge, Button } from "../ui";
 import { futureWorkspaceSections, getWorkspaceRole } from "../workspace";
 import { adminMediaLibraryPath, canViewMediaLibrary } from "../../../domain/media";
 import { drawerKeyboardAction, shouldWrapDrawerFocus } from "../../../shared/components/drawerKeyboard";
+import {
+  adminSidebarAccountClassName,
+  adminSidebarClassName,
+  adminSidebarHeaderClassName,
+  adminSidebarNavigationClassName,
+} from "./adminSidebarLayout";
 
 const drawerFocusableSelector = "a[href], button:not([disabled]), [tabindex]:not([tabindex='-1'])";
 
@@ -88,9 +94,9 @@ function AdminSidebar({ isOpen, onClose }: Props) {
       <aside
         data-admin-navigation-drawer
         aria-label="Content Studio navigation"
-        className={`fixed inset-y-0 left-0 z-50 flex w-[min(86vw,18rem)] flex-col bg-slate-950 text-white shadow-2xl transition-transform duration-200 motion-reduce:transition-none lg:sticky lg:top-0 lg:z-20 lg:h-screen lg:w-72 lg:translate-x-0 lg:shadow-none ${isOpen ? "translate-x-0" : "-translate-x-full"}`}
+        className={`${adminSidebarClassName} ${isOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
-        <div className="flex items-start justify-between border-b border-slate-800 px-6 py-6">
+        <div className={adminSidebarHeaderClassName}>
           <div>
             <div className="flex items-center gap-3">
               <span className="grid h-10 w-10 place-items-center rounded-xl bg-blue-600 font-black shadow-lg shadow-blue-950/30">P</span>
@@ -103,7 +109,7 @@ function AdminSidebar({ isOpen, onClose }: Props) {
           </button>
         </div>
 
-        <nav className="flex-1 px-4 py-5">
+        <nav className={adminSidebarNavigationClassName}>
           <ul className="space-y-1.5">
             {navigationItems.map((item) => <li key={item.to}>
               <NavLink
@@ -126,7 +132,7 @@ function AdminSidebar({ isOpen, onClose }: Props) {
           </ul>
         </nav>
 
-        <div className="border-t border-slate-800 p-4">
+        <div className={adminSidebarAccountClassName}>
           <div className="mb-3 flex min-w-0 items-center gap-3 rounded-xl bg-slate-900 p-3">
             <Avatar label={email} />
             <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-white" title={email}>{email}</p><div className="mt-1"><Badge tone="info">{roleLabel}</Badge></div></div>

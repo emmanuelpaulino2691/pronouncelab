@@ -134,6 +134,12 @@ the published version and its media references. Publication archives the prior
 published version, activates the new lesson pointer, and keeps the operation
 behind the existing validation and hierarchy gate.
 
+The draft-copy transaction uses the same private AI-activity creation marker
+as the dedicated AI creation/duplication RPCs. The AI configuration trigger
+authorizes against the target draft lesson version and owning course rather
+than requiring published course, unit, and lesson metadata to return to draft.
+Direct AI activity insertion remains unavailable to browser roles.
+
 `can_edit_lesson_version(version_id)` is the shared mutation gate for draft
 content. It requires a draft target version and owner/administrator authority;
 the course, unit, and lesson may remain published while learners continue to
@@ -152,6 +158,13 @@ authorize
 Publication follows the same gate-first order. If publication wins, a waiting authoring RPC re-reads the sealed hierarchy and fails. If authoring wins, publication waits until authoring commits or rolls back.
 
 Statement triggers acquire the same gate for direct hierarchy mutations. Row triggers resolve and lock traversed parents and final lesson versions. UPDATE protects old and new paths; parent-immutability triggers additionally reject reparenting.
+
+The trigger functions that enter the private hierarchy and media lock helpers
+run as security definers with an empty search path. Their internal gate and lock
+functions remain non-executable by `anon` and `authenticated`; this lets an
+authorized direct table mutation acquire the transaction gate without exposing
+the gate as a callable browser API. RLS and the row-level ownership/draft checks
+still decide whether the mutation is allowed.
 
 The protected foreign keys are:
 
@@ -175,6 +188,7 @@ RPCs are used when browser statements cannot safely preserve a domain invariant:
 - `reorder_draft_theory_blocks`
 - `create_draft_quiz_question`
 - `save_draft_quiz_question` with expected `updated_at`
+- `delete_draft_quiz_question` with the expected assessment parent
 - `reorder_draft_quiz_questions`
 - `duplicate_draft_lesson_activity`
 - AI mission create and duplicate functions
@@ -191,12 +205,15 @@ Functions schema-qualify objects, set an empty search path when security-definer
 
 ### Lesson versions
 
-`publish_lesson_version(version_id)` is the supported release path. Lesson
-Studio calls this RPC directly for authorized publication; it never performs a
-browser-side status update. Direct status promotion is rejected by the
-lifecycle trigger. The RPC validates course-scoped publication permission and
-content completeness, including referenced media. It locks referenced
-media/Storage rows while publishing.
+`publish_lesson_version(version_id)` is the transactional content-release path.
+Lesson Studio reaches it through the `publish-content` Edge Function so draft
+media can complete the trusted Storage lifecycle first; the browser never
+performs a status or current-version update. The RPC validates course-scoped
+publication permission and content completeness, archives the prior current
+version, publishes the requested draft, and atomically advances
+`lessons.current_published_version_id`. Activating a later version preserves the
+lesson row's original `published_at`; the version row records each release's
+own timestamp. Direct status promotion is rejected by lifecycle triggers.
 
 Assessment listening references use a composite foreign key so the listening item belongs to the same activity.
 
@@ -219,6 +236,9 @@ first obtain an ownership-checked media plan. The trusted function copies and
 hashes draft objects, then finalizes the same `media_assets.id` into its public
 bucket before calling the existing publication RPC. The service-role secret is
 used only by the deployed function and is never available to browser code.
+Media-plan rows whose stable asset is already published are reused as-is and
+skip prepare, copy, and finalize. Mixed plans process only draft assets, so a
+new lesson version does not duplicate media inherited from its predecessor.
 
 Storage deletion/update triggers protect published objects and referenced content.
 
@@ -263,6 +283,12 @@ projection.
 | `202607230001_add_teacher_role` | Adds the first-class `teacher` staff role in a transaction separate from its first use |
 | `202607230002_teacher_ownership_foundation` | Adds course-root ownership, backfill, owner-aware helpers/RLS/RPC protection, and teacher Studio permissions |
 | `202608060001_fix_content_ownership_trigger` | Makes the shared ownership trigger safe across child row types without weakening immutable course ownership |
+| `202608100001_media_publication_and_draft_versions` | Coordinates verified media publication and copies complete published lesson trees into distinct editable draft versions |
+| `202608120001_fix_course_insert_returning_rls` | Keeps a newly inserted owner-teacher course visible to the same statement's `RETURNING` projection |
+| `202608120002_fix_authoring_trigger_security` | Restores authenticated draft mutations across the private hierarchy-lock boundary and adds parent-scoped leaf-first quiz-question deletion |
+| `202608120003_fix_published_draft_copy` | Allows the trusted published-to-draft copy transaction to reproduce AI activity rows through the private creation marker |
+| `202608120004_fix_ai_draft_version_guard` | Authorizes AI configuration mutations through the editable draft version beneath published parent metadata |
+| `202608120005_fix_lesson_republication_activation` | Preserves the lesson's first publication timestamp while atomically activating a later published version |
 
 ## Migration rules
 

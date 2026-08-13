@@ -143,7 +143,7 @@ security definer
 set search_path = ''
 as $$
 declare
-  lesson_row public.lessons%rowtype;
+  active_published_version_id bigint;
   source_version public.lesson_versions%rowtype;
   result public.lesson_versions;
   source_activity public.lesson_activities%rowtype;
@@ -157,8 +157,8 @@ declare
 begin
   perform public.lock_content_hierarchy_gate();
 
-  select lesson, unit.course_id
-  into lesson_row, target_course_id
+  select lesson.current_published_version_id, unit.course_id
+  into active_published_version_id, target_course_id
   from public.lessons lesson
   join public.units unit on unit.id = lesson.unit_id
   where lesson.id = requested_lesson_id
@@ -178,14 +178,14 @@ begin
   order by version.version_number desc limit 1 for update;
   if found then return result; end if;
 
-  if lesson_row.current_published_version_id is not null then
+  if active_published_version_id is not null then
     select version.* into source_version
     from public.lesson_versions version
-    where version.id = lesson_row.current_published_version_id
+    where version.id = active_published_version_id
       and version.lesson_id = requested_lesson_id
       and version.status = 'published';
   end if;
-  if lesson_row.current_published_version_id is not null
+  if active_published_version_id is not null
     and source_version.id is null then
     raise exception 'The active published lesson version is invalid';
   end if;

@@ -22,10 +22,24 @@ select ok(pg_catalog.has_function_privilege('service_role', 'public.finalize_med
   'only the trusted service can finalize verified bytes');
 select function_returns('public', 'create_lesson_draft_version', array['bigint','bigint'], 'lesson_versions',
   'published lessons retain the controlled draft-copy RPC');
-select like(pg_catalog.pg_get_functiondef('public.create_lesson_draft_version(bigint,bigint)'::regprocedure),
-  '%public.can_edit_course(target_course_id)%', 'draft copying uses course-scoped ownership');
-select like(pg_catalog.pg_get_functiondef('public.create_lesson_draft_version(bigint,bigint)'::regprocedure),
-  '%where activity_id = source_activity.id order by position, id%', 'draft copying includes assessment descendants for every activity type');
+select ok(
+  pg_catalog.pg_get_functiondef('public.create_lesson_draft_version(bigint,bigint)'::regprocedure)
+    like '%public.can_edit_course(target_course_id)%',
+  'draft copying uses course-scoped ownership');
+select ok(
+  pg_catalog.strpos(
+    pg_catalog.pg_get_functiondef(
+      'public.create_lesson_draft_version(bigint,bigint)'::regprocedure
+    ),
+    'from public.assessment_sets'
+  ) > 0
+  and pg_catalog.strpos(
+    pg_catalog.pg_get_functiondef(
+      'public.create_lesson_draft_version(bigint,bigint)'::regprocedure
+    ),
+    'source_item.id = source_set.listening_item_id'
+  ) > 0,
+  'draft copying includes assessment descendants for every activity type');
 
 select * from extensions.finish();
 rollback;
