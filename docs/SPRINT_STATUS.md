@@ -1,5 +1,11 @@
 # Sprint Status
 
+## Sprint 52B — Classes + Enrollment Foundation
+
+**Status:** Implemented locally; manual browser QA and deployment pending.
+
+Delivered teacher-owned active/archived Classes, regenerable secure join codes, learner memberships, soft enrollment lifecycle, owned rosters, controlled enrollment-scoped progress summaries, Teacher and Learner Classes UX, pgTAP privacy coverage, and deterministic bootstrap fixtures. Assignments and immutable Course releases remain future work.
+
 ## Sprint 52A — Learner Identity and Synced Progress Foundation
 
 **Status:** Implemented locally; manual browser QA and deployment pending.

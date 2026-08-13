@@ -127,6 +127,8 @@ profile for Admin/Teacher and an Incognito window or separate browser profile
 for Learner. Signing in as a different account in another tab replaces the
 session for every tab; the application does not emulate per-tab identities.
 
+The bootstrap also creates `Local Enrolled Class` (`953001`) with the local Learner enrolled and `Local Joinable Class` (`953002`) with join code `A52B000000000002`. Teacher testing uses `/admin/classes`; learner membership and joining use `/classes` in Incognito or a separate profile.
+
 Override the development passwords without editing tracked files:
 
 ```powershell

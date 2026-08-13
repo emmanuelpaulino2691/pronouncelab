@@ -15,6 +15,7 @@ export const routeModuleLoaders = {
   classes: () => import("../../features/admin/classes/AdminClassesPage"),
   createClass: () => import("../../features/admin/classes/CreateClassForm").then((module) => ({ default: module.CreateClassForm })),
   classWorkspace: () => import("../../features/admin/classes/ClassWorkspaceLayout").then((module) => ({ default: module.ClassWorkspaceLayout })),
+  learnerClasses: () => import("../../features/classes/LearnerClassesPage"),
   previewCourse: () => import("../../features/admin/preview/StudentPreviewCoursePage"),
   previewLesson: () => import("../../features/admin/preview/StudentPreviewLessonPage"),
   mediaLibrary: () => import("../../features/admin/media/AdminMediaLibraryPage"),

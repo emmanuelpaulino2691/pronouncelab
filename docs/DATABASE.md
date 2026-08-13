@@ -335,9 +335,9 @@ Authenticated users without a row in `user_roles` are learner identities; the ro
 
 `public.publish_course(bigint)` is the transaction boundary for course-wide publication. It is available only to authenticated users with administrator, publisher, or owner-teacher publication authority. Validation is aggregated before any status, pointer, or archive update. The operation validates the newest draft lesson version when one exists; otherwise it retains the active sealed version without applying newer validators to history. It never republishes archived history. Learner queries therefore observe only the newly activated published hierarchy after a successful transaction.
 
-## Classroom model (future)
+## Classroom model
 
-The proposed classroom model is documented separately and is not present in the schema. It uses teacher-owned `classes`, many-to-many `class_members`, immutable `course_releases`, `class_course_assignments`, secure join-code records, assignments, targets, and student assignment progress. RLS will scope teachers to owned classes, students to active memberships and their own progress, administrators globally, and publishers/editors not at all by default. No migration or policy is created in this sprint.
+`classes` stores one owner, active/archived lifecycle, and a 64-bit random regenerable join code. `class_enrollments` stores one soft-deactivatable relationship per Class/Learner. RLS exposes owned Classes/rosters to Teachers, own active memberships to Learners, and platform support access to Admins. Controlled RPCs perform creation, joining, removal, code rotation, and enrollment-scoped progress summaries. Assignments and immutable Course releases remain future work.
 
 The frontend domain contracts under `src/domain` describe these future records without asserting that they exist in Postgres. Service interfaces document expected authorization and result boundaries; they do not issue requests or create a parallel data access layer.
 ## Teacher Media Library access

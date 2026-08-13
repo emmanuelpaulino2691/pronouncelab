@@ -19,6 +19,7 @@ const LessonStudioPage = lazy(routeModuleLoaders.lessonStudio);
 const AdminClassesPage = lazy(routeModuleLoaders.classes);
 const CreateClassForm = lazy(routeModuleLoaders.createClass);
 const ClassWorkspaceLayout = lazy(routeModuleLoaders.classWorkspace);
+const LearnerClassesPage = lazy(routeModuleLoaders.learnerClasses);
 const StudentPreviewCoursePage = lazy(routeModuleLoaders.previewCourse);
 const StudentPreviewLessonPage = lazy(routeModuleLoaders.previewLesson);
 const AdminMediaLibraryPage = lazy(routeModuleLoaders.mediaLibrary);
@@ -90,6 +91,10 @@ export const router = createBrowserRouter([
         ],
       },
     ],
+  },
+  {
+    path: "/classes",
+    element: <LazyRoute><LearnerClassesPage /></LazyRoute>,
   },
   {
     path: "/courses",

@@ -312,7 +312,7 @@ Course workspace tabs use the existing `/admin/courses/:courseId` route and a qu
 
 Classroom work is intentionally separate from the current Course Workspace. A future class assignment will reference an immutable published course release, while the existing lesson-version publication model remains the authoring and release foundation. No classroom routes, schema, enrollment, or progress synchronization are implemented yet. The design is documented in [Classroom Architecture](CLASSROOM_ARCHITECTURE.md) and ADRs 0007–0008.
 
-The UI-only foundation adds lazy-loaded `/admin/classes`, `/admin/classes/new`, and `/admin/classes/:classId` routes. Only My Classes is navigable as a data-free page; creation and the class workspace explicitly explain that backend implementation is pending.
+Sprint 52B connects lazy-loaded `/admin/classes`, `/admin/classes/new`, and `/admin/classes/:classId` routes to teacher-owned Classes and soft enrollment. Learners join through `/classes` with a regenerable opaque code. Enrollment-scoped progress is exposed only by a controlled summary RPC; direct Teacher progress-table access remains forbidden. Course release assignments remain future work.
 
 ## Domain contracts
 

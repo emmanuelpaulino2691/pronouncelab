@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — design decision; not implemented.
+Accepted and implemented by Sprint 52B.
 
 ## Context
 
@@ -10,7 +10,7 @@ A teacher-managed Class is a group of students receiving reusable Course content
 
 ## Decision
 
-Classes are owned by one teacher and may later support explicit collaborators. Students join through secure, regenerable join codes or invitation links. Membership is many-to-many, idempotent, and independently revocable. Publishers and legacy editors do not receive classroom permissions by default; administrators have global access.
+Classes are owned by one teacher and may later support explicit collaborators. Students join through cryptographically random, regenerable join codes. Membership is many-to-many, idempotent, soft-deactivated, and independently revocable. Publishers and legacy editors do not receive classroom permissions by default; administrators have global access.
 
 ## Consequences
 

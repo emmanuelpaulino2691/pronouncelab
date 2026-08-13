@@ -1,23 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import { ButtonLink, Card, PageHeader } from "../ui";
+import { listOwnedClasses, type ClassRecord } from "../../classes/classService";
 
-import { canCreateClass } from "../../../domain/permissions/predicates";
-import { useAdminPermissions } from "../permissions/useAdminPermissions";
-import { Alert, ButtonLink, Card, PageHeader, Select, TextInput } from "../ui";
-import { permissionContextFromAdmin } from "../workspace";
-import { filterClassSummaries } from "./classFilters";
-import { EmptyClassesState } from "./EmptyClassesState";
-
-export default function AdminClassesPage() {
-  const permissions = useAdminPermissions();
-  const canCreate = canCreateClass(permissionContextFromAdmin(permissions));
-  const [query, setQuery] = useState("");
-  const [status, setStatus] = useState<"all" | "active" | "draft" | "archived">("all");
-  const classes = useMemo(() => filterClassSummaries([], query, status), [query, status]);
-
-  return <section className="mx-auto max-w-7xl space-y-7">
-    <PageHeader eyebrow="Teacher Workspace" title="My Classes" description="Review the future workspace for teaching groups and course assignments." actions={canCreate ? <ButtonLink to="/admin/classes/new" icon="plus">Review class setup</ButtonLink> : undefined} />
-    {!canCreate && <Alert>Classroom management is available to teachers and administrators. Your current access remains view-only.</Alert>}
-    <Card className="p-4"><div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_12rem]"><label><span className="sr-only">Search classes</span><TextInput value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search classes" /></label><label><span className="sr-only">Filter classes by status</span><Select value={status} onChange={(event) => setStatus(event.target.value as typeof status)}><option value="all">All</option><option value="active">Active</option><option value="draft">Draft</option><option value="archived">Archived</option></Select></label></div></Card>
-    {classes.length === 0 ? <EmptyClassesState canCreate={canCreate} /> : <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">{classes.map((item) => <div key={item.id}>{item.name}</div>)}</div>}
-  </section>;
-}
+export default function AdminClassesPage(){const[items,setItems]=useState<ClassRecord[]>([]);const[error,setError]=useState<string|null>(null);useEffect(()=>{void listOwnedClasses().then(setItems).catch(()=>setError("Classes could not be loaded."));},[]);return <section className="mx-auto max-w-7xl space-y-7"><PageHeader eyebrow="Teacher Workspace" title="My Classes" description="Manage teaching groups, enrollment, and enrolled learner progress." actions={<ButtonLink to="/admin/classes/new" icon="plus">Create Class</ButtonLink>}/>{error&&<p role="alert">{error}</p>}<div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">{items.map(item=><Card key={item.id} className="p-6"><div className="flex justify-between gap-3"><h2 className="text-lg font-bold">{item.name}</h2><span className="text-xs font-bold uppercase text-slate-500">{item.status}</span></div><p className="mt-3 text-sm text-slate-600">{item.description||"No description"}</p><ButtonLink to={`/admin/classes/${item.id}`} variant="secondary" className="mt-6">Open Class</ButtonLink></Card>)}</div>{!error&&items.length===0&&<Card className="p-8 text-center">No Classes yet. Create the first teaching group.</Card>}</section>}

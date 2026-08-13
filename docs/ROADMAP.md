@@ -4,7 +4,7 @@
 
 Implemented locally. Ordinary authenticated users are learners, published activity completion is recorded idempotently through learner-scoped RPCs, and local progress merges monotonically with server snapshots for offline resilience and cross-device continuity. Sequential locks and Continue Learning consume the merged snapshot. Student Preview and staff identities cannot create learner progress.
 
-Sprint 52B should add learner account/session presentation, explicit sync status and retry UX, browser integration coverage, and the first enrollment contract. Attempts, scoring, assignments, and teacher reporting remain future work.
+Sprint 52B implements teacher-owned Classes, secure join-code enrollment, learner memberships, soft removal/rejoin, and enrollment-scoped coarse progress reporting. Sprint 52C should introduce immutable Course releases and Class assignments before detailed progress reporting.
 
 ## Sprint 51C — Media Library Content Deduplication
 

@@ -57,6 +57,14 @@ begin;
 insert into public.user_roles (user_id, role) values
   ('${adminId}', 'admin'), ('${teacherId}', 'teacher')
 on conflict (user_id, role) do nothing;
+insert into public.classes (id, owner_user_id, name, description, status, join_code, join_code_enabled)
+values
+  (953001, '${teacherId}', 'Local Enrolled Class', 'Pre-enrolled roster and progress reporting fixture.', 'active', 'A52B000000000001', true),
+  (953002, '${teacherId}', 'Local Joinable Class', 'Empty Class for manual join-code testing.', 'active', 'A52B000000000002', true)
+on conflict (id) do update set owner_user_id=excluded.owner_user_id,name=excluded.name,description=excluded.description,status=excluded.status,join_code=excluded.join_code,join_code_enabled=true;
+insert into public.class_enrollments (class_id, learner_user_id, status, ended_at)
+values (953001, '${learnerId}', 'active', null)
+on conflict (class_id, learner_user_id) do update set status='active',ended_at=null,updated_at=pg_catalog.now();
 set local request.jwt.claim.sub = '${teacherId}';
 insert into public.courses (id, slug, title, description, level, emoji, position, status, owner_user_id, created_by, updated_by)
 values (951001, 'local-authoring-fixture', 'Local Authoring Fixture', 'Deterministic local-only course for browser validation.', 'A1', '🧪', coalesce((select max(position) + 1 from public.courses where owner_user_id = '${teacherId}' and id <> 951001), 0), 'draft', '${teacherId}', '${teacherId}', '${teacherId}')
