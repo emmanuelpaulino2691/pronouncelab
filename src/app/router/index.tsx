@@ -1,7 +1,8 @@
 /* eslint-disable react-refresh/only-export-components */
 import { lazy, Suspense, type ReactNode } from "react";
-import { createBrowserRouter } from "react-router-dom";
+import { createBrowserRouter, useParams } from "react-router-dom";
 import { routeModuleLoaders } from "./routeModules";
+import { releaseLessonRuntimeKey } from "../../features/releases/releaseLessonSession";
 
 const AdminRoute = lazy(routeModuleLoaders.adminRoute);
 const DashboardPage = lazy(routeModuleLoaders.dashboard);
@@ -28,6 +29,11 @@ const AdminMediaLibraryPage = lazy(routeModuleLoaders.mediaLibrary);
 
 function LazyRoute({ children }: { children: ReactNode }) {
   return <Suspense fallback={<div role="status" className="grid min-h-64 place-items-center text-sm font-medium text-slate-500">Loading PronounceLab…</div>}>{children}</Suspense>;
+}
+
+function ReleaseLessonRoute() {
+  const { releaseId, releaseLessonId } = useParams();
+  return <ReleaseLessonPage key={releaseLessonRuntimeKey(releaseId, releaseLessonId)} />;
 }
 
 export const router = createBrowserRouter([
@@ -100,7 +106,7 @@ export const router = createBrowserRouter([
   },
   {
     path: "/releases/:releaseId/lessons/:releaseLessonId",
-    element: <LazyRoute><ReleaseLessonPage /></LazyRoute>,
+    element: <LazyRoute><ReleaseLessonRoute /></LazyRoute>,
   },
   {
     path: "/classes",

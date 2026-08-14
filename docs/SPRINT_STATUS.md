@@ -1,5 +1,14 @@
 # Sprint Status
 
+## Sprint 52C — Class → Course Release Assignments
+
+Implemented locally. Teacher-owned Classes can assign owned immutable Course Releases, explicitly move to newer Releases while preserving history, deactivate assignments, and view active-roster Release-scoped progress. Learners see assigned Courses through `/classes`; access derives from active enrollment + active Class + active assignment and immediately follows lifecycle changes without copied entitlements. Bootstrap exercises the production relationship. See ADR 0014.
+
+The learner UX follow-up adds per-assignment progress with Course-overview entry, persistent Class URL context, and shared full-activity Lesson Player delivery with an injected Release progress adapter. Its completion screen provides authoritative cross-Unit Next Lesson navigation without changing database or progress identity contracts.
+
+Completed Release Lesson UX now distinguishes the authoritative summary, browse-only Review, and local-only Restart practice sessions. Review and repeated Restart cannot downgrade or redundantly rewrite synchronized Release progress, and both retain explicit paths back to the summary and forward to eligible content.
+Release Lesson navigation keys the complete runtime by immutable Release Lesson identity. Next Lesson, direct entry, refresh, Review, and Restart therefore cannot carry presentation or completion state into another Lesson when React reuses the route.
+
 ## Sprint 52C prerequisite — Immutable Releases + Release Runtime
 
 **Status:** Implemented locally; manual browser QA and deployment pending.

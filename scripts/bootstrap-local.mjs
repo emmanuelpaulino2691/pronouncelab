@@ -137,11 +137,14 @@ $$;
 
 set constraints capture_course_release_after_publication immediate;
 
-insert into public.course_release_learner_entitlements(course_release_id, learner_id)
-select release.id, '${learnerId}'
+delete from public.course_release_learner_entitlements entitlement
+using public.course_releases release
+where entitlement.course_release_id=release.id and release.course_id=952001 and entitlement.learner_id='${learnerId}';
+insert into public.class_course_assignments(class_id,course_release_id,source_course_id,assigned_by)
+select 953001,release.id,release.course_id,'${teacherId}'
 from public.course_releases release
-where release.course_id = 952001 and release.release_number = 1
-on conflict do nothing;
+where release.course_id=952001 and release.release_number=1
+  and not exists(select 1 from public.class_course_assignments assignment where assignment.class_id=953001 and assignment.source_course_id=952001 and assignment.status='active');
 
 do $$
 begin
@@ -205,7 +208,10 @@ const catalogResponse = await fetch(`${apiUrl}/rest/v1/rpc/get_published_learnin
 const progressResponse = await fetch(`${apiUrl}/rest/v1/rpc/get_my_learner_progress`, {
   method: "POST", headers: learnerHeaders, body: "{}",
 });
-if (!catalogResponse.ok || !progressResponse.ok) throw new Error(`Learner fixture verification failed (${catalogResponse.status}/${progressResponse.status}).`);
+const assignmentsResponse = await fetch(`${apiUrl}/rest/v1/rpc/get_class_course_assignments`, {
+  method: "POST", headers: learnerHeaders, body: JSON.stringify({ requested_class_id: 953001 }),
+});
+if (!catalogResponse.ok || !progressResponse.ok || !assignmentsResponse.ok) throw new Error(`Learner fixture verification failed (${catalogResponse.status}/${progressResponse.status}/${assignmentsResponse.status}).`);
 const catalog = await catalogResponse.json();
 const progress = await progressResponse.json();
 const courses = catalog?.courses ?? catalog?.catalog?.courses ?? [];
@@ -215,6 +221,8 @@ const units = learnerCourse.units ?? [];
 const lessons = units.flatMap((unit) => unit.lessons ?? []);
 if (units.length !== 2 || lessons.length !== 5 || lessons.some((lesson) => lesson.activityCount !== 1)) throw new Error("Published learner fixture hierarchy is incomplete.");
 if ((progress?.lessons ?? []).length !== 0 || (progress?.activities ?? []).length !== 0) throw new Error("Local learner fixture must start without progress.");
+const assignments = await assignmentsResponse.json();
+if (assignments.length !== 1 || assignments[0]?.courseId !== 952001 || assignments[0]?.status !== "active") throw new Error("Local Class assignment fixture is incorrect.");
 
 console.log("Local PronounceLab bootstrap complete.");
 console.log(`Admin:   ${adminEmail}`);

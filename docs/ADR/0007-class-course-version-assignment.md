@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted; immutable Course Releases implemented in Sprint 52C prerequisite. Class assignments remain future work.
+Accepted and implemented.
 
 ## Context
 
@@ -10,7 +10,7 @@ Courses are reusable content and lesson versions are individually published. A c
 
 ## Decision
 
-Introduce a future immutable `course_releases` record that references the complete active published lesson-version set. Class-course assignments reference a release. A later course publication creates a new release; teachers explicitly review and update each class assignment.
+Immutable `course_releases` records reference the complete active published lesson-version set. Class-course assignments reference a Release, never a mutable Course. A later Course publication creates a new Release; teachers explicitly review and update each Class assignment.
 
 ## Consequences
 

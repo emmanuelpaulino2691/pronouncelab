@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 
 import ActivityRenderer from "../activities/shared/ActivityRenderer";
@@ -14,11 +14,13 @@ import {
   calculateProgress, estimateRemainingMinutes, estimateTotalMinutes,
   getActivityDetails, getCompletionMessage,
 } from "./studentExperience";
+import{shouldUseFinalReviewActions,shouldWriteReleaseActivity}from"../releases/releaseLessonSession";
 
-type Props = { lesson: LearnerLesson; returnPath?: string; contextLabel?: string; runtimeMode?: LearnerRuntimeMode; layoutMode?: LearnerLayoutMode };
+export type LessonPlayerProgressAdapter = { completedActivityIds:readonly string[];lessonCompleted:boolean;completeActivity:(activityId:string)=>Promise<void>;mode?:"play"|"summary"|"review"|"restart";onReview?:()=>void;onRestart?:()=>void;onReturnToSummary?:()=>void;onLessonComplete?:()=>void;reviewActions?:ReactNode;completionActions?:(onReview:()=>void)=>ReactNode;completionLabel?:string;completionMessage?:string;storageMessage?:string };
+type Props = { lesson: LearnerLesson; returnPath?: string; contextLabel?: string; runtimeMode?: LearnerRuntimeMode; layoutMode?: LearnerLayoutMode; progressAdapter?:LessonPlayerProgressAdapter; stateKey?:string };
 type TransitionState = { completedIndex: number; nextIndex: number } | null;
 
-export default function LessonPlayer({ lesson, returnPath = "/courses", contextLabel, runtimeMode = "learner", layoutMode = "auto" }: Props) {
+export default function LessonPlayer({ lesson, returnPath = "/courses", contextLabel, runtimeMode = "learner", layoutMode = "auto", progressAdapter, stateKey }: Props) {
   const isPreview = isPreviewMode(runtimeMode);
   const activities = lesson.activities;
   const {
@@ -28,25 +30,26 @@ export default function LessonPlayer({ lesson, returnPath = "/courses", contextL
   const {
     state, previousActivity, completeActivity, goToActivity,
     restartLesson, reviewLesson, isLastActivity,
-  } = useLessonState(lesson.id, activities.length);
+  } = useLessonState(stateKey??lesson.id, activities.length);
   const [activityReadiness, setActivityReadiness] = useState<Record<number, boolean>>({});
   const [transition, setTransition] = useState<TransitionState>(null);
+  const [persistenceError,setPersistenceError]=useState<string|null>(null);
   const [showCompletion, setShowCompletion] = useState(
-    () => !isPreview && userProgress.lessonsCompleted.includes(lesson.id)
+    () => progressAdapter?.lessonCompleted??(!isPreview && userProgress.lessonsCompleted.includes(lesson.id))
   );
 
   useEffect(() => {
-    if (isPreview) return;
+    if (isPreview||progressAdapter) return;
     startLesson(lesson.id);
     void syncLesson(lesson.id, activities);
-  }, [activities, isPreview, lesson.id, startLesson, syncLesson]);
+  }, [activities, isPreview, lesson.id, progressAdapter, startLesson, syncLesson]);
 
   const current = state.currentActivity;
   const activity = activities[current];
   const completedSet = useMemo(() => {
-    const persisted = isPreview ? [] : userProgress.activitiesCompleted.find((item) => item.lessonId === lesson.id)?.activities ?? [];
+    const persisted = progressAdapter?activities.flatMap((item,index)=>progressAdapter.completedActivityIds.includes(item.id)?[index]:[]):isPreview ? [] : userProgress.activitiesCompleted.find((item) => item.lessonId === lesson.id)?.activities ?? [];
     return new Set([...state.completedActivities, ...persisted].filter((index) => index >= 0 && index < activities.length));
-  }, [activities.length, isPreview, lesson.id, state.completedActivities, userProgress.activitiesCompleted]);
+  }, [activities, isPreview, lesson.id, progressAdapter, state.completedActivities, userProgress.activitiesCompleted]);
   const completedCount = completedSet.size;
   const progress = calculateProgress(completedCount, activities.length);
   const details = activity ? getActivityDetails(activity.type) : null;
@@ -63,15 +66,19 @@ export default function LessonPlayer({ lesson, returnPath = "/courses", contextL
     setActivityReadiness((previous) => previous[index] === ready ? previous : { ...previous, [index]: ready });
   }, []);
 
-  function markCurrentComplete() {
+  async function markCurrentComplete() {
     if (!activity || !canCompleteCurrent) return;
+    setPersistenceError(null);
+    if(progressAdapter&&shouldWriteReleaseActivity(progressAdapter.lessonCompleted)){try{await progressAdapter.completeActivity(activity.id)}catch{setPersistenceError("Progress could not be saved. Try again.");return}}
     completeActivity(current);
-    if (shouldPersistLearnerMutation(runtimeMode)) {
+    if (!progressAdapter&&shouldPersistLearnerMutation(runtimeMode)) {
       saveActivityProgress(lesson.id, current);
       syncActivity(activity.id);
     }
     if (isLastActivity) {
-      if (shouldPersistLearnerMutation(runtimeMode)) {
+      if (progressAdapter) {
+        progressAdapter.onLessonComplete?.();
+      } else if (shouldPersistLearnerMutation(runtimeMode)) {
         completeLesson(lesson.id);
         setShowCompletion(true);
       }
@@ -90,6 +97,7 @@ export default function LessonPlayer({ lesson, returnPath = "/courses", contextL
   }
 
   function handleRestart() {
+    if(progressAdapter)return;
     if (!window.confirm(isPreview ? "Restart this preview? Preview responses are temporary and will not be saved." : "Restart this lesson? This resets only this lesson’s device-local progress.")) return;
     restartLesson();
     if (!isPreview) resetLessonProgress(lesson.id);
@@ -103,8 +111,8 @@ export default function LessonPlayer({ lesson, returnPath = "/courses", contextL
     return <section className="mx-auto max-w-2xl rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm"><h1 className="text-2xl font-bold text-slate-950">{lesson.title || "Lesson unavailable"}</h1><p className="mt-3 text-slate-600">This lesson does not contain any activities yet.</p><Link to={returnPath} className="mt-6 inline-flex rounded-xl bg-blue-600 px-5 py-3 font-bold text-white">Return to lessons</Link></section>;
   }
 
-  if (showCompletion) {
-    return <CompletionScreen lesson={lesson} completed={completedCount} total={activities.length} totalMinutes={totalMinutes} returnPath={returnPath} onReview={() => { reviewLesson(); setShowCompletion(false); }} onRestart={handleRestart} />;
+  if (progressAdapter?.mode==="summary"||(!progressAdapter&&showCompletion)) {
+    return <CompletionScreen lesson={lesson} completed={completedCount} total={activities.length} totalMinutes={totalMinutes} returnPath={returnPath} onReview={progressAdapter?.onReview??(() => { reviewLesson(); setShowCompletion(false); })} onRestart={progressAdapter?.onRestart??(progressAdapter?undefined:handleRestart)} actions={progressAdapter?.completionActions} completionLabel={progressAdapter?.completionLabel} completionMessage={progressAdapter?.completionMessage} storageMessage={progressAdapter?.storageMessage} />;
   }
 
   return <div className="min-h-screen bg-slate-50">
@@ -131,8 +139,8 @@ export default function LessonPlayer({ lesson, returnPath = "/courses", contextL
             </li>;
           })}
         </ol>
-        <button type="button" onClick={handleRestart} className="mt-4 w-full rounded-xl px-3 py-2 text-sm font-semibold text-slate-500 hover:bg-slate-100 hover:text-red-700">Restart lesson</button>
-        <p className="mt-2 px-3 text-xs leading-5 text-slate-400">{isPreview ? "Preview responses are not saved." : "Progress is stored on this device only."}</p>
+        {!progressAdapter&&<button type="button" onClick={handleRestart} className="mt-4 w-full rounded-xl px-3 py-2 text-sm font-semibold text-slate-500 hover:bg-slate-100 hover:text-red-700">Restart lesson</button>}
+        <p className="mt-2 px-3 text-xs leading-5 text-slate-400">{progressAdapter?"Progress is synchronized for this Course Release.":isPreview ? "Preview responses are not saved." : "Progress is stored on this device only."}</p>
       </aside>}
 
       <main className="min-w-0">
@@ -155,7 +163,18 @@ export default function LessonPlayer({ lesson, returnPath = "/courses", contextL
 
           {isPreview && <p role="status" className="mt-5 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-medium text-blue-900">Preview response checked. Nothing was saved.</p>}
           {!isPreview && !canCompleteCurrent && <p role="status" className="mt-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900">Submit each question in this activity before continuing. Correct answers are not required.</p>}
-          <div className="mt-6"><LessonNavigator current={current} total={activities.length} canAdvance={canCompleteCurrent} isLast={isLastActivity} onPrevious={() => { previousActivity(); setTransition(null); }} onComplete={markCurrentComplete} /></div>
+          {persistenceError&&<p role="alert" className="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800">{persistenceError}</p>}
+          {progressAdapter?.mode === "review" ? (
+            <div className="mt-6">
+              {shouldUseFinalReviewActions(current,activities.length,Boolean(progressAdapter.reviewActions)) ? progressAdapter.reviewActions : (
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <button type="button" disabled={current === 0} onClick={() => previousActivity()} className="min-h-12 rounded-xl border border-slate-300 px-5 font-bold text-slate-700 disabled:opacity-40">Previous Activity</button>
+                  {current < activities.length - 1 && <button type="button" onClick={() => goToActivity(current + 1)} className="min-h-12 rounded-xl bg-blue-600 px-5 font-bold text-white">Next Activity</button>}
+                  <button type="button" onClick={progressAdapter.onReturnToSummary} className="min-h-12 rounded-xl border border-slate-300 px-5 font-bold text-slate-700">Back to Lesson Summary</button>
+                </div>
+              )}
+            </div>
+          ) : <div className="mt-6"><LessonNavigator current={current} total={activities.length} canAdvance={canCompleteCurrent} isLast={isLastActivity} onPrevious={() => { previousActivity(); setTransition(null); }} onComplete={()=>void markCurrentComplete()} /></div>}
         </>}
       </main>
     </div>
@@ -172,26 +191,26 @@ function TransitionPanel({ message, isAiNext, onContinue }: { message: string; i
   </section>;
 }
 
-function CompletionScreen({ lesson, completed, total, totalMinutes, returnPath, onReview, onRestart }: {
+function CompletionScreen({ lesson, completed, total, totalMinutes, returnPath, onReview, onRestart,actions,completionLabel,completionMessage,storageMessage }: {
   lesson: LearnerLesson; completed: number; total: number; totalMinutes: number | null;
-  returnPath: string; onReview: () => void; onRestart: () => void;
+  returnPath: string; onReview: () => void; onRestart?: () => void;actions?:(onReview:()=>void)=>ReactNode;completionLabel?:string;completionMessage?:string;storageMessage?:string;
 }) {
   return <section className="mx-auto max-w-3xl rounded-3xl border border-emerald-200 bg-white p-7 text-center shadow-lg sm:p-12">
     <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-emerald-100 text-2xl font-bold text-emerald-700">✓</span>
-    <p className="mt-5 text-xs font-bold uppercase tracking-[0.18em] text-emerald-700">Lesson completed</p>
+    <p className="mt-5 text-xs font-bold uppercase tracking-[0.18em] text-emerald-700">{completionLabel??"Lesson completed"}</p>
     <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-950">{lesson.title || "PronounceLab lesson"}</h1>
-    <p className="mx-auto mt-3 max-w-xl leading-7 text-slate-600">You completed every lesson step. Review the activities whenever you want to reinforce today’s pronunciation work.</p>
+    <p className="mx-auto mt-3 max-w-xl leading-7 text-slate-600">{completionMessage??"You completed every lesson step. Review the activities whenever you want to reinforce today’s pronunciation work."}</p>
     <div className="mx-auto mt-7 grid max-w-lg gap-3 sm:grid-cols-3">
       <CompletionStat label="Activities" value={`${completed} of ${total}`} />
       <CompletionStat label="Completion" value="100%" />
       <CompletionStat label="Practice time" value={totalMinutes === null ? "Not available" : `About ${totalMinutes} min`} />
     </div>
-    <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+    {actions?actions(onReview):<div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
       <button type="button" onClick={onReview} className="min-h-12 rounded-xl bg-blue-600 px-6 font-bold text-white hover:bg-blue-700">Review Lesson</button>
       <Link to={returnPath} className="inline-flex min-h-12 items-center justify-center rounded-xl border border-slate-300 px-6 font-bold text-slate-700 hover:bg-slate-50">Return to lessons</Link>
-    </div>
-    <button type="button" onClick={onRestart} className="mt-5 text-sm font-semibold text-slate-500 underline underline-offset-4 hover:text-red-700">Restart Lesson</button>
-    <p className="mt-6 text-xs text-slate-500">Completion is stored on this device and is not synchronized to an account.</p>
+    </div>}
+    {onRestart&&<button type="button" onClick={onRestart} className="mt-4 min-h-12 rounded-xl border border-slate-300 px-6 font-bold text-slate-700 hover:bg-slate-50 hover:text-red-700">Restart Lesson</button>}
+    <p className="mt-6 text-xs text-slate-500">{storageMessage??"Completion is stored on this device and is not synchronized to an account."}</p>
   </section>;
 }
 

@@ -4,6 +4,10 @@ export type ClassRecord = { id: number; name: string; description: string; statu
 export type EnrollmentRecord = { class_id: number; learner_user_id: string; status: "active" | "inactive"; joined_at: string; classes: { name: string; description: string } | null };
 export type RosterMember = { learnerId: string; email: string; status: "active" | "inactive"; joinedAt: string };
 export type ProgressSummary = { learnerId: string; email: string; startedLessons: number; completedLessons: number; lastAccessedAt: string | null };
+export type CourseReleaseOption = { releaseId:number; courseId:number; courseTitle:string; courseDescription:string; courseLevel:string; releaseNumber:number; releasedAt:string; isLatest:boolean };
+export type ClassCourseAssignment = { assignmentId:number; classId:number; releaseId:number; courseId:number; courseTitle:string; courseDescription:string; courseLevel:string; releaseNumber:number; latestReleaseNumber:number; assignedAt:string; endedAt:string|null; status:"active"|"inactive" };
+export type AssignmentProgressLearner = { learnerId:string; email:string; startedLessons:number; completedLessons:number; completionPercent:number; lastAccessedAt:string|null };
+export type AssignmentProgress = { assignmentId:number; releaseId:number; courseTitle:string; releaseNumber:number; totalLessons:number; learners:AssignmentProgressLearner[] };
 
 function client() { if (!supabase) throw new Error("Classes are unavailable."); return supabase; }
 function fail(error: { message: string } | null) { if (error) throw new Error("The class request could not be completed."); }
@@ -26,3 +30,8 @@ export async function getClassProgress(id: number) { const { data, error } = awa
 export async function setEnrollmentActive(id: number, learnerId: string, active: boolean) { const { error } = await client().rpc("set_class_enrollment_active", { requested_class_id: id, requested_learner_id: learnerId, requested_active: active }); fail(error); }
 export async function joinClass(code: string) { const { data, error } = await client().rpc("join_class", { requested_join_code: code }); fail(error); return Number(data); }
 export async function listMyMemberships() { const { data, error } = await client().from("class_enrollments").select("class_id,learner_user_id,status,joined_at,classes(name,description)").eq("status", "active"); fail(error); return (data ?? []) as unknown as EnrollmentRecord[]; }
+export async function listAssignableCourseReleases(){const{data,error}=await client().rpc("list_assignable_course_releases");fail(error);return(data??[])as unknown as CourseReleaseOption[]}
+export async function listClassCourseAssignments(classId:number){const{data,error}=await client().rpc("get_class_course_assignments",{requested_class_id:classId});fail(error);return(data??[])as unknown as ClassCourseAssignment[]}
+export async function assignClassCourseRelease(classId:number,releaseId:number){const{data,error}=await client().rpc("assign_class_course_release",{requested_class_id:classId,requested_release_id:releaseId});fail(error);return Number(data)}
+export async function deactivateClassCourseAssignment(assignmentId:number){const{error}=await client().rpc("deactivate_class_course_assignment",{requested_assignment_id:assignmentId});fail(error)}
+export async function getClassAssignmentProgress(assignmentId:number){const{data,error}=await client().rpc("get_class_assignment_progress",{requested_assignment_id:assignmentId});fail(error);return data as unknown as AssignmentProgress}

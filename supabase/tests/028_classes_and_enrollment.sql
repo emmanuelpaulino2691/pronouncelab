@@ -13,7 +13,7 @@ insert into public.user_roles(user_id,role) values
 ('92800000-0000-4000-8000-000000000001','teacher'),
 ('92800000-0000-4000-8000-000000000002','teacher'),
 ('92800000-0000-4000-8000-000000000005','admin');
-truncate table public.class_enrollments, public.classes restart identity;
+truncate table public.class_course_assignments, public.class_enrollments, public.classes restart identity;
 
 set local role authenticated;
 set local request.jwt.claim.sub='92800000-0000-4000-8000-000000000001';

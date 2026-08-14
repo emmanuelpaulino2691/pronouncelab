@@ -129,9 +129,15 @@ session for every tab; the application does not emulate per-tab identities.
 
 The bootstrap also creates `Local Enrolled Class` (`953001`) with the local Learner enrolled and `Local Joinable Class` (`953002`) with join code `A52B000000000002`. Teacher testing uses `/admin/classes`; learner membership and joining use `/classes` in Incognito or a separate profile.
 
-Publishing `Local Learner Course` creates Release 1 and bootstrap grants only the local Learner a test entitlement. Query `select id from public.course_releases where course_id = 952001 and release_number = 1;`, then open `/releases/<id>`. Release progress starts empty and does not import current/public progress.
+Publishing `Local Learner Course` creates Release 1. Bootstrap assigns it to `Local Enrolled Class`, whose active enrollment authorizes the local Learner without a direct entitlement row. Open `/admin/classes/953001` as Teacher or `/classes` as Learner; the assigned Course continues through `/releases/<id>`. Release progress starts empty and does not import current/public progress.
 
 On the Release page, Unit 1 Lesson 1 starts **Available** and all later content starts **Locked**. A locked card is not a link. A direct locked-Lesson URL displays a controlled explanation and does not receive activity content. Complete each available Lesson in order to verify Lesson and Unit unlocking; completed Lessons remain open for review.
+
+From `/classes`, each assigned Course shows synchronized Lesson completion and **Open Course** enters the immutable Release overview. Open an available Lesson there. The Release runtime uses the full shared learner Lesson Player with pinned historical activity content and Release-only progress writes. After completing a Lesson, use **Next Lesson**; the final Lesson shows Course completion and returns to the originating Class when `classId` context is present. Test direct `/releases/<id>` entry separately to confirm its Course-overview fallback.
+
+Opening a completed Release Lesson starts at its completion summary. **Review Lesson** browses completed activities without completion controls and always offers **Back to Lesson Summary**. **Restart Lesson** starts a fresh local practice pass from Activity 1; completing that pass returns to the summary without deleting or rewriting synchronized completion.
+
+When testing **Next Lesson**, verify that an incomplete destination opens its own player rather than the previous Lesson summary. Repeat from normal completion, Review, and Restart; overview entry, direct URL, refresh, and Next Lesson must agree on the destination Lesson's authoritative completion state.
 
 Override the development passwords without editing tracked files:
 
