@@ -135,6 +135,14 @@ begin
 end;
 $$;
 
+set constraints capture_course_release_after_publication immediate;
+
+insert into public.course_release_learner_entitlements(course_release_id, learner_id)
+select release.id, '${learnerId}'
+from public.course_releases release
+where release.course_id = 952001 and release.release_number = 1
+on conflict do nothing;
+
 do $$
 begin
   if not public.learner_lesson_is_eligible('${learnerId}', 952021) then

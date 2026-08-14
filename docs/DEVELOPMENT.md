@@ -129,6 +129,10 @@ session for every tab; the application does not emulate per-tab identities.
 
 The bootstrap also creates `Local Enrolled Class` (`953001`) with the local Learner enrolled and `Local Joinable Class` (`953002`) with join code `A52B000000000002`. Teacher testing uses `/admin/classes`; learner membership and joining use `/classes` in Incognito or a separate profile.
 
+Publishing `Local Learner Course` creates Release 1 and bootstrap grants only the local Learner a test entitlement. Query `select id from public.course_releases where course_id = 952001 and release_number = 1;`, then open `/releases/<id>`. Release progress starts empty and does not import current/public progress.
+
+On the Release page, Unit 1 Lesson 1 starts **Available** and all later content starts **Locked**. A locked card is not a link. A direct locked-Lesson URL displays a controlled explanation and does not receive activity content. Complete each available Lesson in order to verify Lesson and Unit unlocking; completed Lessons remain open for review.
+
 Override the development passwords without editing tracked files:
 
 ```powershell

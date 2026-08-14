@@ -314,6 +314,8 @@ Classroom work is intentionally separate from the current Course Workspace. A fu
 
 Sprint 52B connects lazy-loaded `/admin/classes`, `/admin/classes/new`, and `/admin/classes/:classId` routes to teacher-owned Classes and soft enrollment. Learners join through `/classes` with a regenerable opaque code. Enrollment-scoped progress is exposed only by a controlled summary RPC; direct Teacher progress-table access remains forbidden. Course release assignments remain future work.
 
+Immutable Course Releases snapshot Course metadata, ordered Unit/Lesson metadata, and exact sealed Lesson-version IDs. Publication captures a fingerprinted manifest atomically through the final Course publication update. `/releases/:releaseId` routes use entitlement-protected historical RPCs. Release progress has separate Release-Lesson identity; the public/current journey remains unchanged.
+
 ## Domain contracts
 
 The progressive domain layer lives under `src/domain`. It centralizes shared status and activity constants, course/class/publishing types, frontend-safe permission predicates, domain error classes, and future service interfaces. These contracts do not replace existing feature services or authorize requests; Supabase RLS and controlled RPCs remain the security boundary. Classroom and release types are intentionally descriptive until their backend contracts are implemented.

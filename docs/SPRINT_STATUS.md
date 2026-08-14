@@ -1,5 +1,11 @@
 # Sprint Status
 
+## Sprint 52C prerequisite — Immutable Releases + Release Runtime
+
+**Status:** Implemented locally; manual browser QA and deployment pending.
+
+Delivered atomic fingerprinted Course Release manifests, historical exact-version delivery, entitlement-protected Release routes, Release-scoped progress and eligibility, immutable manifest enforcement, deterministic bootstrap entitlement, pgTAP coverage, and ADR 0013. Class Course assignments are intentionally not implemented.
+
 ## Sprint 52B — Classes + Enrollment Foundation
 
 **Status:** Implemented locally; manual browser QA and deployment pending.

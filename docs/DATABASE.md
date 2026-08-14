@@ -339,6 +339,12 @@ Authenticated users without a row in `user_roles` are learner identities; the ro
 
 `classes` stores one owner, active/archived lifecycle, and a 64-bit random regenerable join code. `class_enrollments` stores one soft-deactivatable relationship per Class/Learner. RLS exposes owned Classes/rosters to Teachers, own active memberships to Learners, and platform support access to Admins. Controlled RPCs perform creation, joining, removal, code rotation, and enrollment-scoped progress summaries. Assignments and immutable Course releases remain future work.
 
+## Immutable Course Releases
+
+`course_releases`, `course_release_units`, and `course_release_lessons` form an update/delete-sealed manifest storing exact Lesson-version IDs and structural snapshots. `learner_release_lesson_progress` and `learner_release_activity_progress` are independent from current/public progress. Controlled RPCs enforce entitlement, manifest membership, exact activity-version identity, and Release ordering. `course_release_learner_entitlements` is the temporary server-managed access seam for local validation and future assignment authorization.
+
+Release eligibility uses the manifest's `(Unit position, Lesson position, Release Lesson id)` ordering. The progress snapshot returns each Lesson's authoritative `available`, `completed`, or `locked` state. Normal learner delivery returns no Lesson/activity payload for locked content; completed Lessons remain deliverable for review. Runtime errors use distinct `PLR01`–`PLR05` SQL states for unavailable Releases, invalid manifest Lessons, progression locks, non-learner identities, and activities outside the pinned Lesson version.
+
 The frontend domain contracts under `src/domain` describe these future records without asserting that they exist in Postgres. Service interfaces document expected authorization and result boundaries; they do not issue requests or create a parallel data access layer.
 ## Teacher Media Library access
 

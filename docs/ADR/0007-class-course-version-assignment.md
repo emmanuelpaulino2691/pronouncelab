@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — design decision; not implemented.
+Accepted; immutable Course Releases implemented in Sprint 52C prerequisite. Class assignments remain future work.
 
 ## Context
 
