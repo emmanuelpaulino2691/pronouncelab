@@ -1,5 +1,9 @@
 # Sprint Status
 
+## Sprint 52D — Assignment Experience & Lifecycle UX
+
+Implemented locally as a frontend-only increment. Teacher Class workspaces now present active immutable Release assignments, completion summaries, responsive learner progress, explicit newer-Release review and confirmation, ordered assignment history, and clear archive/deactivation preservation semantics. Join codes support copy and explained regeneration. Learner Class cards show Release-only Not started, In progress, or Completed state with Open/Review Course actions. Availability and due dates are explicitly deferred; no database or authorization contract changed.
+
 ## Sprint 52C — Class → Course Release Assignments
 
 Implemented locally. Teacher-owned Classes can assign owned immutable Course Releases, explicitly move to newer Releases while preserving history, deactivate assignments, and view active-roster Release-scoped progress. Learners see assigned Courses through `/classes`; access derives from active enrollment + active Class + active assignment and immediately follows lifecycle changes without copied entitlements. Bootstrap exercises the production relationship. See ADR 0014.

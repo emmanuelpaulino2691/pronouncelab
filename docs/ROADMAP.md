@@ -7,6 +7,8 @@ Implemented locally. Ordinary authenticated users are learners, published activi
 Sprint 52B implements teacher-owned Classes, secure join-code enrollment, learner memberships, soft removal/rejoin, and enrollment-scoped coarse progress reporting. Sprint 52C should introduce immutable Course releases and Class assignments before detailed progress reporting.
 Sprint 52C provides immutable Course Releases, historical exact-version delivery, independent Release progress, Class-to-Release assignments, enrollment-derived authorization, and assignment-scoped Teacher reporting. Future work can add due dates, assignment-specific learner launches, and richer reporting history without changing Release identity.
 
+Sprint 52D improves assignment lifecycle presentation without changing schema: explicit Release-update review, preserved assignment history, responsive Release-scoped roster reporting, clear access-preservation confirmations, safer join-code controls, and calm learner Course status cards. Availability and due dates are deferred until scheduling, notification, timezone, and late-work rules are defined together.
+
 ## Sprint 51C — Media Library Content Deduplication
 
 Implemented locally. Trusted owner-scoped SHA-256 registration prevents future

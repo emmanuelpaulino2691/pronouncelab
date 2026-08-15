@@ -129,6 +129,8 @@ session for every tab; the application does not emulate per-tab identities.
 
 The bootstrap also creates `Local Enrolled Class` (`953001`) with the local Learner enrolled and `Local Joinable Class` (`953002`) with join code `A52B000000000002`. Teacher testing uses `/admin/classes`; learner membership and joining use `/classes` in Incognito or a separate profile.
 
+In the Teacher Class workspace, verify the active assignment card, Release-scoped learner rows, update review, collapsible assignment history, archive/reactivation explanation, and join-code copy/regeneration flow. Deactivation and archival confirmations must state that progress is preserved. On `/classes`, verify Not started, In progress, and Completed cards at phone and desktop widths; Completed Courses use **Review Course** and all Course actions still open the immutable Course overview.
+
 Publishing `Local Learner Course` creates Release 1. Bootstrap assigns it to `Local Enrolled Class`, whose active enrollment authorizes the local Learner without a direct entitlement row. Open `/admin/classes/953001` as Teacher or `/classes` as Learner; the assigned Course continues through `/releases/<id>`. Release progress starts empty and does not import current/public progress.
 
 On the Release page, Unit 1 Lesson 1 starts **Available** and all later content starts **Locked**. A locked card is not a link. A direct locked-Lesson URL displays a controlled explanation and does not receive activity content. Complete each available Lesson in order to verify Lesson and Unit unlocking; completed Lessons remain open for review.
