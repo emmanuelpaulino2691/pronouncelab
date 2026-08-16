@@ -69,6 +69,18 @@ export async function getDraftLesson(id: ContentId): Promise<LearnerLesson | nul
   } catch { return null; }
 }
 
+export async function getPublishedLesson(id: ContentId): Promise<LearnerLesson | null> {
+  const lessonId = Number(id);
+  if (!Number.isSafeInteger(lessonId)) return null;
+  try {
+    const parent = await getAdminUnitForLesson(lessonId);
+    const lesson = await getAdminLesson(lessonId, parent.unitId);
+    if (!lesson.currentPublishedVersionId) return null;
+    const activities = await listActivities(lesson.currentPublishedVersionId);
+    return mapDraftLessonToLearnerLessonData(lesson, parent.courseId, activities);
+  } catch { return null; }
+}
+
 async function getAdminUnitForLesson(lessonId: number): Promise<{ unitId: number; courseId: number }> {
   // Lesson Studio already enforces parent scoping. This lookup is only a safe
   // best-effort adapter; failure lets the resolver continue to published/local.
@@ -87,13 +99,36 @@ export async function getDraftCourse(id: ContentId): Promise<LearnerCourse | nul
   try {
     const course = await getAdminCourse(courseId);
     const units = await listAdminUnits(course.id);
+    let hasSavedDraft = course.status === "draft" || units.some((unit) => unit.status === "draft");
     const mappedUnits: LearnerUnit[] = await Promise.all(units.map(async (unit) => {
       const lessons = await listAdminLessons(unit.id);
+      if (lessons.some((lesson) => lesson.status === "draft")) hasSavedDraft = true;
+      if (!hasSavedDraft) {
+        const versions = await Promise.all(lessons.map((lesson) => loadLessonVersion(lesson.id)));
+        hasSavedDraft = versions.some((version) => version?.status === "draft");
+      }
       return {
         id: contentId(unit.id), courseId: contentId(course.id), title: unit.title, description: unit.description, position: unit.position, lessonCount: lessons.length,
         lessons: lessons.map((lesson) => ({ id: contentId(lesson.id), unitId: contentId(unit.id), title: lesson.title, description: lesson.description, position: lesson.position, currentVersionId: null, activityCount: 0, available: true })),
       };
     }));
+    if (!hasSavedDraft) return null;
     return { id: contentId(course.id), slug: course.slug, title: course.title, description: course.description, level: course.level, emoji: course.emoji, position: course.position, unitCount: mappedUnits.length, visibility:"class_only", units: mappedUnits };
+  } catch { return null; }
+}
+
+export async function getPublishedCourse(id: ContentId): Promise<LearnerCourse | null> {
+  const courseId = Number(id);
+  if (!Number.isSafeInteger(courseId)) return null;
+  try {
+    const course = await getAdminCourse(courseId);
+    if (course.status !== "published") return null;
+    const units = (await listAdminUnits(course.id)).filter((unit) => unit.status === "published");
+    const mappedUnits: LearnerUnit[] = await Promise.all(units.map(async (unit) => {
+      const lessons = (await listAdminLessons(unit.id)).filter((lesson) => lesson.status === "published" && lesson.currentPublishedVersionId !== null);
+      return { id: contentId(unit.id), courseId: contentId(course.id), title: unit.title, description: unit.description, position: unit.position, lessonCount: lessons.length,
+        lessons: lessons.map((lesson) => ({ id: contentId(lesson.id), unitId: contentId(unit.id), title: lesson.title, description: lesson.description, position: lesson.position, currentVersionId: contentId(lesson.currentPublishedVersionId!), activityCount: 0, available: true })) };
+    }));
+    return { id: contentId(course.id), slug: course.slug, title: course.title, description: course.description, level: course.level, emoji: course.emoji, position: course.position, unitCount: mappedUnits.length, visibility: course.learnerVisibility, units: mappedUnits };
   } catch { return null; }
 }

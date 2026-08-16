@@ -194,6 +194,14 @@ Unlisted redemption requires the authenticated learner account. Its deterministi
 
 For Sprint 52F learner navigation QA, verify `/` contains only the `Local Enrolled Class` assignment, `/classes` labels Teacher-assigned Class Progress, `/courses` contains Public/Unlisted Independent Practice only, and `/progress` shows Class Progress and Independent Practice as separate sections. Test the drawer at phone width and confirm the active item is announced visually for Home, My Classes, Course Library, and Progress.
 
+### Browser, keyboard, and responsive QA matrix
+
+For learner/Teacher regression passes, use a normal browser profile for Teacher or Admin and Incognito or a separate profile for the Learner. Tabs in one profile intentionally share one Supabase Auth session.
+
+Exercise the primary routes at approximately 360, 390–430, 768, 1024, and 1280+ CSS pixels. At each relevant width verify keyboard-only navigation, visible focus, readable wrapping, touch-sized controls, and no unintended horizontal page scrolling. Cover Home, My Classes, Course Library, Progress, both Course overviews, both Lesson runtimes, `/login`, Courses, Classes, Class workspace, Lesson Studio, and Media Library.
+
+Route navigation moves focus to the main content region. Mobile learner navigation traps focus while open, closes on Escape or route selection, restores focus to its opener, and locks background scrolling. Lifecycle confirmations use the shared accessible dialog. Manual browser reasoning remains required; the repository does not currently include a browser or axe runtime, so no new E2E command is claimed.
+
 Useful learner URLs:
 
 - Home: `http://127.0.0.1:3000/`

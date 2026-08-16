@@ -37,7 +37,7 @@ import {
 } from "../units/adminUnitService";
 import {
   createAdminLesson,
-  deleteDraftLesson,
+  removeAdminLesson,
   duplicateDraftLesson,
   listAdminLessons,
   updateAdminLesson,
@@ -47,6 +47,8 @@ import LessonCreationDialog from "./LessonCreationDialog";
 import { canStartLessonCreation } from "./lessonCreationState";
 import { buildStudentPreviewUrl } from "../preview/previewNavigation";
 import { canCreateDraftLesson, canEditDraftLesson } from "../hierarchyAuthoring";
+import { hasSiblingTitle, hierarchyTitleSaveError } from "../hierarchyTitleIntegrity";
+import { lessonRemovalDescription } from "../removalPresentation";
 
 type FormState =
   | { mode: "closed" }
@@ -223,6 +225,11 @@ function UnitLessonsContent({
       formState.mode === "create" &&
       !canStartLessonCreation(isSaving, creationCompletedRef.current)
     ) return;
+    const editedLessonId = formState.mode === "edit" ? formState.lesson.id : undefined;
+    if (hasSiblingTitle(lessons, input.title, editedLessonId)) {
+      setFormErrorMessage(`A Lesson named '${input.title.trim()}' already exists in this Unit.`);
+      return;
+    }
 
     saveInFlightRef.current = true;
     setIsSaving(true);
@@ -285,10 +292,7 @@ function UnitLessonsContent({
       }
     } catch (error) {
       if (isActiveRef.current) {
-        void error;
-        setFormErrorMessage(
-          "The lesson could not be saved. Your changes are still here. Please try again."
-        );
+        setFormErrorMessage(hierarchyTitleSaveError(error, "Lesson", input.title));
       }
     } finally {
       saveInFlightRef.current = false;
@@ -308,7 +312,7 @@ function UnitLessonsContent({
     setErrorMessage(null);
 
     try {
-      await deleteDraftLesson(
+      await removeAdminLesson(
         lesson.id,
         unitId
       );
@@ -378,7 +382,7 @@ function UnitLessonsContent({
         description={unit?.description || "Manage the ordered lessons and open the authoring studio."}
         breadcrumbs={[{ label: "Courses", to: "/admin/courses" }, { label: course?.title ?? "Course", to: `/admin/courses/${courseId}` }, { label: unit?.title ?? "Unit" }]}
         meta={unit ? <StatusBadge status={unit.status} /> : undefined}
-        actions={<><ButtonLink icon="arrow-left" variant="secondary" to={`/admin/courses/${courseId}`}>Back to curriculum</ButtonLink>{canCreateLesson && <Button icon="plus" onClick={() => { creationCompletedRef.current = false; setFormErrorMessage(null); setFormState({ mode: "create" }); }}>Create lesson</Button>}</>}
+        actions={<><ButtonLink icon="arrow-left" variant="secondary" to={`/admin/courses/${courseId}`}>Back to curriculum</ButtonLink>{unit?.status === "published" && <ButtonLink variant="secondary" to={buildStudentPreviewUrl({courseId,unitId,target:"published",returnTo:`${location.pathname}${location.search}`})}>Preview Published</ButtonLink>}<ButtonLink variant="secondary" to={buildStudentPreviewUrl({courseId,unitId,target:"draft",returnTo:`${location.pathname}${location.search}`})}>Preview Draft</ButtonLink>{canCreateLesson && <Button icon="plus" onClick={() => { creationCompletedRef.current = false; setFormErrorMessage(null); setFormState({ mode: "create" }); }}>Create lesson</Button>}</>}
       />
       {!canEditDrafts && <div className="mt-5"><Alert>You can view these lessons, but your role does not allow authoring drafts.</Alert></div>}
       {canEditDrafts && unit?.status === "published" && <div className="mt-5"><Alert><strong>Published unit.</strong> Published lessons remain read-only. You can append new draft lessons; learners will not see them until you publish updates.</Alert></div>}
@@ -435,7 +439,7 @@ function UnitLessonsContent({
                       <td className="px-6 py-5">
                         <div className="flex justify-end gap-2">
                           <ButtonLink icon="sparkle" to={`/admin/courses/${courseId}/units/${unitId}/lessons/${lesson.id}/studio`}>Open Studio</ButtonLink>
-                          <ButtonLink variant="secondary" to={buildStudentPreviewUrl({ courseId, lessonId: lesson.id, returnTo: `${location.pathname}${location.search}` })}>Preview as Student</ButtonLink>
+                          {lesson.currentPublishedVersionId ? <ButtonLink variant="secondary" to={buildStudentPreviewUrl({ courseId, lessonId: lesson.id, target: "published", returnTo: `${location.pathname}${location.search}` })}>Preview Published</ButtonLink> : <ButtonLink variant="secondary" to={buildStudentPreviewUrl({ courseId, lessonId: lesson.id, target: "draft", returnTo: `${location.pathname}${location.search}` })}>Preview Draft</ButtonLink>}
                         {isDraft && canEditDraftLesson(
                           canEditDrafts,
                           lesson.status,
@@ -463,30 +467,14 @@ function UnitLessonsContent({
                               { label: "Move up", disabled: lesson === lessons[0], explanation: "This lesson is already first.", onSelect: () => setUnavailableOperation("Reorder lessons") },
                               { label: "Move down", disabled: lesson === lessons.at(-1), explanation: "This lesson is already last.", onSelect: () => setUnavailableOperation("Reorder lessons") },
                               { label: "Archive", disabled: true, explanation: "Archiving is planned for a future release.", onSelect: () => undefined },
-                              { label: "Delete", danger: true, onSelect: () => { setErrorMessage(null); setDeleteConfirmation(openDeleteConfirmation(lesson)); } },
                             ]} />
-                            <button
-                              type="button"
-                              disabled={
-                                deletingLessonId ===
-                                lesson.id
-                              }
-                              onClick={() =>
-                                { setErrorMessage(null); setDeleteConfirmation(openDeleteConfirmation(lesson)); }
-                              }
-                              className="rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:cursor-not-allowed disabled:opacity-40"
-                            >
-                              {deletingLessonId ===
-                              lesson.id
-                                ? "Deleting…"
-                                : "Delete"}
-                            </button>
                           </>
                         ) : (
                           <span className="self-center text-sm text-slate-400">
                             View only
                           </span>
                         )}
+                        {canEditDrafts && <button type="button" disabled={deletingLessonId === lesson.id} onClick={() => { setErrorMessage(null); setDeleteConfirmation(openDeleteConfirmation(lesson)); }} className="rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:cursor-not-allowed disabled:opacity-40">{deletingLessonId === lesson.id ? "Deleting…" : "Delete"}</button>}
                         </div>
                       </td>
                     </tr>
@@ -531,7 +519,7 @@ function UnitLessonsContent({
       <ConfirmDeleteDialog
         isOpen={deleteConfirmation.target !== null}
         title="Delete lesson"
-        description={deleteConfirmation.target ? `Delete “${deleteConfirmation.target.title}” and its draft content?` : ""}
+        description={deleteConfirmation.target ? lessonRemovalDescription(deleteConfirmation.target) : ""}
         isDeleting={deleteConfirmation.pending}
         errorMessage={deleteConfirmation.target ? errorMessage : null}
         onCancel={() => setDeleteConfirmation((current) => cancelDeleteConfirmation(current))}

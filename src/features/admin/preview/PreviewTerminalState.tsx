@@ -16,7 +16,7 @@ export function PreviewTerminalState({ courseId, error, onRetry, returnPath }: P
   const message = error?.message ?? "No saved draft, published version, or local content is available for this preview.";
   return <>
     <StudentPreviewToolbar returnPath={returnPath} />
-    <MainLayout>
+    <MainLayout immersive>
       <section className="mx-auto max-w-2xl rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
         <h1 className="text-2xl font-bold text-slate-950">{title}</h1>
         <p className="mt-3 leading-7 text-slate-600">{message}</p>

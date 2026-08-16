@@ -21,6 +21,7 @@ export const routeModuleLoaders = {
   releaseCourse: () => import("../../features/releases/ReleaseCoursePage"),
   releaseLesson: () => import("../../features/releases/ReleaseLessonPage"),
   previewCourse: () => import("../../features/admin/preview/StudentPreviewCoursePage"),
+  previewUnit: () => import("../../features/admin/preview/StudentPreviewUnitPage"),
   previewLesson: () => import("../../features/admin/preview/StudentPreviewLessonPage"),
   mediaLibrary: () => import("../../features/admin/media/AdminMediaLibraryPage"),
 } as const;

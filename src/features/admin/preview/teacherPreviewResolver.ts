@@ -70,3 +70,16 @@ export function resolveTeacherPreviewCourse(
 ) {
   return resolve(id, sources.draft?.getCourse, sources.published.getCourse.bind(sources.published), sources.local.getCourse.bind(sources.local), signal);
 }
+
+export async function resolveExplicitTeacherPreview<T>(target: "draft" | "published", loadDraft: () => Promise<T | null>, loadPublished: () => Promise<T | null>): Promise<
+  | { status: "ready"; source: "draft" | "published"; value: T }
+  | { status: "unavailable"; reason: string }
+  | { status: "error"; reason: string }
+> {
+  try {
+    const value = await (target === "draft" ? loadDraft() : loadPublished());
+    return value ? { status: "ready", source: target, value } : { status: "unavailable", reason: `No saved ${target} content is available.` };
+  } catch {
+    return { status: "error", reason: `${target === "draft" ? "Draft" : "Published"} Preview could not be loaded.` };
+  }
+}

@@ -1,5 +1,13 @@
 # Architecture
 
+Authoring hierarchy names follow immediate-container semantics: Unit titles are compared among siblings in one Course, while Lesson titles are compared only among siblings in one Unit. The frontend provides an early sibling check and preserves entered form state, but database expression indexes remain authoritative for RPCs, direct permitted updates, concurrency, duplication, and future callers.
+
+Published source content remains removable from future authoring state without mutating history. Draft-only rows are physically deleted; released Lessons and Units are archived, and published Courses are retired. Immutable Course Releases continue to own the historical learner delivery contract, so an existing Class assignment remains usable until the Teacher ends or replaces it while retired sources cannot be newly published, shared, listed, or assigned.
+
+Student Preview is a URL-backed staff runtime with an explicit `draft` or `published` target. Course, Unit, and Lesson preview links preserve that target across refresh and history navigation. Published preview reads the owner-authorized current published hierarchy and exact published Lesson version independently of Course Library visibility, Unlisted redemption, enrollment, or assignment access. The shared Lesson Player runs in `teacher_preview` mode and never invokes current or Release progress persistence.
+
+Authoring Student Preview uses an immersive preview shell rather than the authenticated learner shell. It deliberately omits Home, My Classes, Course Library, Progress, and learner account controls. Preview never calls Supabase authentication mutations or impersonates a learner; the original staff session remains authoritative for entry, refresh, navigation, and exit. Because Supabase stores one same-origin session per browser profile, simultaneous Teacher/Learner manual testing requires separate profiles or Incognito.
+
 ## Course Library and assignment separation
 
 Published content is not automatically public. `courses.learner_visibility` controls only current-course discoverability: `class_only` is private to immutable Class Release delivery, `unlisted` requires an authenticated learner to redeem a revocable random share token, and `public` appears in Course Library. Release creation and fingerprints exclude this setting.
@@ -338,3 +346,5 @@ The progressive domain layer lives under `src/domain`. It centralizes shared sta
 Student Preview carries `desktop`, `tablet`, or `phone` through the preview viewport boundary into the shared `LessonPlayer`. Width and learner-shell behavior therefore change together: desktop uses the outline sidebar, while tablet and phone use the compact activity selector and a full-width activity column. Normal learner routes keep `auto` mode and their existing browser-responsive behavior. Lesson Studio owns shared editor/split view state and renders saved activity content through `ActivityRenderer`; it does not inject unsaved editor state or persist learner mutations.
 
 `MainLayout` is the shared responsive Student shell boundary. The same forced Teacher Preview mode controls its navigation, header, content spacing, and the nested `LessonPlayer`: Desktop retains the permanent student sidebar, while Tablet and Phone replace it with a compact app bar and accessible navigation drawer. Real learner routes continue to pass `auto`, so browser breakpoints remain authoritative outside Teacher Preview.
+
+`MainLayout` also owns route-transition focus: pathname changes focus the main landmark, while data-only updates leave focus untouched. The mobile learner drawer is modal in behavior while open (focus containment, Escape dismissal, focus return, and background-scroll lock). This keeps route pages from implementing competing focus policies.

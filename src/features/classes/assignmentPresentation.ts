@@ -40,4 +40,4 @@ export function assignmentCompletionSummary(report: AssignmentProgress | undefin
 export const assignmentDeactivationConfirmation = "Learners will lose access through this Class. Their progress is preserved, and this assignment remains in history. Remove this assignment?";
 export const classArchiveConfirmation = "Archiving stops Class access and joining. Enrollments, assignments, and learner progress are preserved. Archive this Class?";
 export const joinCodeRegenerationConfirmation = "Create a new join code? The current code will stop working immediately. Existing learners remain enrolled.";
-
+export const releaseUpdateProgressExplanation = "Updating starts separate Class Progress for the new immutable Release. Existing Release progress and assignment history remain preserved.";

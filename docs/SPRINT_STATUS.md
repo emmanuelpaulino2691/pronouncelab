@@ -1,5 +1,13 @@
 # Sprint Status
 
+## Course authoring name integrity
+
+Implemented locally, pending resolution of one intentionally unmodified local data conflict before local migration replay: `unit_id=8` has duplicate normalized Lesson title `lesson 2` at Lesson IDs 8 and 9. The new forward migration enforces normalized Unit uniqueness per Course and normalized Lesson uniqueness per Unit, preserves cross-Unit Lesson title reuse, hardens copy naming, and adds precise Teacher-facing validation.
+
+## Sprint 52G — Browser QA, Accessibility & Responsive Hardening
+
+Implemented locally as a frontend hardening increment with no database changes. Shared learner route transitions now focus the main landmark, the mobile navigation drawer locks background scrolling while preserving its focus trap/return behavior, Teacher Class lifecycle actions use accessible explanatory dialogs, load/join failures use contextual alert and retry states, and Teacher Course/Class controls wrap safely at phone widths. Assignment and Independent Practice contracts remain separate. Browser/axe infrastructure is deferred because the repository has no existing browser DOM harness and adding a new dependency was not justified for this focused pass.
+
 ## Sprint 52F — Learner Home & Navigation Consolidation
 
 Implemented locally as a frontend/service-composition increment. Learner navigation is Home, My Classes, Course Library, and Progress. Home loads only active Class assignments, orders incomplete work by meaningful Release activity, and distinguishes no Classes, no assignments, and completed work. My Classes owns joining and Class Progress; Course Library owns Public/redeemed-Unlisted Independent Practice; Progress presents the two progress contexts separately. No database, RLS, progress identity, assignment, or publication contract changed.
@@ -593,3 +601,11 @@ In progress. Added a centralized Learn block registry, block validation helpers,
 In progress. Draft preview now uses a centralized mapper for specialist activity configuration and stable activity identity, including theory, listening, pronunciation, quiz, legacy practice, and AI Speaking Mission data. No learner projection, migration, or persistence behavior changed.
 
 Design package only. `CLASSROOM_DATABASE_BLUEPRINT.md` specifies the future classroom tables, RLS, RPC boundaries, migration dependency graph, validation rules, integrations, and sequence diagrams. No SQL, migration, schema change, or database execution was performed.
+
+## Sprint 52H — Authoring integrity and published-source removal
+
+Implemented locally. Unit titles are unique per Course and Lesson titles are unique per Unit using trim, whitespace-collapse, and case-insensitive normalization; cross-Unit Lesson-title reuse remains valid. Published Lessons and Units can now be removed from future source hierarchy through controlled owner-scoped RPCs, and published Courses can be retired. Historical immutable Releases, Release progress, and existing active Class assignments remain intact. Retirement revokes independent access and blocks new publication, visibility, sharing, and assignment operations. Focused pgTAP coverage validates both title scopes and non-destructive removal semantics.
+
+Published Student Preview now carries an explicit Draft or Published target through Course, Unit, Lesson, refresh, and browser-history URLs. Published preview is independent of learner visibility and enrollment while remaining owner/Admin-authorized and non-mutating. Class assignment Release replacement now atomically projects completed stable source Lessons for active enrolled learners, so a completed two-Lesson Class moved to a four-Lesson Release immediately reports 2/4 while preserving Release 1 history.
+
+The authoring Preview shell no longer renders ordinary learner navigation or account controls. It is a rendering-only staff context and cannot initiate learner authentication; Exit Preview returns through the preserved authoring URL under the unchanged Teacher/Admin session.

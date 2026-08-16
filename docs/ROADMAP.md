@@ -13,6 +13,8 @@ Sprint 52E separates publication from discoverability. Courses default to Class 
 
 Sprint 52F consolidates the learner workspace without database changes. Home is a calm ordered list of incomplete Class Assignments, My Classes owns joining and Teacher-assigned Courses, Course Library owns independent resume and redeemed Unlisted Courses, and the new Progress route displays Class and Independent progress separately. Future work should focus on browser accessibility QA and efficient server-side learner workspace aggregation only if measured Class/assignment volume makes the current bounded composition expensive.
 
+Sprint 52G hardens the shared browser shell and accumulated Teacher/Class workflows without changing schema: intentional route focus, modal mobile navigation behavior, accessible lifecycle confirmations, contextual failure recovery, and narrow-screen action/code layouts. A small Playwright/axe smoke suite remains a future tooling decision when dependency approval and CI browser provisioning are available. Learner workspace request aggregation remains measurement-driven; current fixture-scale composition is acceptable.
+
 ## Sprint 51C — Media Library Content Deduplication
 
 Implemented locally. Trusted owner-scoped SHA-256 registration prevents future

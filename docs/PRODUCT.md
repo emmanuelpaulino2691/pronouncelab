@@ -20,6 +20,8 @@ Lesson Studio presents reusable, locally defined teaching templates alongside th
 
 Course Workspace and Curriculum expose consistent content actions for editable units and lessons. Rename and delete continue to use existing authorized mutations. Destination-aware unit duplication, cross-unit lesson copy/move, archiving, and persistent bulk reorder have validated workflows but remain unavailable until atomic backend contracts are deployed; the UI never reports a successful change for them. Publication indicators use only status and version facts returned by current queries.
 
+Delete remains available after publication. Removing a published Lesson or Unit affects the next Course update while existing published learning and learner history stay unchanged. Deleting a published Course retires it from authoring and independent practice; existing Class assignments remain available until the Teacher explicitly ends or replaces them.
+
 ## Course publication
 
 PronounceLab Studio provides a course-level **Publish Course** workflow. It validates the complete course before changing learner-facing content, reports all known issues together, and publishes eligible draft lesson versions as one controlled operation. A published course may still contain newer private drafts, so teachers can continue improving it safely.

@@ -122,6 +122,10 @@ Test wide desktop, laptop, tablet, and narrow mobile whenever layout changes.
 - Announce copy, save, auth, transition, and parse status where practical.
 - Respect `prefers-reduced-motion`.
 - Do not render pasted AI content as HTML.
+
+Route transitions place keyboard focus on the main content landmark without scrolling the page. Ordinary data refreshes do not steal focus. Modal lifecycle actions use the shared labeled, focus-trapping `Dialog`; native destructive confirmations are not appropriate for product workflows that need preservation or access-impact explanations. Mobile drawers prevent background scrolling while open and return focus to their trigger when dismissed.
+
+Responsive QA uses representative 360, 390–430, 768, 1024, and 1280+ CSS-pixel viewports. Long join codes and email addresses must wrap, action groups stack on narrow screens, and roster/progress rows transform into readable card-like grids rather than requiring a desktop table.
 ## Teacher workspace states
 
 Role-aware workspace navigation uses the existing visual system: clear active links, muted disabled future sections, readable role badges, and responsive cards. Future areas must communicate “Coming later” without behaving like links or presenting fabricated data. Primary actions remain reachable at narrow widths.

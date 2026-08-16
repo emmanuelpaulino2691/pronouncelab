@@ -26,6 +26,7 @@ const LearnerClassesPage = lazy(routeModuleLoaders.learnerClasses);
 const ReleaseCoursePage = lazy(routeModuleLoaders.releaseCourse);
 const ReleaseLessonPage = lazy(routeModuleLoaders.releaseLesson);
 const StudentPreviewCoursePage = lazy(routeModuleLoaders.previewCourse);
+const StudentPreviewUnitPage = lazy(routeModuleLoaders.previewUnit);
 const StudentPreviewLessonPage = lazy(routeModuleLoaders.previewLesson);
 const AdminMediaLibraryPage = lazy(routeModuleLoaders.mediaLibrary);
 
@@ -97,6 +98,10 @@ export const router = createBrowserRouter([
           {
             path: "preview/courses/:courseId/lessons/:lessonId",
             element: <LazyRoute><StudentPreviewLessonPage /></LazyRoute>,
+          },
+          {
+            path: "preview/courses/:courseId/units/:unitId",
+            element: <LazyRoute><StudentPreviewUnitPage /></LazyRoute>,
           },
         ],
       },

@@ -16,6 +16,8 @@ export default function StudentNavigationDrawer({ open, id, onClose }: Props) {
 
   useEffect(() => {
     if (!open) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const panel = panelRef.current;
     panel?.querySelector<HTMLElement>(focusableSelector)?.focus();
@@ -31,7 +33,7 @@ export default function StudentNavigationDrawer({ open, id, onClose }: Props) {
       if (shouldWrapDrawerFocus(event.shiftKey, activeIndex, focusable.length - 1)) { event.preventDefault(); (event.shiftKey ? last : first).focus(); }
     }
     document.addEventListener("keydown", handleKeyDown);
-    return () => { document.removeEventListener("keydown", handleKeyDown); previouslyFocused?.focus({ preventScroll: true }); };
+    return () => { document.removeEventListener("keydown", handleKeyDown); document.body.style.overflow = previousOverflow; previouslyFocused?.focus({ preventScroll: true }); };
   }, [open]);
 
   if (!open) return null;

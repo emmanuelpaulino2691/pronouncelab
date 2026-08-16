@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { resolveTeacherPreviewLesson } from "./teacherPreviewResolver";
+import { resolveExplicitTeacherPreview, resolveTeacherPreviewLesson } from "./teacherPreviewResolver";
 import type { LearnerLesson } from "../../../shared/content/contracts/learnerContent";
 import type { LearnerContentProvider } from "../../../shared/content/providers/LearnerContentProvider";
 
@@ -55,5 +55,19 @@ describe("teacher preview resolver", () => {
     input.publishedGetLesson.mockRejectedValueOnce(new Error("published"));
     input.localGetLesson.mockRejectedValueOnce(new Error("local"));
     await expect(resolveTeacherPreviewLesson(id, input)).resolves.toMatchObject({ status: "error" });
+  });
+
+  it("never substitutes Draft when Published Preview was selected", async () => {
+    const draftLoader = vi.fn(async () => lesson("draft"));
+    const result = await resolveExplicitTeacherPreview("published", draftLoader, async () => null);
+    expect(result).toMatchObject({ status: "unavailable" });
+    expect(draftLoader).not.toHaveBeenCalled();
+  });
+
+  it("never substitutes Published when Draft Preview was selected", async () => {
+    const publishedLoader = vi.fn(async () => lesson("published"));
+    const result = await resolveExplicitTeacherPreview("draft", async () => null, publishedLoader);
+    expect(result).toMatchObject({ status: "unavailable" });
+    expect(publishedLoader).not.toHaveBeenCalled();
   });
 });

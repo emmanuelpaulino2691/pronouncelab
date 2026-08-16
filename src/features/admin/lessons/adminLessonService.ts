@@ -83,6 +83,7 @@ export async function listAdminLessons(
     .from("lessons")
     .select(lessonColumns)
     .eq("unit_id", unitId)
+    .neq("status", "archived")
     .order("position", { ascending: true });
 
   if (error) {
@@ -176,12 +177,12 @@ export async function updateAdminLesson(
   );
 }
 
-export async function deleteDraftLesson(
+export async function removeAdminLesson(
   lessonId: number,
   expectedUnitId: number
 ) {
   const { data, error } = await requireSupabase().rpc(
-    "delete_draft_lesson",
+    "remove_authoring_lesson",
     {
       requested_lesson_id: lessonId,
       expected_unit_id: expectedUnitId,
@@ -194,7 +195,7 @@ export async function deleteDraftLesson(
 
   if (data !== lessonId) {
     throw new Error(
-      "Draft lesson not found in the expected unit, or it is no longer deletable."
+      "Lesson not found in the expected Unit, or it is no longer removable."
     );
   }
 }

@@ -1,35 +1,33 @@
 import { useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
-import MainLayout from "../../../shared/layouts/MainLayout";
-import { learnerContentProvider } from "../../../shared/content/learnerContentComposition";
 import { useLearnerResource } from "../../../shared/content/hooks/useLearnerResource";
 import { isDecimalContentId } from "../../../shared/content/contracts/publishedRpcGuards";
 import type { ContentId, LearnerLesson, LearnerUnit } from "../../../shared/content/contracts/learnerContent";
 import { contentFailure, contentSuccess } from "../../../shared/content/errors/contentErrors";
 import LessonPlayer from "../../lesson/LessonPlayer";
-import { StudentPreviewToolbar } from "./StudentPreviewToolbar";
-import { resolveTeacherPreviewLesson } from "./teacherPreviewResolver";
-import { getDraftLesson } from "./teacherPreviewSources";
-import { staticLearnerContentProvider } from "../../../shared/content/providers/staticLearnerContentProvider";
+import { resolveExplicitTeacherPreview } from "./teacherPreviewResolver";
+import { getDraftLesson, getPublishedLesson } from "./teacherPreviewSources";
 import { PreviewTerminalState } from "./PreviewTerminalState";
-import { safePreviewReturnTo } from "./previewNavigation";
+import { buildStudentPreviewUrl, previewTarget, safePreviewReturnTo } from "./previewNavigation";
 import { previewLayoutContract, previewViewportStyle, type PreviewViewportMode } from "./previewViewport";
 import { PreviewLoadingState } from "./PreviewLoadingState";
+import StudentPreviewShell from "./StudentPreviewShell";
 
 export default function StudentPreviewLessonPage() {
   const { courseId = "", lessonId = "" } = useParams();
   const [searchParams] = useSearchParams();
   const [viewportMode, setViewportMode] = useState<PreviewViewportMode>("desktop");
   const returnPath = safePreviewReturnTo(searchParams.get("returnTo"), `/admin/courses/${courseId}?tab=curriculum`);
+  const target = previewTarget(searchParams.get("preview"));
+  const previewCoursePath = buildStudentPreviewUrl({ courseId, target, returnTo: returnPath });
   const validId = isDecimalContentId(lessonId) ? lessonId as unknown as ContentId : null;
-  const resource = useLearnerResource<{ lesson: LearnerLesson; unit: LearnerUnit; source: "draft" | "published" | "local" }>(async (signal) => {
+  const resource = useLearnerResource<{ lesson: LearnerLesson; unit: LearnerUnit; source: "draft" | "published" }>(async (signal) => {
     if (!validId) return contentFailure("not_found", "Lesson not found.");
-    const resolved = await resolveTeacherPreviewLesson(validId, { draft: { getLesson: getDraftLesson }, published: learnerContentProvider, local: staticLearnerContentProvider }, signal);
-    if (resolved.status !== "ready") return contentFailure(resolved.status === "forbidden" ? "forbidden" : resolved.status === "error" ? "unexpected" : "unavailable", resolved.status === "forbidden" ? "You do not have permission to preview this lesson." : resolved.status === "error" ? "The lesson preview encountered an unexpected problem. Retry or return to the Studio." : "No saved draft, published version, or local lesson content was found.", resolved.status === "error");
+    void signal;
+    const resolved = await resolveExplicitTeacherPreview(target, () => getDraftLesson(validId), () => getPublishedLesson(validId));
+    if (resolved.status !== "ready") return contentFailure(resolved.status === "error" ? "unexpected" : "unavailable", resolved.status === "error" ? "The lesson preview encountered an unexpected problem. Retry or return to the Studio." : `No saved ${target} Lesson content was found.`, resolved.status === "error");
     const lesson = resolved.value;
-    const unitResult = await learnerContentProvider.getUnit(lesson.unitId, signal);
-    const localUnitResult = unitResult.ok ? unitResult : await staticLearnerContentProvider.getUnit(lesson.unitId, signal);
-    const unit = localUnitResult.ok ? localUnitResult.value : {
+    const unit = {
       id: lesson.unitId,
       courseId: lesson.courseId,
       title: "Course unit",
@@ -39,11 +37,11 @@ export default function StudentPreviewLessonPage() {
       lessons: [],
     };
     return contentSuccess({ lesson, unit, source: resolved.source }, "preview");
-  }, [validId]);
+  }, [validId, target]);
 
   if (!resource.loading && !resource.value) return <PreviewTerminalState courseId={courseId} error={resource.error} onRetry={resource.retry} returnPath={returnPath} />;
   if (!resource.value) return <PreviewLoadingState returnPath={returnPath} />;
   const { lesson, unit, source } = resource.value;
   const layout = previewLayoutContract(viewportMode);
-  return <><StudentPreviewToolbar returnPath={returnPath} draft={source === "draft"} source={source} viewportMode={viewportMode} onViewportModeChange={setViewportMode} /><div className="mx-auto min-w-0 overflow-x-hidden" style={previewViewportStyle(viewportMode)}><MainLayout key={viewportMode} layoutMode={layout.shellMode}><LessonPlayer key={lesson.id} lesson={lesson} returnPath={returnPath} contextLabel={unit.title} runtimeMode="teacher_preview" layoutMode={layout.lessonMode} /></MainLayout></div></>;
+  return <StudentPreviewShell returnPath={returnPath} source={source} viewportMode={viewportMode} onViewportModeChange={setViewportMode}><div className="mx-auto min-w-0 overflow-x-hidden" style={previewViewportStyle(viewportMode)}><LessonPlayer key={`${target}:${lesson.id}`} lesson={lesson} returnPath={previewCoursePath} contextLabel={unit.title} runtimeMode="teacher_preview" layoutMode={layout.lessonMode} /></div></StudentPreviewShell>;
 }

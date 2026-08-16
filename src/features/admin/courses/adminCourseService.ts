@@ -226,11 +226,11 @@ export async function updateAdminCourse(
   );
 }
 
-export async function deleteDraftCourse(
+export async function removeAdminCourse(
   courseId: number
 ) {
   const { data, error } = await requireSupabase().rpc(
-    "delete_draft_course",
+    "remove_authoring_course",
     { requested_course_id: courseId }
   );
 
@@ -240,7 +240,7 @@ export async function deleteDraftCourse(
 
   if (data !== courseId) {
     throw new Error(
-      "Only draft courses can be deleted."
+      "The course could not be removed."
     );
   }
 }

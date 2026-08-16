@@ -36,7 +36,7 @@ import {
 } from "../ui/deleteConfirmationState";
 import {
   createAdminUnit,
-  deleteDraftUnit,
+  removeAdminUnit,
   listAdminUnits,
   updateAdminUnit,
   type AdminUnit,
@@ -44,6 +44,8 @@ import {
 import { buildStudentPreviewUrl } from "../preview/previewNavigation";
 import { publicationFunctionErrorMessage } from "../lesson-studio/publicationErrors";
 import { canCreateDraftUnit, canEditDraftUnit } from "../hierarchyAuthoring";
+import { hasSiblingTitle, hierarchyTitleSaveError } from "../hierarchyTitleIntegrity";
+import { unitRemovalDescription } from "../removalPresentation";
 
 type FormState =
   | { mode: "closed" }
@@ -209,6 +211,11 @@ function CourseUnitsContent({
     input: HierarchyItemInput
   ) {
     if (formState.mode === "closed" || saveInFlightRef.current) return;
+    const editedUnitId = formState.mode === "edit" ? formState.unit.id : undefined;
+    if (hasSiblingTitle(units, input.title, editedUnitId)) {
+      setFormErrorMessage(`A Unit named '${input.title.trim()}' already exists in this Course.`);
+      return;
+    }
     saveInFlightRef.current = true;
     setIsSaving(true);
     setFormErrorMessage(null);
@@ -260,9 +267,9 @@ function CourseUnitsContent({
       if (isActiveRef.current) {
         setFormState({ mode: "closed" });
       }
-    } catch {
+    } catch (error) {
       if (isActiveRef.current) {
-        setFormErrorMessage("The unit could not be saved. Your changes are still here. Try again.");
+        setFormErrorMessage(hierarchyTitleSaveError(error, "Unit", input.title));
       }
     } finally {
       saveInFlightRef.current = false;
@@ -280,7 +287,7 @@ function CourseUnitsContent({
     setErrorMessage(null);
 
     try {
-      await deleteDraftUnit(unit.id, courseId);
+      await removeAdminUnit(unit.id, courseId);
       if (isActiveRef.current) {
         setUnits((current) =>
           current.filter(
@@ -328,7 +335,7 @@ function CourseUnitsContent({
         description={course?.description || "Manage this course and its learning content."}
         breadcrumbs={[{ label: "Courses", to: "/admin/courses" }, { label: course?.title ?? "Course" }]}
         meta={course ? <StatusBadge status={course.status} /> : undefined}
-        actions={<><ButtonLink icon="arrow-left" variant="secondary" to="/admin/courses">Back to courses</ButtonLink><ButtonLink variant="secondary" to={buildStudentPreviewUrl({ courseId, returnTo: `${location.pathname}${location.search}` })}>Preview as Student</ButtonLink>{activeTab !== "curriculum" && <ButtonLink variant="secondary" to="?tab=curriculum">Open curriculum</ButtonLink>}{canPublish && course?.status !== "archived" && <Button type="button" isLoading={workspaceActionPending} onClick={() => void handleWorkspacePublish()}>{course?.status === "published" ? "Publish updates" : "Publish Course"}</Button>}{canEditDrafts && course?.status === "draft" && <Button type="button" variant="secondary" isLoading={workspaceActionPending} onClick={() => void handleWorkspaceDuplicate()}>Duplicate Course</Button>}{activeTab === "curriculum" && canCreateUnit && <Button icon="plus" onClick={() => { setFormErrorMessage(null); setFormState({ mode: "create" }); }}>Create unit</Button>}</>}
+        actions={<><ButtonLink icon="arrow-left" variant="secondary" to="/admin/courses">Back to courses</ButtonLink>{course?.status === "published" && <ButtonLink variant="secondary" to={buildStudentPreviewUrl({ courseId, target: "published", returnTo: `${location.pathname}${location.search}` })}>Preview Published</ButtonLink>}<ButtonLink variant="secondary" to={buildStudentPreviewUrl({ courseId, target: "draft", returnTo: `${location.pathname}${location.search}` })}>Preview Draft</ButtonLink>{activeTab !== "curriculum" && <ButtonLink variant="secondary" to="?tab=curriculum">Open curriculum</ButtonLink>}{canPublish && course?.status !== "archived" && <Button type="button" isLoading={workspaceActionPending} onClick={() => void handleWorkspacePublish()}>{course?.status === "published" ? "Publish updates" : "Publish Course"}</Button>}{canEditDrafts && course?.status === "draft" && <Button type="button" variant="secondary" isLoading={workspaceActionPending} onClick={() => void handleWorkspaceDuplicate()}>Duplicate Course</Button>}{activeTab === "curriculum" && canCreateUnit && <Button icon="plus" onClick={() => { setFormErrorMessage(null); setFormState({ mode: "create" }); }}>Create unit</Button>}</>}
       />
       {workspaceActionMessage && <div className="mt-5"><Alert tone={workspaceActionMessage.startsWith("Course published") ? "info" : "error"}>{workspaceActionMessage}</Alert></div>}
       <nav aria-label="Course workspace" className="mt-6 flex gap-2 overflow-x-auto border-b border-slate-200">
@@ -414,24 +421,10 @@ function CourseUnitsContent({
                             { label: "Move up", disabled: unit === units[0], explanation: "This unit is already first.", onSelect: () => setUnavailableOperation("Reorder units") },
                             { label: "Move down", disabled: unit === units.at(-1), explanation: "This unit is already last.", onSelect: () => setUnavailableOperation("Reorder units") },
                             { label: "Archive", disabled: true, explanation: "Archiving is planned for a future release.", onSelect: () => undefined },
-                            { label: "Delete", danger: true, onSelect: () => { setErrorMessage(null); setDeleteConfirmation(openDeleteConfirmation(unit)); } },
                           ]} />
-                          <button
-                            type="button"
-                            disabled={
-                              deletingUnitId === unit.id
-                            }
-                            onClick={() =>
-                              { setErrorMessage(null); setDeleteConfirmation(openDeleteConfirmation(unit)); }
-                            }
-                            className="rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:cursor-not-allowed disabled:opacity-40"
-                          >
-                            {deletingUnitId === unit.id
-                              ? "Deleting…"
-                              : "Delete"}
-                          </button>
                         </>
                       )}
+                    {canEditDrafts && <button type="button" disabled={deletingUnitId === unit.id} onClick={() => { setErrorMessage(null); setDeleteConfirmation(openDeleteConfirmation(unit)); }} className="rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:cursor-not-allowed disabled:opacity-40">{deletingUnitId === unit.id ? "Deleting…" : "Delete"}</button>}
                   </div>
                 </div>
               </Card>
@@ -465,7 +458,7 @@ function CourseUnitsContent({
       <ConfirmDeleteDialog
         isOpen={deleteConfirmation.target !== null}
         title="Delete unit"
-        description={deleteConfirmation.target ? `Delete “${deleteConfirmation.target.title}” and its draft lessons?` : ""}
+        description={deleteConfirmation.target ? unitRemovalDescription(deleteConfirmation.target) : ""}
         isDeleting={deleteConfirmation.pending}
         errorMessage={deleteConfirmation.target ? errorMessage : null}
         onCancel={() => setDeleteConfirmation((current) => cancelDeleteConfirmation(current))}

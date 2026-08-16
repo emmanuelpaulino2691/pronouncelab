@@ -76,6 +76,7 @@ export async function listAdminUnits(
     .from("units")
     .select(unitColumns)
     .eq("course_id", courseId)
+    .neq("status", "archived")
     .order("position", { ascending: true });
 
   if (error) {
@@ -162,12 +163,12 @@ export async function updateAdminUnit(
   return toAdminUnit(data as unknown as UnitRow);
 }
 
-export async function deleteDraftUnit(
+export async function removeAdminUnit(
   unitId: number,
   expectedCourseId: number
 ) {
   const { data, error } = await requireSupabase().rpc(
-    "delete_draft_unit",
+    "remove_authoring_unit",
     {
       requested_unit_id: unitId,
       expected_course_id: expectedCourseId,
@@ -180,7 +181,7 @@ export async function deleteDraftUnit(
 
   if (data !== unitId) {
     throw new Error(
-      "Draft unit not found in the expected course, or it is no longer deletable."
+      "Unit not found in the expected Course, or it is no longer removable."
     );
   }
 }

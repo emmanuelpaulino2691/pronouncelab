@@ -8,6 +8,7 @@ import {
   joinCodeRegenerationConfirmation,
   newerReleaseNumber,
   orderAssignmentHistory,
+  releaseUpdateProgressExplanation,
 } from "./assignmentPresentation";
 import type { AssignmentProgress, ClassCourseAssignment } from "./classService";
 
@@ -36,5 +37,7 @@ describe("assignment lifecycle presentation", () => {
     expect(assignmentDeactivationConfirmation).toContain("progress is preserved");
     expect(classArchiveConfirmation).toContain("progress are preserved");
     expect(joinCodeRegenerationConfirmation).toContain("current code will stop working");
+    expect(releaseUpdateProgressExplanation).toContain("Class Progress");
+    expect(releaseUpdateProgressExplanation).not.toContain("independent progress");
   });
 });

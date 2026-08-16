@@ -3,7 +3,7 @@ import { routeModuleLoaders } from "./routeModules";
 
 describe("route module boundaries", () => {
   it("keeps major admin areas behind distinct lazy loaders", () => {
-    const majorAdminRoutes = ["adminDashboard", "courseWorkspace", "lessonStudio", "classes", "mediaLibrary", "previewCourse", "previewLesson"] as const;
+    const majorAdminRoutes = ["adminDashboard", "courseWorkspace", "lessonStudio", "classes", "mediaLibrary", "previewCourse", "previewUnit", "previewLesson"] as const;
     expect(majorAdminRoutes.every((route) => typeof routeModuleLoaders[route] === "function")).toBe(true);
     expect(new Set(majorAdminRoutes.map((route) => routeModuleLoaders[route])).size).toBe(majorAdminRoutes.length);
   });
