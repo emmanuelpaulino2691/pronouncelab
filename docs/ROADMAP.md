@@ -1,5 +1,9 @@
 # Roadmap
 
+## Sprint 52K — GitHub Actions Browser Smoke CI
+
+Implemented locally. Pull requests and main pushes now have a two-job verification workflow: deterministic Node 24 build/lint/Vitest gates and an ephemeral local-Supabase Chromium smoke run through all six browser flows. Vite and Supabase readiness are explicit, failure traces/screenshots are retained briefly, permissions are read-only, and no remote credentials or deployment commands exist. The immediate follow-up is to validate and tune the first GitHub-hosted run before expanding browser coverage or enabling parallel workers.
+
 ## Sprint 52J — Deterministic Browser Mutation Isolation
 
 Implemented locally. Dedicated smoke learners and bootstrap-owned Class/Release fixtures isolate Join Class and Lesson completion mutations from manual QA data. Pre-test Docker/Postgres setup validates local coordinates and resets only the owning learner's enrollment or Release progress, making failed and consecutive runs self-healing without full database resets. The suite remains single-worker. The next tooling increment may add GitHub Actions once Supabase/Docker/Chromium provisioning and repeated-run reliability are proven in CI.

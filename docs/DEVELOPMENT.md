@@ -260,7 +260,30 @@ npx.cmd playwright show-trace test-results/<test-name>/trace.zip
 
 The suite remains single-worker. Dedicated identities and pre-test resets remove ordering dependence, but parallel execution stays disabled until each future mutating flow receives exclusive fixture ownership. Headed mode remains available with `npm.cmd run test:smoke -- --headed`.
 
-CI execution remains deferred for one sprint. The suite is now state-isolated, but GitHub Actions still needs an approved Supabase startup/bootstrap lifecycle, Docker permissions, Chromium caching, and repeated reliability evidence.
+The suite is state-isolated and now has a GitHub Actions workflow; its first hosted run remains the acceptance gate for runner-specific behavior.
+
+### GitHub Actions verification
+
+`.github/workflows/quality-and-browser-smoke.yml` runs for every pull request and for pushes to `main`. Feature-branch pushes without a pull request do not run it, avoiding duplicate executions while preserving merge protection and main-branch verification. Workflow permissions are read-only.
+
+The workflow has two independent Ubuntu jobs:
+
+- **Build, lint, and Vitest** uses Node 24, `npm ci`, and the normal build/lint/test commands.
+- **Local Supabase and Chromium smoke** installs pinned Supabase CLI `2.114.0`, starts an ephemeral Docker stack, resets migrations from zero to head, verifies migration `202608190003`, bootstraps fixtures, installs Chromium, waits for Vite over HTTP, and runs all smoke tests with one worker.
+
+CI passes `PRONOUNCELAB_SUPABASE_CLI=supabase` only to bootstrap so it uses the pinned executable installed by the workflow instead of asking `npx` to resolve another CLI version. Normal Windows development retains the existing `npx.cmd supabase` commands.
+
+CI writes `.env.local` from the ephemeral `supabase status -o env` output only after asserting the API is exactly `http://127.0.0.1:54321`. No repository or production secrets are used. The Playwright configuration and fixture reset helper retain their own localhost checks. The workflow never links a project, pushes migrations, deploys Functions/frontend code, or accesses remote Storage.
+
+Chromium is installed with `npx playwright install --with-deps chromium`. Browser binaries are not cached initially: avoiding stale or incomplete browser/system-library caches is more valuable than the expected download saving. npm packages use `setup-node`'s lockfile-keyed npm cache.
+
+When smoke tests fail, GitHub uploads `test-results/` for seven days. Download `playwright-failure-artifacts` from the failed workflow run and inspect a trace locally:
+
+```powershell
+npx.cmd playwright show-trace path\to\trace.zip
+```
+
+Supabase container status and the final 200 Vite log lines are printed on failure without printing generated local keys. CI remains single-worker because each mutating flow owns one fixture but the current suite intentionally favors deterministic serialization over speed. The local Windows workflow above is unchanged and is the closest pre-push equivalent.
 
 ## Git and deployment
 

@@ -1,5 +1,9 @@
 # Sprint Status
 
+## Sprint 52K — GitHub Actions Browser Smoke CI
+
+Implemented locally with no product or database changes. A read-only GitHub Actions workflow runs build/lint/Vitest and a separate six-test Chromium smoke job for pull requests and main pushes. The smoke job pins Node 24 and Supabase CLI 2.114.0, builds an ephemeral local database from migration zero through `202608190003`, bootstraps isolated fixtures, creates a local-only Vite environment, waits for HTTP readiness, and uploads Playwright failure artifacts. No production secrets, project linking, remote migration, deployment, or browser parallelism are used. The workflow still requires its first real GitHub execution before CI success can be claimed.
+
 ## Sprint 52J — Deterministic Browser Mutation Isolation
 
 Implemented locally without production schema changes. Local bootstrap owns separate Join and Completion learner identities, Classes, and a two-Lesson immutable Assignment Release. Playwright resets only the current smoke learner's enrollment or Release-progress rows before each mutation flow, after validating local API/database/container identity. The six-test Chromium suite now covers invalid and valid Join Class, immediate membership refresh, Lesson completion, authoritative completion summary, immutable Next Lesson navigation, and stale presentation-state isolation while retaining all Sprint 52I coverage. Workers remain fixed at one; CI provisioning is deferred to the next sprint.

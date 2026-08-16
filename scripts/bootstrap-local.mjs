@@ -12,9 +12,13 @@ const teacherPassword = process.env.PRONOUNCELAB_LOCAL_TEACHER_PASSWORD ?? "Pron
 const learnerPassword = process.env.PRONOUNCELAB_LOCAL_LEARNER_PASSWORD ?? "PronounceLabLocalLearner!2026";
 const smokePassword = "PronounceLabLocalSmoke!2026";
 function localStatus() {
-  const output = process.platform === "win32"
-    ? execFileSync(process.env.ComSpec ?? "cmd.exe", ["/d", "/s", "/c", "npx.cmd supabase status -o env"], { encoding: "utf8" })
-    : execFileSync("npx", ["supabase", "status", "-o", "env"], { encoding: "utf8" });
+  const configuredCli = process.env.PRONOUNCELAB_SUPABASE_CLI;
+  if (configuredCli && configuredCli !== "supabase") throw new Error("PRONOUNCELAB_SUPABASE_CLI may only select the installed supabase executable.");
+  const output = configuredCli
+    ? execFileSync(configuredCli, ["status", "-o", "env"], { encoding: "utf8" })
+    : process.platform === "win32"
+      ? execFileSync(process.env.ComSpec ?? "cmd.exe", ["/d", "/s", "/c", "npx.cmd supabase status -o env"], { encoding: "utf8" })
+      : execFileSync("npx", ["supabase", "status", "-o", "env"], { encoding: "utf8" });
   return Object.fromEntries(output.split(/\r?\n/).flatMap((line) => {
     const match = line.match(/^([A-Z_]+)="(.*)"$/);
     return match ? [[match[1], match[2]]] : [];
