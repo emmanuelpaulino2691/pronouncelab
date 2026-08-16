@@ -1,5 +1,9 @@
 # Roadmap
 
+## Sprint 52I — Browser Smoke Testing Foundation
+
+Implemented locally. A four-test Playwright Chromium smoke suite protects the highest-risk real-browser seams: learner identity/navigation, Assignment versus Independent Practice routing, separated Progress presentation, Teacher Published Student Preview navigation/refresh/session isolation, and keyboard/mobile navigation. It expects explicit local Supabase/bootstrap/Vite prerequisites and refuses hosted backends. Future browser coverage should remain small; add Join Class or completion flows only after deterministic per-test state isolation, and enable CI only after the local Supabase lifecycle proves reliable in automation.
+
 ## Sprint 52A — Learner Identity and Synced Progress Foundation
 
 Implemented locally. Ordinary authenticated users are learners, published activity completion is recorded idempotently through learner-scoped RPCs, and local progress merges monotonically with server snapshots for offline resilience and cross-device continuity. Sequential locks and Continue Learning consume the merged snapshot. Student Preview and staff identities cannot create learner progress.

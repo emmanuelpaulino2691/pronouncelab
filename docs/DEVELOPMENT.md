@@ -8,6 +8,7 @@
 - [Security-sensitive work](#security-sensitive-work)
 - [Validation](#validation)
 - [Local Supabase reset and bootstrap](#local-supabase-reset-and-bootstrap)
+- [Browser smoke tests](#browser-smoke-tests)
 - [Git and deployment](#git-and-deployment)
 - [Documentation maintenance](#documentation-maintenance)
 
@@ -76,7 +77,7 @@ git diff --check
 - Lint catches repository coding-policy violations.
 - Diff check catches whitespace errors that compilers ignore.
 
-Run relevant focused Vitest tests with `npm.cmd test`. Browser and database integration test infrastructure is not configured; report that limitation rather than inventing coverage.
+Run relevant focused Vitest tests with `npm.cmd test`. The small Chromium smoke suite described below covers only high-value cross-route contracts; it does not replace focused component or database tests.
 
 For database changes:
 
@@ -213,6 +214,42 @@ A reset invalidates browser sessions because their Auth users no longer exist.
 The application verifies restored sessions before redirecting and clears only
 invalid Supabase Auth state. Learner progress and other PronounceLab local
 storage remain untouched.
+
+## Browser smoke tests
+
+The Playwright smoke suite uses Chromium and the deterministic local bootstrap identities. It intentionally covers a few cross-route contracts rather than duplicating Vitest or pgTAP coverage.
+
+First-time browser installation:
+
+```powershell
+npx.cmd playwright install chromium
+```
+
+Local prerequisites are explicit so the test runner does not leave fragile background processes behind:
+
+```powershell
+# Terminal 1
+npx.cmd supabase start
+npm.cmd run local:bootstrap
+
+# Terminal 2
+npm.cmd run dev
+
+# Terminal 3
+npm.cmd run test:smoke
+```
+
+Edge Functions are not required. The suite uses `http://127.0.0.1:5173` and refuses to start when `VITE_SUPABASE_URL` resolves to anything other than localhost or `127.0.0.1`. Do not override that guard or point the tests at a hosted project.
+
+The smoke suite signs in with the documented local Teacher and Learner fixtures. Simultaneous identities use separate Playwright browser contexts because one Supabase session is shared within a browser profile. Manual Teacher/Learner testing likewise requires separate browser profiles or Incognito.
+
+Failures produce a screenshot and retained trace under `test-results/`; successful runs do not record video or trace artifacts. Inspect a trace with:
+
+```powershell
+npx.cmd playwright show-trace test-results/<test-name>/trace.zip
+```
+
+Join Class and completion/Next Lesson remain outside the repeatable smoke baseline because they mutate shared fixture state. Their detailed contracts remain covered by Vitest and pgTAP; add browser versions only with deterministic per-test cleanup. CI execution is deferred until the local suite has established reliability and the repository has an approved local-Supabase CI lifecycle.
 
 ## Git and deployment
 

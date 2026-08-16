@@ -1,5 +1,9 @@
 # Sprint Status
 
+## Sprint 52I — Browser Smoke Testing Foundation
+
+Implemented locally with Playwright Chromium and no product/database changes. Four deterministic, non-mutating smoke tests cover learner login and final navigation, Class Assignment/Course Library/Progress separation, Teacher Published Student Preview with nested refresh and separate Teacher/Learner browser contexts, plus a 390px keyboard/mobile navigation pass. The runner rejects non-local Supabase URLs and retains screenshots/traces only for failures. Join Class and completion are deferred until they have isolated repeatable cleanup; CI is deferred until local reliability and Supabase orchestration are established.
+
 ## Course authoring name integrity
 
 Implemented locally, pending resolution of one intentionally unmodified local data conflict before local migration replay: `unit_id=8` has duplicate normalized Lesson title `lesson 2` at Lesson IDs 8 and 9. The new forward migration enforces normalized Unit uniqueness per Course and normalized Lesson uniqueness per Unit, preserves cross-Unit Lesson title reuse, hardens copy naming, and adds precise Teacher-facing validation.
