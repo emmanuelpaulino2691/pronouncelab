@@ -28,6 +28,8 @@ Publication and learner visibility are separate decisions. Publication validates
 
 Learners see two deliberately separate contexts: **My Classes** contains Teacher assignments and Release-specific Class progress; **Course Library** contains optional independent practice and current-public personal progress. Home prioritizes active Class work only. Anonymous Home offers sign-in for Classes and a separate Course Library entry rather than presenting personal practice as assigned work.
 
+The primary learner information architecture is **Home → My Classes → Course Library → Progress**. Home answers what to continue from Classes, My Classes contains Teacher-assigned Courses and joining, Course Library contains chosen independent practice, and Progress presents Class Progress and Independent Practice in separate sections without a blended overall percentage.
+
 ## Teacher Workspace
 
 The Content Studio is presented as a role-aware workspace. Teachers work from **My Courses** and their owned **Classes**, administrators retain platform support access, and publishers review content without receiving draft-edit controls. Class enrollment and immutable Course Release assignments are active; standalone student management and richer task/assessment assignments remain future work.

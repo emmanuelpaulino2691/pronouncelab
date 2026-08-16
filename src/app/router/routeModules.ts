@@ -1,5 +1,6 @@
 export const routeModuleLoaders = {
   dashboard: () => import("../../features/dashboard/DashboardPage"),
+  progress: () => import("../../features/progress/ProgressPage"),
   courses: () => import("../../features/courses/CoursesPage"),
   sharedCourse: () => import("../../features/courses/SharedCoursePage"),
   units: () => import("../../features/units/UnitsPage"),

@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import { studentNavigationItems } from "./studentNavigation";
 
 type Props = { className?: string; onNavigate?: () => void };
@@ -11,11 +11,7 @@ export default function Sidebar({ className = "", onNavigate }: Props) {
         <ul className="space-y-2">
           {studentNavigationItems.map((item) => (
             <li key={item.label}>
-              {"to" in item ? (
-                <Link to={item.to} onClick={onNavigate} className="block min-h-11 rounded-lg px-3 py-2.5 font-medium transition hover:bg-slate-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">{item.label}</Link>
-              ) : (
-                <span aria-disabled="true" title={`${item.label} is not available yet.`} className="block min-h-11 cursor-not-allowed rounded-lg px-3 py-2.5 text-slate-400">{item.label}</span>
-              )}
+              <NavLink to={item.to} end={item.to === "/"} onClick={onNavigate} className={({ isActive }) => `block min-h-11 rounded-lg px-3 py-2.5 font-medium transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${isActive ? "bg-blue-600 text-white" : "hover:bg-slate-700"}`}>{item.label}</NavLink>
             </li>
           ))}
         </ul>

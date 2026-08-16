@@ -1,8 +1,6 @@
 export const studentNavigationItems = [
   { label: "Home", to: "/" },
+  { label: "My Classes", to: "/classes" },
   { label: "Course Library", to: "/courses" },
-  { label: "Classes", to: "/classes" },
-  { label: "Progress" },
-  { label: "Badges" },
-  { label: "Profile" },
+  { label: "Progress", to: "/progress" },
 ] as const;

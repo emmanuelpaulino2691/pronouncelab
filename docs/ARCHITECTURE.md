@@ -6,6 +6,8 @@ Published content is not automatically public. `courses.learner_visibility` cont
 
 The current/public provider remains the independent-practice adapter and writes Sprint 52A progress. The Release provider remains the Class-assignment adapter and writes Release progress. Both use the shared Lesson Player presentation, while their hierarchy, eligibility, completion, review, restart, and Next Lesson adapters stay distinct. Home composes only active Class assignments; Course Library alone composes current/public resume state from server `last_accessed_at` and `last_activity_id`, with device-local position as the same-device fallback.
 
+`learnerClassWorkspace` is the shared read composition for learner Home and Progress. It joins only learner-visible active memberships, active Class assignments, immutable Release manifests, and the learner's Release progress through existing controlled contracts. Home orders incomplete work by started state and latest Release access, then assignment age. `/progress` renders that same Class snapshot beside—never merged with—the current/public Course Library journey. No aggregate progress identity is introduced.
+
 ## Command Palette
 
 Command contracts, registry construction, matching, ranking, history, and keyboard utilities live under `src/domain/command-palette`. `AdminLayout` lazy-loads the visual palette only when opened, keeping it global to protected admin routes without affecting learner bundles. The first registry combines static navigation and templates with IDs already present in the current route; it does not crawl Supabase or introduce a parallel content cache. Future page data can contribute commands through the same typed registry contract.

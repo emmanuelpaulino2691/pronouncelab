@@ -22,7 +22,7 @@ export default function Header({ layoutMode = "auto", drawerOpen = false, drawer
       <div className="flex min-w-0 items-center gap-2">
         <div className="min-w-0 max-w-32 text-right sm:max-w-56">
           <p className={`text-xs font-bold uppercase tracking-wide ${account.kind === "synced" ? "text-emerald-700" : account.kind === "staff" ? "text-blue-700" : "text-slate-500"}`}>{account.label}</p>
-          <p className="max-w-56 truncate text-xs text-slate-600">{account.detail}</p>
+          <p className="hidden max-w-56 truncate text-xs text-slate-600 md:block">{account.detail}</p>
         </div>
         {identity.kind === "staff" && <Link to="/admin" className="inline-flex min-h-11 items-center rounded-xl bg-blue-600 px-3 text-sm font-semibold text-white hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">Content Studio</Link>}
         {session ? <button type="button" onClick={() => { if (supabase) void signOutAccount(supabase.auth); }} className="min-h-11 rounded-xl border border-slate-300 px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">Sign out</button> : <Link to="/login" state={{ from: `${location.pathname}${location.search}` }} className="inline-flex min-h-11 items-center rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">Sign in</Link>}

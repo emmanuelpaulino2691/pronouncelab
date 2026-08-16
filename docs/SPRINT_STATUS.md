@@ -1,5 +1,9 @@
 # Sprint Status
 
+## Sprint 52F — Learner Home & Navigation Consolidation
+
+Implemented locally as a frontend/service-composition increment. Learner navigation is Home, My Classes, Course Library, and Progress. Home loads only active Class assignments, orders incomplete work by meaningful Release activity, and distinguishes no Classes, no assignments, and completed work. My Classes owns joining and Class Progress; Course Library owns Public/redeemed-Unlisted Independent Practice; Progress presents the two progress contexts separately. No database, RLS, progress identity, assignment, or publication contract changed.
+
 ## Sprint 52E — Course Library, Visibility & Learner Experience Separation
 
 Implemented locally. Publishing now prepares immutable Releases without making Courses globally discoverable. Courses default to Class only; Public Courses appear in Course Library, while authenticated Unlisted practice uses revocable, hash-stored share links. Learner Home contains active Class assignments only. Course Library owns independent-practice resume state and the current/public Lesson runtime now matches Release UX for sequential overview, completion summary, review, restart, and Next Lesson while preserving separate progress adapters. See ADR 0015.

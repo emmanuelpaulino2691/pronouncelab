@@ -192,6 +192,8 @@ This Course is **Class only**. Test it through the `Local Enrolled Class` assign
 
 Unlisted redemption requires the authenticated learner account. Its deterministic token exists only for local testing. Use a normal browser profile for Teacher/Admin and Incognito or a separate profile for the Learner because one origin shares one Supabase session across tabs.
 
+For Sprint 52F learner navigation QA, verify `/` contains only the `Local Enrolled Class` assignment, `/classes` labels Teacher-assigned Class Progress, `/courses` contains Public/Unlisted Independent Practice only, and `/progress` shows Class Progress and Independent Practice as separate sections. Test the drawer at phone width and confirm the active item is announced visually for Home, My Classes, Course Library, and Progress.
+
 Useful learner URLs:
 
 - Home: `http://127.0.0.1:3000/`

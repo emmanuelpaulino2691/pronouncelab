@@ -1,4 +1,24 @@
-import type{ReleaseProgress}from"../releases/releaseService";
-export type HomeAssignment={assignmentId:number;releaseId:number;classId:number;className:string;courseTitle:string;completed:number;total:number;percent:number;complete:boolean;lastAccessedAt:string|null;progress:ReleaseProgress};
-export function selectHomeAssignment(items:readonly HomeAssignment[]){return [...items].filter(item=>!item.complete).sort((left,right)=>(right.lastAccessedAt??"").localeCompare(left.lastAccessedAt??"")||left.assignmentId-right.assignmentId)[0]??null}
+import type { LearnerAssignmentSnapshot } from "../classes/learnerClassWorkspace";
 
+export type HomeAssignment = LearnerAssignmentSnapshot;
+
+export function orderHomeAssignments(items: readonly HomeAssignment[]) {
+  return [...items].filter((item) => !item.navigation.complete).sort((left, right) => {
+    const leftStarted = left.navigation.completed > 0 || left.lastAccessedAt !== null;
+    const rightStarted = right.navigation.completed > 0 || right.lastAccessedAt !== null;
+    return Number(rightStarted) - Number(leftStarted)
+      || (right.lastAccessedAt ?? "").localeCompare(left.lastAccessedAt ?? "")
+      || left.assignedAt.localeCompare(right.assignedAt)
+      || left.assignmentId - right.assignmentId;
+  });
+}
+
+export function selectHomeAssignment(items: readonly HomeAssignment[]) {
+  return orderHomeAssignments(items)[0] ?? null;
+}
+
+export function homeEmptyState(membershipCount: number, assignmentCount: number) {
+  if (membershipCount === 0) return "no-classes" as const;
+  if (assignmentCount === 0) return "no-assignments" as const;
+  return "all-complete" as const;
+}

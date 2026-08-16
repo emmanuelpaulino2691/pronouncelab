@@ -2,6 +2,7 @@ import type { LearnerCourse } from "../../shared/content/contracts/learnerConten
 import type { ServerLearnerProgress } from "../../shared/progress/learnerProgressSync";
 
 export function publicLibraryCourses(courses:readonly LearnerCourse[]){return courses.filter(course=>course.visibility==="public")}
+export function redeemedUnlistedCourses(courses:readonly LearnerCourse[]){return courses.filter(course=>course.visibility==="unlisted")}
 
 export function mostRecentIndependentPractice(courses:readonly LearnerCourse[],server:ServerLearnerProgress|null){
   if(!server)return null;

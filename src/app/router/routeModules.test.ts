@@ -12,6 +12,6 @@ describe("route module boundaries", () => {
     expect(routeModuleLoaders.adminRoute).not.toBe(routeModuleLoaders.adminLayout);
   });
   it("preserves distinct learner route loaders", () => {
-    expect(new Set([routeModuleLoaders.dashboard, routeModuleLoaders.courses, routeModuleLoaders.lesson]).size).toBe(3);
+    expect(new Set([routeModuleLoaders.dashboard, routeModuleLoaders.courses, routeModuleLoaders.progress, routeModuleLoaders.lesson]).size).toBe(4);
   });
 });

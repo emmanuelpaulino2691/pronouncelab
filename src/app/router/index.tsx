@@ -6,6 +6,7 @@ import { releaseLessonRuntimeKey } from "../../features/releases/releaseLessonSe
 
 const AdminRoute = lazy(routeModuleLoaders.adminRoute);
 const DashboardPage = lazy(routeModuleLoaders.dashboard);
+const ProgressPage = lazy(routeModuleLoaders.progress);
 const CoursesPage = lazy(routeModuleLoaders.courses);
 const SharedCoursePage = lazy(routeModuleLoaders.sharedCourse);
 const UnitsPage = lazy(routeModuleLoaders.units);
@@ -104,6 +105,10 @@ export const router = createBrowserRouter([
   {
     path: "/releases/:releaseId",
     element: <LazyRoute><ReleaseCoursePage /></LazyRoute>,
+  },
+  {
+    path: "/progress",
+    element: <LazyRoute><ProgressPage /></LazyRoute>,
   },
   {
     path: "/releases/:releaseId/lessons/:releaseLessonId",
