@@ -169,6 +169,7 @@ select is((public.publish_course(922002)->>'ok')::boolean, false,
   'genuinely incomplete course publication is rejected');
 select is((select status::text from public.courses where id = 922002),
   'draft', 'rejected incomplete course remains draft');
+do $$ begin perform public.set_course_learner_visibility(922001,'public'); end $$;
 
 select ok(
   public.get_published_learning_catalog(1)->'courses' @>

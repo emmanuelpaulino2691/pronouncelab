@@ -175,6 +175,7 @@ export type PublishedRpcCourse = {
   level: string;
   emoji: string;
   position: number;
+  visibility?: "class_only" | "unlisted" | "public";
   units: readonly PublishedRpcUnit[];
 };
 

@@ -9,10 +9,11 @@ import { normalizeLessonState } from "../../features/lesson/studentExperience";
 
 export function useLessonState(
   lessonId: string,
-  totalActivities: number
+  totalActivities: number,
+  initialActivityIndex = 0
 ) {
   const [state, setState] = useState(() => {
-    return normalizeLessonState(loadLessonState(lessonId), totalActivities);
+    return normalizeLessonState(loadLessonState(lessonId)??{currentActivity:initialActivityIndex,completedActivities:[]}, totalActivities);
   });
 
   useEffect(() => {

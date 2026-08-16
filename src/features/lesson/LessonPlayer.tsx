@@ -17,20 +17,20 @@ import {
 import{shouldUseFinalReviewActions,shouldWriteReleaseActivity}from"../releases/releaseLessonSession";
 
 export type LessonPlayerProgressAdapter = { completedActivityIds:readonly string[];lessonCompleted:boolean;completeActivity:(activityId:string)=>Promise<void>;mode?:"play"|"summary"|"review"|"restart";onReview?:()=>void;onRestart?:()=>void;onReturnToSummary?:()=>void;onLessonComplete?:()=>void;reviewActions?:ReactNode;completionActions?:(onReview:()=>void)=>ReactNode;completionLabel?:string;completionMessage?:string;storageMessage?:string };
-type Props = { lesson: LearnerLesson; returnPath?: string; contextLabel?: string; runtimeMode?: LearnerRuntimeMode; layoutMode?: LearnerLayoutMode; progressAdapter?:LessonPlayerProgressAdapter; stateKey?:string };
+type Props = { lesson: LearnerLesson; returnPath?: string; contextLabel?: string; runtimeMode?: LearnerRuntimeMode; layoutMode?: LearnerLayoutMode; progressAdapter?:LessonPlayerProgressAdapter; stateKey?:string;initialActivityIndex?:number };
 type TransitionState = { completedIndex: number; nextIndex: number } | null;
 
-export default function LessonPlayer({ lesson, returnPath = "/courses", contextLabel, runtimeMode = "learner", layoutMode = "auto", progressAdapter, stateKey }: Props) {
+export default function LessonPlayer({ lesson, returnPath = "/courses", contextLabel, runtimeMode = "learner", layoutMode = "auto", progressAdapter, stateKey,initialActivityIndex=0 }: Props) {
   const isPreview = isPreviewMode(runtimeMode);
   const activities = lesson.activities;
   const {
     progress: userProgress, startLesson, completeLesson,
-    completeActivity: saveActivityProgress, resetLessonProgress, syncActivity, syncLesson,
+    completeActivity: saveActivityProgress, resetLessonProgress, syncActivity, syncLesson,visitActivity,
   } = useUserProgress();
   const {
     state, previousActivity, completeActivity, goToActivity,
     restartLesson, reviewLesson, isLastActivity,
-  } = useLessonState(stateKey??lesson.id, activities.length);
+  } = useLessonState(stateKey??lesson.id, activities.length,initialActivityIndex);
   const [activityReadiness, setActivityReadiness] = useState<Record<number, boolean>>({});
   const [transition, setTransition] = useState<TransitionState>(null);
   const [persistenceError,setPersistenceError]=useState<string|null>(null);
@@ -41,8 +41,8 @@ export default function LessonPlayer({ lesson, returnPath = "/courses", contextL
   useEffect(() => {
     if (isPreview||progressAdapter) return;
     startLesson(lesson.id);
-    void syncLesson(lesson.id, activities);
-  }, [activities, isPreview, lesson.id, progressAdapter, startLesson, syncLesson]);
+    void syncLesson(lesson.id, activities,activities[initialActivityIndex]?.id);
+  }, [activities, initialActivityIndex, isPreview, lesson.id, progressAdapter, startLesson, syncLesson]);
 
   const current = state.currentActivity;
   const activity = activities[current];
@@ -61,6 +61,8 @@ export default function LessonPlayer({ lesson, returnPath = "/courses", contextL
       ? activity.items.some((item) => item.questions.length > 0)
       : false;
   const canCompleteCurrent = Boolean(activity) && (completedSet.has(current) || !requiresResponse || activityReadiness[current]);
+
+  useEffect(()=>{if(!isPreview&&!progressAdapter&&activity)visitActivity(lesson.id,activity.id)},[activity,isPreview,lesson.id,progressAdapter,visitActivity]);
 
   const handleReadyChange = useCallback((index: number, ready: boolean) => {
     setActivityReadiness((previous) => previous[index] === ready ? previous : { ...previous, [index]: ready });

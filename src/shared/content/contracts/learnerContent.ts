@@ -7,6 +7,7 @@ export type ContentId = string & {
 };
 
 export type ContentSource = "local" | "supabase";
+export type CourseLearnerVisibility = "class_only" | "unlisted" | "public";
 
 export type PublishedLessonMetadata = {
   source: "supabase";
@@ -36,6 +37,7 @@ export type LearnerCourseSummary = {
   emoji: string;
   position: number;
   unitCount: number;
+  visibility: CourseLearnerVisibility;
 };
 
 export type LearnerCourse = LearnerCourseSummary & {

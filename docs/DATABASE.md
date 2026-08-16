@@ -19,9 +19,9 @@
 
 Supabase Postgres is the authority for staff content management. Browser UI checks are advisory; constraints, triggers, RLS, grants, and RPC authorization enforce integrity. Multi-row workflows run inside security-definer functions with narrow grants.
 
-Migration 010 exposes an inactive learner-safe published delivery surface.
-The application still defaults to static content, and the database does not
-contain learner progress or enrollment tables.
+Learner delivery, synchronized progress, Classes, enrollments, immutable Releases, and Class assignments are active Supabase-backed contracts. Current-course independent practice and immutable assigned-Release practice use separate progress identities.
+
+`courses.learner_visibility` defaults to `class_only`; migration `202608180001` intentionally migrates every existing Course to that privacy-safe value. The owner/Admin visibility RPC is the only browser mutation path. Public catalog reads include only `public` Courses plus a learner's redeemed `unlisted` Courses; direct current-Lesson delivery and progress RPCs call the same access predicate. Unlisted links store only SHA-256 token digests, require an authenticated non-staff learner to redeem, and can be regenerated or disabled. `learner_independent_course_access` is learner-scoped and never grants Release/Class access. Published content fields remain sealed; only visibility and its audit timestamp are exempted from content immutability.
 
 ## Entity model
 

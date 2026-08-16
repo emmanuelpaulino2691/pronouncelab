@@ -9,6 +9,8 @@ Sprint 52C provides immutable Course Releases, historical exact-version delivery
 
 Sprint 52D improves assignment lifecycle presentation without changing schema: explicit Release-update review, preserved assignment history, responsive Release-scoped roster reporting, clear access-preservation confirmations, safer join-code controls, and calm learner Course status cards. Availability and due dates are deferred until scheduling, notification, timezone, and late-work rules are defined together.
 
+Sprint 52E separates publication from discoverability. Courses default to Class only, Public Courses form the independent-practice Course Library, and authenticated Unlisted links provide revocable sharing without exposing predictable IDs. Home is assignment-only, while Course Library owns current/public resume and full Lesson completion, review, restart, and Next Lesson parity. A future sprint should add assignment scheduling/notifications only after timezone and late-work rules are approved, and may add richer multi-Course Library history without merging progress contexts.
+
 ## Sprint 51C — Media Library Content Deduplication
 
 Implemented locally. Trusted owner-scoped SHA-256 registration prevents future

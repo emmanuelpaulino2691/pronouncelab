@@ -94,6 +94,6 @@ export async function getDraftCourse(id: ContentId): Promise<LearnerCourse | nul
         lessons: lessons.map((lesson) => ({ id: contentId(lesson.id), unitId: contentId(unit.id), title: lesson.title, description: lesson.description, position: lesson.position, currentVersionId: null, activityCount: 0, available: true })),
       };
     }));
-    return { id: contentId(course.id), slug: course.slug, title: course.title, description: course.description, level: course.level, emoji: course.emoji, position: course.position, unitCount: mappedUnits.length, units: mappedUnits };
+    return { id: contentId(course.id), slug: course.slug, title: course.title, description: course.description, level: course.level, emoji: course.emoji, position: course.position, unitCount: mappedUnits.length, visibility:"class_only", units: mappedUnits };
   } catch { return null; }
 }

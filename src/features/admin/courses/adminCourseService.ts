@@ -16,6 +16,7 @@ export type AdminCourse = {
   status: CourseStatus;
   createdAt: string;
   updatedAt: string;
+  learnerVisibility: "class_only" | "unlisted" | "public";
 };
 
 export type CourseInput = {
@@ -65,6 +66,7 @@ type CourseRow = {
   status: CourseStatus;
   created_at: string;
   updated_at: string;
+  learner_visibility: "class_only" | "unlisted" | "public";
 };
 
 const courseColumns = [
@@ -78,6 +80,7 @@ const courseColumns = [
   "status",
   "created_at",
   "updated_at",
+  "learner_visibility",
 ].join(",");
 
 function requireSupabase() {
@@ -104,6 +107,7 @@ function toAdminCourse(
     status: row.status,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    learnerVisibility: row.learner_visibility,
   };
 }
 
@@ -263,4 +267,16 @@ export async function publishAdminCourse(courseId: number): Promise<CoursePublic
   if (result.ok === false && Array.isArray(result.errors)) return result;
   if (result.ok === true && typeof result.publishedLessons === "number") return result;
   throw new Error("The course publication response was not recognised.");
+}
+
+export async function setAdminCourseVisibility(courseId:number,visibility:AdminCourse["learnerVisibility"]){
+  const{data,error}=await requireSupabase().rpc("set_course_learner_visibility",{requested_course_id:courseId,requested_visibility:visibility});
+  if(error)throw error;
+  return data as unknown as{courseId:number;visibility:AdminCourse["learnerVisibility"];shareToken:string|null};
+}
+
+export async function regenerateAdminCourseShareLink(courseId:number){
+  const{data,error}=await requireSupabase().rpc("regenerate_course_unlisted_share_link",{requested_course_id:courseId});
+  if(error)throw error;
+  return String(data);
 }

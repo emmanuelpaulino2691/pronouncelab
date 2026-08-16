@@ -11,6 +11,7 @@ import type {
   PublishedRpcQuestion,
   PublishedRpcTheoryBlock,
 } from "./publishedRpc";
+import type { ContentId } from "./learnerContent";
 
 const maxSignedBigint = "9223372036854775807";
 const prohibitedKeys = new Set([
@@ -76,7 +77,7 @@ function hasProhibitedKey(value: unknown): boolean {
 
 export function isDecimalContentId(
   value: unknown
-): value is DecimalContentId {
+): value is DecimalContentId & ContentId {
   if (
     typeof value !== "string" ||
     !/^[1-9]\d*$/.test(value)
@@ -375,6 +376,7 @@ function isCourse(value: unknown) {
     isText(value.level) &&
     isText(value.emoji) &&
     isPosition(value.position) &&
+    (value.visibility === undefined || value.visibility === "class_only" || value.visibility === "unlisted" || value.visibility === "public") &&
     Array.isArray(value.units) &&
     value.units.every(isUnit)
   );

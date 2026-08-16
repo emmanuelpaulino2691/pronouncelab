@@ -7,6 +7,7 @@ import { releaseLessonRuntimeKey } from "../../features/releases/releaseLessonSe
 const AdminRoute = lazy(routeModuleLoaders.adminRoute);
 const DashboardPage = lazy(routeModuleLoaders.dashboard);
 const CoursesPage = lazy(routeModuleLoaders.courses);
+const SharedCoursePage = lazy(routeModuleLoaders.sharedCourse);
 const UnitsPage = lazy(routeModuleLoaders.units);
 const LessonsPage = lazy(routeModuleLoaders.lessons);
 const LessonPage = lazy(routeModuleLoaders.lesson);
@@ -115,6 +116,10 @@ export const router = createBrowserRouter([
   {
     path: "/courses",
     element: <LazyRoute><CoursesPage /></LazyRoute>,
+  },
+  {
+    path: "/shared/:token",
+    element: <LazyRoute><SharedCoursePage /></LazyRoute>,
   },
   {
     path: "/courses/:courseId",

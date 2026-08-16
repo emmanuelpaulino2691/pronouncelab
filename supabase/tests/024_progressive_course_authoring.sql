@@ -42,6 +42,7 @@ select lives_ok($$select public.publish_lesson_version(924031)$$,
   'initial lesson publishes');
 select is((public.publish_course(924001)->>'ok')::boolean, true,
   'initial course publication succeeds');
+reset role; update public.courses set learner_visibility='public' where id=924001; set local role authenticated;
 
 create temporary table new_unit as
 select created.*

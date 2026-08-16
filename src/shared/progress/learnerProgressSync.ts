@@ -1,7 +1,7 @@
 import type { UserProgress } from "../types/UserProgress";
 
 export type ServerLearnerProgress = {
-  lessons: Array<{ lessonId: string; completedAt: string | null; lastAccessedAt: string }>;
+  lessons: Array<{ lessonId: string; completedAt: string | null; lastAccessedAt: string;lastActivityId:string|null }>;
   activities: Array<{ lessonId: string; activityId: string; position: number; completedAt: string }>;
 };
 
@@ -14,7 +14,7 @@ export function parseServerLearnerProgress(value: unknown): ServerLearnerProgres
     if (!item || typeof item !== "object") return [];
     const row = item as Record<string, unknown>;
     if (!(typeof row.lessonId === "string" || typeof row.lessonId === "number")) return [];
-    return [{ lessonId: String(row.lessonId), completedAt: typeof row.completedAt === "string" ? row.completedAt : null, lastAccessedAt: typeof row.lastAccessedAt === "string" ? row.lastAccessedAt : "" }];
+    return [{ lessonId: String(row.lessonId), completedAt: typeof row.completedAt === "string" ? row.completedAt : null, lastAccessedAt: typeof row.lastAccessedAt === "string" ? row.lastAccessedAt : "",lastActivityId:typeof row.lastActivityId==="string"||typeof row.lastActivityId==="number"?String(row.lastActivityId):null }];
   }) : [];
   const activities = Array.isArray(source.activities) ? source.activities.flatMap((item) => {
     if (!item || typeof item !== "object") return [];

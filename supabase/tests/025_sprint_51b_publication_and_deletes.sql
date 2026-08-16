@@ -45,6 +45,7 @@ values
 set local role authenticated;
 select lives_ok($$select public.publish_lesson_version(925031)$$, 'Version 1 publishes');
 select is((public.publish_course(925001)->>'ok')::boolean, true, 'course publishes');
+do $$ begin perform public.set_course_learner_visibility(925001,'public'); end $$;
 select is(
   public.get_published_lesson(925021, 1) #>> '{lesson,activities,0,blocks,1,transcript}',
   'Visible Learn transcript', 'published Learn projection includes the audio transcript');

@@ -123,6 +123,7 @@ select is((select status::text from public.lesson_versions
 select is((select published_at from public.lessons where id = 923021),
   (select published_at from first_lesson_timestamp),
   'lesson keeps its original publication timestamp during version activation');
+do $$ begin perform public.set_course_learner_visibility(923001,'public'); end $$;
 select ok(public.get_published_lesson(923021, 1)::text like '%Version 2 learner title%',
   'learner delivery resolves Version 2 content');
 select is((select count(*)::integer from public.media_assets

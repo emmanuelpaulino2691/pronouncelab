@@ -1,5 +1,9 @@
 # Sprint Status
 
+## Sprint 52E — Course Library, Visibility & Learner Experience Separation
+
+Implemented locally. Publishing now prepares immutable Releases without making Courses globally discoverable. Courses default to Class only; Public Courses appear in Course Library, while authenticated Unlisted practice uses revocable, hash-stored share links. Learner Home contains active Class assignments only. Course Library owns independent-practice resume state and the current/public Lesson runtime now matches Release UX for sequential overview, completion summary, review, restart, and Next Lesson while preserving separate progress adapters. See ADR 0015.
+
 ## Sprint 52D — Assignment Experience & Lifecycle UX
 
 Implemented locally as a frontend-only increment. Teacher Class workspaces now present active immutable Release assignments, completion summaries, responsive learner progress, explicit newer-Release review and confirmation, ordered assignment history, and clear archive/deactivation preservation semantics. Join codes support copy and explained regeneration. Learner Class cards show Release-only Not started, In progress, or Completed state with Open/Review Course actions. Availability and due dates are explicitly deferred; no database or authorization contract changed.

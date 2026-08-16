@@ -20,7 +20,7 @@ import { publicationErrorLabel } from "./coursePublicationState";
 import { publicationFunctionErrorMessage } from "../lesson-studio/publicationErrors";
 import {
   createAdminCourse, deleteDraftCourse, duplicateDraftCourse, listAdminCourses, publishAdminCourse, updateAdminCourse,
-  isMissingCoursePublicationRpcError, type AdminCourse, type CourseInput, type CoursePublicationError, type CourseStatus,
+  isMissingCoursePublicationRpcError, regenerateAdminCourseShareLink, setAdminCourseVisibility, type AdminCourse, type CourseInput, type CoursePublicationError, type CourseStatus,
 } from "./adminCourseService";
 
 type FormState = { mode: "closed" } | { mode: "create" } | { mode: "edit"; course: AdminCourse };
@@ -54,6 +54,8 @@ function AdminCoursesPage() {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<"all" | CourseStatus>("all");
   const [sort, setSort] = useState<SortMode>("updated");
+  const [visibilityDrafts,setVisibilityDrafts]=useState<Record<number,AdminCourse["learnerVisibility"]>>({});
+  const [shareLinks,setShareLinks]=useState<Record<number,string>>({});
 
   const loadCourses = useCallback(async () => {
     setIsLoading(true);
@@ -151,6 +153,13 @@ function AdminCoursesPage() {
     }
   }
 
+  async function handleVisibility(course:AdminCourse){
+    const visibility=visibilityDrafts[course.id]??course.learnerVisibility;
+    try{const result=await setAdminCourseVisibility(course.id,visibility);setCourses(current=>current.map(item=>item.id===course.id?{...item,learnerVisibility:visibility}:item));if(result.shareToken)setShareLinks(current=>({...current,[course.id]:`${window.location.origin}/shared/${result.shareToken}`}));setPublicationSummary(`Learner visibility for ${course.title} is now ${visibility.replace("_"," ")}. Publishing and Class assignments were not changed.`)}catch{setErrorMessage("Learner visibility could not be changed.")}
+  }
+
+  async function handleNewShareLink(course:AdminCourse){try{const token=await regenerateAdminCourseShareLink(course.id);setShareLinks(current=>({...current,[course.id]:`${window.location.origin}/shared/${token}`}));setPublicationSummary("A new Unlisted share link is ready. The previous link no longer works.")}catch{setErrorMessage("A new share link could not be created.")}}
+
   return (
     <section className="mx-auto max-w-7xl space-y-7">
       <PageHeader
@@ -197,6 +206,7 @@ function AdminCoursesPage() {
                   <p className="mt-2 text-xs font-medium text-slate-500">{canViewAllCourses ? "Platform course" : "My course"}</p>
                   <p className="mt-3 line-clamp-3 text-sm leading-6 text-slate-600" title={course.description}>{course.description || "No description has been added yet."}</p>
                   <p className="mt-auto pt-5 text-xs text-slate-500">Updated {formatDate(course.updatedAt)}</p>
+                  <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3"><label className="text-xs font-bold uppercase tracking-wide text-slate-500">Learner visibility<Select className="mt-2" value={visibilityDrafts[course.id]??course.learnerVisibility} onChange={event=>setVisibilityDrafts(current=>({...current,[course.id]:event.target.value as AdminCourse["learnerVisibility"]}))}><option value="class_only">Class only</option><option value="unlisted">Unlisted</option><option value="public">Public — Course Library</option></Select></label><p className="mt-2 text-xs leading-5 text-slate-600">{(visibilityDrafts[course.id]??course.learnerVisibility)==="class_only"?"Ready for Class assignment; hidden from independent practice.":(visibilityDrafts[course.id]??course.learnerVisibility)==="unlisted"?"Independent practice for signed-in learners with the secure link.":"Listed in Course Library for independent practice."}</p><Button className="mt-3" variant="secondary" onClick={()=>void handleVisibility(course)}>Save visibility</Button>{course.learnerVisibility==="unlisted"&&<Button className="mt-3 ml-2" variant="secondary" onClick={()=>void handleNewShareLink(course)}>Create new share link</Button>}{shareLinks[course.id]&&<div className="mt-3"><TextInput aria-label={`Share link for ${course.title}`} readOnly value={shareLinks[course.id]}/><Button className="mt-2" variant="secondary" onClick={()=>void navigator.clipboard.writeText(shareLinks[course.id])}>Copy link</Button></div>}</div>
                 </div>
                 <div className="flex flex-wrap gap-2 border-t border-slate-200 bg-slate-50/70 p-4">
                   <ButtonLink to={`/admin/courses/${course.id}`} className="flex-1">{editable ? "Continue editing" : "View course"}</ButtonLink>
@@ -223,7 +233,7 @@ function AdminCoursesPage() {
         isOpen={publishConfirmation !== null}
         onClose={() => { if (publishingCourseId === null) setPublishConfirmation(null); }}
         title="Publish course"
-        description={publishConfirmation ? `Review and publish “${publishConfirmation.title}”. Draft additions and lesson updates are validated before learner-facing content changes.` : undefined}
+        description={publishConfirmation ? `Review and publish “${publishConfirmation.title}”. Publishing freezes an immutable Release and makes it ready for assignment; Learner visibility remains separate.` : undefined}
         preventClose={publishingCourseId !== null}
         footer={<><Button type="button" variant="secondary" disabled={publishingCourseId !== null} onClick={() => setPublishConfirmation(null)}>Cancel</Button><Button type="button" isLoading={publishingCourseId !== null} onClick={() => { if (publishConfirmation) void handlePublish(publishConfirmation); }}>Publish course</Button></>}
       >

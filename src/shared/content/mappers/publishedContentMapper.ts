@@ -299,6 +299,7 @@ function mapCatalogEnvelope(
         emoji: course.emoji,
         position: course.position,
         unitCount: units.length,
+        visibility: course.visibility ?? "public",
         units,
       };
       coursesById.set(mapped.id, mapped);
@@ -422,5 +423,6 @@ export function courseSummaryFromPublished(
     emoji: course.emoji,
     position: course.position,
     unitCount: course.unitCount,
+    visibility: course.visibility,
   };
 }

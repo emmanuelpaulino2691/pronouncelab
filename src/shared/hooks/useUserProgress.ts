@@ -137,11 +137,11 @@ export function useUserProgress() {
     []
   );
 
-  const syncLesson = useCallback(async (lessonId: string, activities: readonly { id: string }[]) => {
+  const syncLesson = useCallback(async (lessonId: string, activities: readonly { id: string }[],currentActivityId?:string) => {
     const local = loadUserProgress();
     const server = await loadServerLearnerProgress();
     if (!server) return false;
-    await recordServerLessonVisit(lessonId, activities[0]?.id);
+    await recordServerLessonVisit(lessonId, currentActivityId??activities[0]?.id);
     const pending = pendingPublishedActivityIds(local, lessonId, activities, server);
     const results = await Promise.all(pending.map(recordServerActivityCompletion));
     const refreshed = await loadServerLearnerProgress();
@@ -164,6 +164,8 @@ export function useUserProgress() {
     });
   }, []);
 
+  const visitActivity=useCallback((lessonId:string,activityId:string)=>{void recordServerLessonVisit(lessonId,activityId)},[]);
+
   const resetLessonProgress = useCallback((lessonId: string) => {
     const latest = loadUserProgress();
     const updated = {
@@ -182,6 +184,7 @@ export function useUserProgress() {
     completeActivity,
     syncActivity,
     syncLesson,
+    visitActivity,
     resetLessonProgress,
   };
 }

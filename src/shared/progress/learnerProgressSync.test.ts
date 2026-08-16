@@ -3,7 +3,7 @@ import { mergeLearnerProgress, parseServerLearnerProgress, pendingPublishedActiv
 
 describe("learner progress reconciliation", () => {
   it("merges local and server completion monotonically", () => {
-    const merged = mergeLearnerProgress({ lessonsStarted: ["1"], lessonsCompleted: ["1"], activitiesCompleted: [{ lessonId: "1", activities: [0] }] }, { lessons: [{ lessonId: "2", completedAt: "2026-08-14", lastAccessedAt: "2026-08-14" }], activities: [{ lessonId: "2", activityId: "22", position: 1, completedAt: "2026-08-14" }] });
+    const merged = mergeLearnerProgress({ lessonsStarted: ["1"], lessonsCompleted: ["1"], activitiesCompleted: [{ lessonId: "1", activities: [0] }] }, { lessons: [{ lessonId: "2", completedAt: "2026-08-14", lastAccessedAt: "2026-08-14",lastActivityId:"22" }], activities: [{ lessonId: "2", activityId: "22", position: 1, completedAt: "2026-08-14" }] });
     expect(merged.lessonsCompleted).toEqual(["1", "2"]);
     expect(merged.activitiesCompleted).toEqual([{ lessonId: "1", activities: [0] }, { lessonId: "2", activities: [1] }]);
   });

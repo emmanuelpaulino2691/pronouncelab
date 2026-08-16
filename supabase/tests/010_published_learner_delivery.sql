@@ -207,6 +207,7 @@ update public.courses
 set status = 'published',
   published_at = pg_catalog.now()
 where id = 910301;
+update public.courses set learner_visibility='public' where id in (910001,910301);
 
 select is(
   public.get_published_learning_catalog(1)

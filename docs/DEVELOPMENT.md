@@ -182,6 +182,16 @@ external service. The learner starts with no progress: Unit 1 and Lesson 1 are
 available, later Lessons are sequentially locked, and Unit 2 unlocks only after
 all three Unit 1 Lessons are complete.
 
+This Course is **Class only**. Test it through the `Local Enrolled Class` assignment at `http://127.0.0.1:3000/classes`; it is intentionally absent from Course Library and its mutable `/courses/952001` journey is denied.
+
+### Course Library visibility fixtures
+
+- `Local Public Course` (`954001`) appears at `http://127.0.0.1:3000/courses` for independent practice.
+- `Local Unlisted Course` (`955001`) is absent from the library and can be redeemed by the local learner at `http://127.0.0.1:3000/shared/local-unlisted-course-share-52e`.
+- `Local Learner Course` (`952001`) remains the Class-only assigned fixture.
+
+Unlisted redemption requires the authenticated learner account. Its deterministic token exists only for local testing. Use a normal browser profile for Teacher/Admin and Incognito or a separate profile for the Learner because one origin shares one Supabase session across tabs.
+
 Useful learner URLs:
 
 - Home: `http://127.0.0.1:3000/`

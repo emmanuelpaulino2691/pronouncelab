@@ -24,9 +24,13 @@ Course Workspace and Curriculum expose consistent content actions for editable u
 
 PronounceLab Studio provides a course-level **Publish Course** workflow. It validates the complete course before changing learner-facing content, reports all known issues together, and publishes eligible draft lesson versions as one controlled operation. A published course may still contain newer private drafts, so teachers can continue improving it safely.
 
+Publication and learner visibility are separate decisions. Publication validates content and captures an immutable Release that is ready for Class assignment. New and existing Courses default to **Class only**. A Teacher may separately choose **Unlisted** for authenticated independent practice through a revocable share link, or **Public** to list the Course for independent practice in the Course Library. Visibility changes neither Release identity nor Class progress.
+
+Learners see two deliberately separate contexts: **My Classes** contains Teacher assignments and Release-specific Class progress; **Course Library** contains optional independent practice and current-public personal progress. Home prioritizes active Class work only. Anonymous Home offers sign-in for Classes and a separate Course Library entry rather than presenting personal practice as assigned work.
+
 ## Teacher Workspace
 
-The Content Studio is presented as a role-aware workspace. Teachers work from **My Courses**, administrators see platform-wide course management, and publishers review content without receiving draft-edit controls. Classes, Students, and Assignments are planned workspace areas and are clearly marked as coming later until their product foundations exist.
+The Content Studio is presented as a role-aware workspace. Teachers work from **My Courses** and their owned **Classes**, administrators retain platform support access, and publishers review content without receiving draft-edit controls. Class enrollment and immutable Course Release assignments are active; standalone student management and richer task/assessment assignments remain future work.
 
 The Teacher Media Library at `/admin/media` reuses uploaded images and audio across courses and lessons through the existing `media_assets` registry. Existing direct uploads remain the creation path and appear automatically; Media Picker attaches the same stable asset ID without copying its Storage object. Current RLS exposes a shared content-manager pool. Shared ownership, usage counts, replacement, deletion, and library-level upload remain future work.
 
@@ -36,9 +40,7 @@ Each course is now a workspace with an Overview and Curriculum tab. Overview pre
 
 ## Classroom direction
 
-**Future, not implemented.** A Class is a teacher-managed group receiving one or more published Course releases. It is not a Course and never duplicates course content. Teachers will manage their own classes, students, course assignments, assignments, and progress; administrators will manage all classes. Publishers and legacy editors do not receive classroom authority by default. See [Classroom Architecture](CLASSROOM_ARCHITECTURE.md).
-
-The first UI foundation includes a truthful My Classes page, a disabled Create Class form, and a reusable Class Workspace shell. These screens do not load or simulate classroom data.
+A Class is a teacher-managed group receiving one or more immutable published Course Releases. It is not a Course and never duplicates mutable authoring content. Teachers manage owned Classes, enrollment, Release assignments, and assignment-scoped progress; administrators retain support access. Publishers and legacy editors do not receive classroom authority by default. See [Classroom Architecture](CLASSROOM_ARCHITECTURE.md).
 
 The domain layer now names shared product concepts consistently—Course, Class, Release, Assignment, Enrollment, and Progress—while keeping future concepts explicitly unimplemented.
 

@@ -1,6 +1,7 @@
 export const routeModuleLoaders = {
   dashboard: () => import("../../features/dashboard/DashboardPage"),
   courses: () => import("../../features/courses/CoursesPage"),
+  sharedCourse: () => import("../../features/courses/SharedCoursePage"),
   units: () => import("../../features/units/UnitsPage"),
   lessons: () => import("../../features/lessons/LessonsPage"),
   lesson: () => import("../../features/lesson/LessonPage"),

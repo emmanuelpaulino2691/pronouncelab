@@ -15,6 +15,7 @@ reset role;
 set local request.jwt.claim.sub = '92700000-0000-4000-8000-000000000003';
 insert into public.courses (id, slug, title, position, status, owner_user_id, published_at)
 values (927001, 'learner-progress', 'Learner Progress', 927001, 'published', '92700000-0000-4000-8000-000000000003', now());
+update public.courses set learner_visibility='public' where id=927001;
 insert into public.units (id, course_id, title, position, status, published_at)
 values (927011, 927001, 'Published unit', 0, 'published', now());
 insert into public.lessons (id, unit_id, title, position, status, published_at)

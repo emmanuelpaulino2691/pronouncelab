@@ -1014,6 +1014,7 @@ export function mapStaticContent(
       emoji: optionalText(course.emoji) ?? "",
       position: coursePosition,
       unitCount: units.length,
+      visibility: "public",
     };
     const learnerCourse: LearnerCourse = {
       ...courseSummary,

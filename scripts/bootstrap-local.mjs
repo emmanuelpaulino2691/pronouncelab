@@ -135,6 +135,38 @@ begin
 end;
 $$;
 
+-- Independent-practice fixtures remain separate from the Class-only assigned Course.
+insert into public.courses(id,slug,title,description,level,emoji,position,status,owner_user_id,created_by,updated_by) values
+  (954001,'local-public-course','Local Public Course','Independent-practice fixture listed in Course Library.','A1','📚',coalesce((select max(position)+1 from public.courses),0),'draft','${teacherId}','${teacherId}','${teacherId}'),
+  (955001,'local-unlisted-course','Local Unlisted Course','Independent-practice fixture available only through its secure link.','A1','🔗',coalesce((select max(position)+2 from public.courses),1),'draft','${teacherId}','${teacherId}','${teacherId}')
+on conflict(id) do nothing;
+insert into public.units(id,course_id,title,description,position,status,created_by,updated_by) values
+  (954011,954001,'Public Practice Unit','Course Library practice.',0,'draft','${teacherId}','${teacherId}'),
+  (955011,955001,'Shared Practice Unit','Unlisted link practice.',0,'draft','${teacherId}','${teacherId}') on conflict(id) do nothing;
+insert into public.lessons(id,unit_id,title,description,position,status,created_by,updated_by) values
+  (954021,954011,'Public Practice Lesson','Visible through Course Library.',0,'draft','${teacherId}','${teacherId}'),
+  (955021,955011,'Shared Practice Lesson','Visible after secure link redemption.',0,'draft','${teacherId}','${teacherId}') on conflict(id) do nothing;
+insert into public.lesson_versions(id,lesson_id,version_number,status,created_by) values
+  (954031,954021,1,'draft','${teacherId}'),(955031,955021,1,'draft','${teacherId}') on conflict(id) do nothing;
+do $$ declare result jsonb; begin
+  if (select status='draft' from public.lesson_versions where id=954031) then
+    insert into public.lesson_activities(id,lesson_version_id,type,title,position) values(954041,954031,'theory','Public Learn activity',0) on conflict(id) do nothing;
+    insert into public.theory_blocks(id,activity_id,block_type,position,text) values(954051,954041,'paragraph',0,'This Course demonstrates independent Public practice.') on conflict(id) do nothing;
+    result:=public.publish_course(954001); if not coalesce((result->>'ok')::boolean,false) then raise exception 'Public fixture publication failed: %',result; end if;
+  end if;
+  if (select status='draft' from public.lesson_versions where id=955031) then
+    insert into public.lesson_activities(id,lesson_version_id,type,title,position) values(955041,955031,'theory','Shared Learn activity',0) on conflict(id) do nothing;
+    insert into public.theory_blocks(id,activity_id,block_type,position,text) values(955051,955041,'paragraph',0,'This Course demonstrates secure Unlisted practice.') on conflict(id) do nothing;
+    result:=public.publish_course(955001); if not coalesce((result->>'ok')::boolean,false) then raise exception 'Unlisted fixture publication failed: %',result; end if;
+  end if;
+end $$;
+update public.courses set learner_visibility='class_only' where id=952001;
+update public.courses set learner_visibility='public' where id=954001;
+update public.courses set learner_visibility='unlisted' where id=955001;
+insert into public.course_unlisted_share_links(course_id,token_hash,created_by)
+values(955001,encode(extensions.digest(pg_catalog.convert_to('local-unlisted-course-share-52e','UTF8'),'sha256'),'hex'),'${teacherId}')
+on conflict(course_id) do update set token_hash=excluded.token_hash,created_by=excluded.created_by;
+
 set constraints capture_course_release_after_publication immediate;
 
 delete from public.course_release_learner_entitlements entitlement
@@ -146,20 +178,7 @@ from public.course_releases release
 where release.course_id=952001 and release.release_number=1
   and not exists(select 1 from public.class_course_assignments assignment where assignment.class_id=953001 and assignment.source_course_id=952001 and assignment.status='active');
 
-do $$
-begin
-  if not public.learner_lesson_is_eligible('${learnerId}', 952021) then
-    raise exception 'Learner fixture first lesson must be eligible';
-  end if;
-  if public.learner_lesson_is_eligible('${learnerId}', 952022)
-    or public.learner_lesson_is_eligible('${learnerId}', 952023)
-    or public.learner_lesson_is_eligible('${learnerId}', 952024)
-    or public.learner_lesson_is_eligible('${learnerId}', 952025)
-  then
-    raise exception 'Learner fixture later lessons must begin locked';
-  end if;
-end;
-$$;
+do $$ begin if public.learner_lesson_is_eligible('${learnerId}',952021) then raise exception 'Class-only current Course must not grant independent progress'; end if; end $$;
 commit;`;
   execFileSync("docker", ["exec", "-i", databaseContainer, "psql", "-v", "ON_ERROR_STOP=1", "-U", "postgres", "-d", "postgres"], {
     input: sql,
@@ -215,11 +234,8 @@ if (!catalogResponse.ok || !progressResponse.ok || !assignmentsResponse.ok) thro
 const catalog = await catalogResponse.json();
 const progress = await progressResponse.json();
 const courses = catalog?.courses ?? catalog?.catalog?.courses ?? [];
-const learnerCourse = courses.find((course) => String(course.id) === "952001");
-if (!learnerCourse || courses.some((course) => String(course.id) === "951001")) throw new Error("Published learner fixture visibility is incorrect.");
-const units = learnerCourse.units ?? [];
-const lessons = units.flatMap((unit) => unit.lessons ?? []);
-if (units.length !== 2 || lessons.length !== 5 || lessons.some((lesson) => lesson.activityCount !== 1)) throw new Error("Published learner fixture hierarchy is incomplete.");
+const publicCourse = courses.find((course) => String(course.id) === "954001");
+if (!publicCourse || courses.some((course) => ["951001","952001","955001"].includes(String(course.id)))) throw new Error("Course Library visibility fixtures are incorrect.");
 if ((progress?.lessons ?? []).length !== 0 || (progress?.activities ?? []).length !== 0) throw new Error("Local learner fixture must start without progress.");
 const assignments = await assignmentsResponse.json();
 if (assignments.length !== 1 || assignments[0]?.courseId !== 952001 || assignments[0]?.status !== "active") throw new Error("Local Class assignment fixture is incorrect.");
@@ -230,9 +246,10 @@ console.log(`Teacher: ${teacherEmail}`);
 console.log(`Learner: ${learnerEmail}`);
 console.log("All local password logins verified.");
 console.log("Teacher fixture visibility verified through RLS.");
-console.log("Published learner fixture visibility and zero-progress state verified.");
+console.log("Class-only, Public, and Unlisted learner visibility fixtures verified.");
 console.log("Lesson Studio: http://127.0.0.1:3000/admin/lessons/951021/studio");
 console.log("Learner Home:  http://127.0.0.1:3000/");
-console.log("Learner Course: http://127.0.0.1:3000/courses/952001");
-console.log("Learner Unit 1: http://127.0.0.1:3000/units/952011");
+console.log("Assigned Course: http://127.0.0.1:3000/classes");
+console.log("Course Library: http://127.0.0.1:3000/courses");
+console.log("Unlisted Course: http://127.0.0.1:3000/shared/local-unlisted-course-share-52e");
 console.log("Passwords use documented local defaults unless PRONOUNCELAB_LOCAL_*_PASSWORD overrides were set.");

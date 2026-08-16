@@ -1,49 +1,28 @@
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import MainLayout from "../../shared/layouts/MainLayout";
-import ProgressBar from "../../shared/components/ui/ProgressBar";
-import { learnerContentProvider } from "../../shared/content/learnerContentComposition";
-import { useLearnerResource } from "../../shared/content/hooks/useLearnerResource";
-import { useUserProgress } from "../../shared/hooks/useUserProgress";
-import { loadLessonState } from "../../shared/utils/lessonStorage";
-import { normalizeLessonState } from "../lesson/studentExperience";
-import DashboardLoadingState from "./components/DashboardLoadingState";
-import NextActionCard from "./components/NextActionCard";
-import { buildCurrentCourseSummary, getHomeWelcomeHeading, hasCompletedEveryAvailableLesson, hasLearnerProgress, resolveNextLearnerAction } from "./learnerDashboard";
+import { useLearnerRouteIdentity } from "../auth/useLearnerRouteIdentity";
+import { listClassCourseAssignments, listMyMemberships } from "../classes/classService";
+import { resolveReleaseNavigation } from "../releases/releaseNavigation";
+import { getReleaseManifest, getReleaseProgress } from "../releases/releaseService";
+import { selectHomeAssignment, type HomeAssignment } from "./assignmentHome";
 
-export default function DashboardPage() {
-  const { progress: stored } = useUserProgress();
-  const navigate = useNavigate();
-  const resource = useLearnerResource((signal) => learnerContentProvider.listCourses(signal), []);
-  const courses = resource.value ?? [];
-  const activityPositions = Object.fromEntries(courses.flatMap((course) => course.units.flatMap((unit) => unit.lessons.map((lesson) => [lesson.id, normalizeLessonState(loadLessonState(lesson.id), lesson.activityCount).currentActivity]))));
-  const action = resolveNextLearnerAction(courses, stored, activityPositions);
-  const currentCourse = action ? buildCurrentCourseSummary(action, stored) : null;
-  const returningLearner = hasLearnerProgress(stored);
-  const everythingCompleted = hasCompletedEveryAvailableLesson(courses, stored);
-
-  return <MainLayout>
-    <header>
-      <h1 className="break-words text-3xl font-bold text-slate-950 sm:text-4xl">{getHomeWelcomeHeading()}</h1>
-      <p className="mt-3 max-w-2xl text-lg leading-7 text-slate-600">Ready to continue your English journey?</p>
-      <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">A few focused minutes can make English feel more familiar.</p>
-    </header>
-
-    {resource.loading && <DashboardLoadingState />}
-    {resource.error && <section className="mt-8 rounded-2xl border border-red-200 bg-white p-6" aria-labelledby="home-error-heading"><h2 id="home-error-heading" className="text-xl font-bold text-slate-950">Your learning content could not be loaded</h2><p className="mt-2 text-slate-600">Your place remains safe on this device. Try loading Home again.</p><button type="button" onClick={resource.retry} className="mt-5 min-h-11 rounded-xl bg-blue-600 px-5 font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">Try again</button></section>}
-
-    {!resource.loading && !resource.error && !action && <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-7" aria-labelledby="empty-mission-heading"><p className="text-xs font-bold uppercase tracking-[0.16em] text-blue-700">Today&apos;s Mission</p><h2 id="empty-mission-heading" className="mt-3 text-2xl font-bold text-slate-950">No lessons are available yet</h2><p className="mt-2 max-w-xl leading-7 text-slate-600">New English journeys are being prepared. Please check back later.</p>{courses.length > 0 && <button type="button" onClick={() => navigate("/courses")} className="mt-5 min-h-11 rounded-xl border border-blue-600 px-5 font-semibold text-blue-700 hover:bg-blue-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">Browse Courses</button>}</section>}
-
-    {!resource.loading && !resource.error && action && <div className="mt-8 space-y-10">
-      <section aria-labelledby="todays-mission-heading"><h2 id="todays-mission-heading" className="sr-only">Today&apos;s Mission</h2><NextActionCard action={action} returningLearner={returningLearner} everythingCompleted={everythingCompleted} /></section>
-
-      {currentCourse && <section aria-labelledby="learning-journey-heading" className="max-w-4xl rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-        <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Your Learning Journey</p>
-        <h2 id="learning-journey-heading" className="mt-2 text-2xl font-bold text-slate-950">{currentCourse.courseTitle}</h2>
-        <p className="mt-1 text-slate-600">Current unit: {currentCourse.unitTitle}</p>
-        <div className="mt-5"><p className="mb-2 text-sm text-slate-600">{currentCourse.completedLessons} of {currentCourse.totalLessons} lessons completed</p><ProgressBar value={currentCourse.percent} label={`${currentCourse.courseTitle} progress`} /></div>
-        <button type="button" onClick={() => navigate(`/courses/${currentCourse.courseId}`)} className="mt-5 min-h-11 rounded-xl border border-blue-600 px-5 font-semibold text-blue-700 hover:bg-blue-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">Open Course</button>
-        <Link to="/courses" className="mt-4 inline-flex min-h-11 items-center font-semibold text-blue-700 underline-offset-4 hover:underline focus-visible:rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">Browse all courses <span aria-hidden="true">&rarr;</span></Link>
-      </section>}
-    </div>}
+export default function DashboardPage(){
+  const identity=useLearnerRouteIdentity();const[items,setItems]=useState<HomeAssignment[]>([]);const[loading,setLoading]=useState(false);const[error,setError]=useState(false);
+  useEffect(()=>{let active=true;const timer=window.setTimeout(()=>{
+    if(identity.kind!=="learner"){setItems([]);return}
+    setLoading(true);
+    void listMyMemberships().then(async memberships=>{
+      const groups=await Promise.all(memberships.map(async membership=>{
+        const assignments=await listClassCourseAssignments(membership.class_id);
+        return Promise.all(assignments.map(async assignment=>{const[manifest,progress]=await Promise.all([getReleaseManifest(assignment.releaseId),getReleaseProgress(assignment.releaseId)]);const navigation=resolveReleaseNavigation(manifest,progress);return{assignmentId:assignment.assignmentId,releaseId:assignment.releaseId,classId:membership.class_id,className:membership.classes?.name??"Class",courseTitle:assignment.courseTitle,...navigation,lastAccessedAt:progress.lessons.map(row=>row.lastAccessedAt).filter((value):value is string=>Boolean(value)).sort().at(-1)??null,progress}}));
+      }));return groups.flat();
+    }).then(rows=>{if(active){setItems(rows);setError(false)}}).catch(()=>{if(active)setError(true)}).finally(()=>{if(active)setLoading(false)});
+  });return()=>{active=false;window.clearTimeout(timer)}},[identity.kind]);
+  const current=selectHomeAssignment(items);
+  return <MainLayout><header><h1 className="text-3xl font-bold sm:text-4xl">Improve your English every day.</h1><p className="mt-3 max-w-2xl text-lg text-slate-600">Continue your Class work or choose independent practice from the Course Library.</p></header>
+    {identity.kind==="anonymous"&&<section className="mt-8 rounded-2xl border bg-white p-7"><p className="text-xs font-bold uppercase tracking-wide text-blue-700">Class assignments</p><h2 className="mt-2 text-2xl font-bold">Sign in to see your Classes and assignments</h2><p className="mt-2 text-slate-600">Guest practice remains on this device and never appears as assigned Class work.</p><div className="mt-5 flex flex-col gap-3 sm:flex-row"><Link to="/login" state={{from:"/"}} className="inline-flex min-h-12 items-center justify-center rounded-xl bg-blue-600 px-5 font-bold text-white">Sign in</Link><Link to="/courses" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-blue-600 px-5 font-bold text-blue-700">Explore Course Library</Link></div></section>}
+    {identity.kind==="staff"&&<section className="mt-8 rounded-2xl border bg-white p-7"><h2 className="text-2xl font-bold">Staff Preview</h2><p className="mt-2 text-slate-600">Staff sessions do not create learner progress.</p><Link to="/admin" className="mt-5 inline-flex font-bold text-blue-700">Back to Content Studio</Link></section>}
+    {identity.kind==="learner"&&<section className="mt-8" aria-labelledby="class-work-heading"><p className="text-xs font-bold uppercase tracking-wide text-blue-700">Continue your Class work</p><h2 id="class-work-heading" className="mt-2 text-2xl font-bold">Assignments</h2>{loading&&<p role="status" className="mt-4 rounded-2xl bg-white p-6">Loading assignments…</p>}{error&&<p role="alert" className="mt-4 rounded-2xl border border-red-200 bg-white p-6">Assignments could not be loaded.</p>}{!loading&&!error&&current&&<article className="mt-4 max-w-3xl rounded-2xl border border-blue-200 bg-white p-6 shadow-sm"><p className="text-sm font-bold text-blue-700">Assigned Course</p><h3 className="mt-1 text-2xl font-bold">{current.courseTitle}</h3><p className="mt-1 text-slate-600">{current.className}</p><p className="mt-4 font-semibold">Class Progress: {current.completed} of {current.total} Lessons · {current.percent}%</p><Link to={`/releases/${current.releaseId}?classId=${current.classId}`} className="mt-5 inline-flex min-h-12 items-center rounded-xl bg-blue-600 px-5 font-bold text-white">Continue Assignment</Link></article>}{!loading&&!error&&!current&&<div className="mt-4 rounded-2xl border bg-white p-6"><h3 className="text-xl font-bold">No active assignment needs attention</h3><p className="mt-2 text-slate-600">Open My Classes to review completed work, or practice independently in Course Library.</p></div>}<div className="mt-5 flex flex-col gap-3 sm:flex-row"><Link to="/classes" className="font-bold text-blue-700">My Classes →</Link><Link to="/courses" className="font-bold text-slate-700">Course Library →</Link></div></section>}
   </MainLayout>;
 }
