@@ -1,5 +1,9 @@
 # Sprint Status
 
+## Sprint 52J — Deterministic Browser Mutation Isolation
+
+Implemented locally without production schema changes. Local bootstrap owns separate Join and Completion learner identities, Classes, and a two-Lesson immutable Assignment Release. Playwright resets only the current smoke learner's enrollment or Release-progress rows before each mutation flow, after validating local API/database/container identity. The six-test Chromium suite now covers invalid and valid Join Class, immediate membership refresh, Lesson completion, authoritative completion summary, immutable Next Lesson navigation, and stale presentation-state isolation while retaining all Sprint 52I coverage. Workers remain fixed at one; CI provisioning is deferred to the next sprint.
+
 ## Sprint 52I — Browser Smoke Testing Foundation
 
 Implemented locally with Playwright Chromium and no product/database changes. Four deterministic, non-mutating smoke tests cover learner login and final navigation, Class Assignment/Course Library/Progress separation, Teacher Published Student Preview with nested refresh and separate Teacher/Learner browser contexts, plus a 390px keyboard/mobile navigation pass. The runner rejects non-local Supabase URLs and retains screenshots/traces only for failures. Join Class and completion are deferred until they have isolated repeatable cleanup; CI is deferred until local reliability and Supabase orchestration are established.

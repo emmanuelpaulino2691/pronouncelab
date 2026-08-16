@@ -1,12 +1,16 @@
 import { execFileSync } from "node:child_process";
+import { writeFileSync } from "node:fs";
 import process from "node:process";
 
 const adminEmail = "admin.pronouncelab@gmail.com";
 const teacherEmail = "emmanuelpaulino2691@gmail.com";
 const learnerEmail = "learner.pronouncelab@gmail.com";
+const smokeJoinEmail = "smoke.join@pronouncelab.local";
+const smokeCompletionEmail = "smoke.completion@pronouncelab.local";
 const adminPassword = process.env.PRONOUNCELAB_LOCAL_ADMIN_PASSWORD ?? "PronounceLabLocalAdmin!2026";
 const teacherPassword = process.env.PRONOUNCELAB_LOCAL_TEACHER_PASSWORD ?? "PronounceLabLocalTeacher!2026";
 const learnerPassword = process.env.PRONOUNCELAB_LOCAL_LEARNER_PASSWORD ?? "PronounceLabLocalLearner!2026";
+const smokePassword = "PronounceLabLocalSmoke!2026";
 function localStatus() {
   const output = process.platform === "win32"
     ? execFileSync(process.env.ComSpec ?? "cmd.exe", ["/d", "/s", "/c", "npx.cmd supabase status -o env"], { encoding: "utf8" })
@@ -21,7 +25,8 @@ const status = localStatus();
 const apiUrl = status.API_URL;
 const serviceKey = status.SERVICE_ROLE_KEY;
 const anonKey = status.ANON_KEY;
-if (!apiUrl || !serviceKey || !anonKey || !apiUrl.startsWith("http://127.0.0.1:")) {
+const databaseUrl = status.DB_URL;
+if (!apiUrl || !databaseUrl || !serviceKey || !anonKey || !apiUrl.startsWith("http://127.0.0.1:") || new URL(databaseUrl).hostname !== "127.0.0.1") {
   throw new Error("Local Supabase is not running or did not expose local credentials.");
 }
 
@@ -46,9 +51,9 @@ async function ensureUser(email, password) {
   return user;
 }
 
-function seedFixture(adminId, teacherId, learnerId) {
+function seedFixture(adminId, teacherId, learnerId, smokeJoinId, smokeCompletionId) {
   const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  if (!uuid.test(adminId) || !uuid.test(teacherId) || !uuid.test(learnerId)) throw new Error("Auth Admin API returned an invalid user ID.");
+  if (![adminId, teacherId, learnerId, smokeJoinId, smokeCompletionId].every((id) => uuid.test(id))) throw new Error("Auth Admin API returned an invalid user ID.");
   const containerOutput = execFileSync("docker", ["ps", "--format", "{{.Names}}"], { encoding: "utf8" });
   const databaseContainer = containerOutput.split(/\r?\n/).find((name) => name.startsWith("supabase_db_"));
   if (!databaseContainer) throw new Error("The local Supabase database container is not running.");
@@ -60,10 +65,14 @@ on conflict (user_id, role) do nothing;
 insert into public.classes (id, owner_user_id, name, description, status, join_code, join_code_enabled)
 values
   (953001, '${teacherId}', 'Local Enrolled Class', 'Pre-enrolled roster and progress reporting fixture.', 'active', 'A52B000000000001', true),
-  (953002, '${teacherId}', 'Local Joinable Class', 'Empty Class for manual join-code testing.', 'active', 'A52B000000000002', true)
+  (953002, '${teacherId}', 'Local Joinable Class', 'Empty Class for manual join-code testing.', 'active', 'A52B000000000002', true),
+  (953101, '${teacherId}', 'Smoke Completion Class', 'Browser-test-owned completion fixture.', 'active', 'A52C000000000101', true),
+  (953102, '${teacherId}', 'Smoke Joinable Class', 'Browser-test-owned join fixture.', 'active', 'A52C000000000102', true)
 on conflict (id) do update set owner_user_id=excluded.owner_user_id,name=excluded.name,description=excluded.description,status=excluded.status,join_code=excluded.join_code,join_code_enabled=true;
 insert into public.class_enrollments (class_id, learner_user_id, status, ended_at)
-values (953001, '${learnerId}', 'active', null)
+values
+  (953001, '${learnerId}', 'active', null),
+  (953101, '${smokeCompletionId}', 'active', null)
 on conflict (class_id, learner_user_id) do update set status='active',ended_at=null,updated_at=pg_catalog.now();
 set local request.jwt.claim.sub = '${teacherId}';
 insert into public.courses (id, slug, title, description, level, emoji, position, status, owner_user_id, created_by, updated_by)
@@ -179,17 +188,67 @@ where release.course_id=952001 and release.release_number=1
   and not exists(select 1 from public.class_course_assignments assignment where assignment.class_id=953001 and assignment.source_course_id=952001 and assignment.status='active');
 
 do $$ begin if public.learner_lesson_is_eligible('${learnerId}',952021) then raise exception 'Class-only current Course must not grant independent progress'; end if; end $$;
+
+-- Dedicated browser mutation fixture. It is local-bootstrap data only and is
+-- intentionally isolated from manual learner progress and join-code fixtures.
+insert into public.courses(id,slug,title,description,level,emoji,position,status,owner_user_id,created_by,updated_by)
+values(956001,'smoke-assignment-course','Smoke Assignment Course','Two-Lesson browser completion fixture.','A1','🧪',coalesce((select max(position)+1 from public.courses),0),'draft','${teacherId}','${teacherId}','${teacherId}')
+on conflict(id) do nothing;
+insert into public.units(id,course_id,title,description,position,status,created_by,updated_by)
+values(956011,956001,'Smoke Sequential Unit','Browser-owned sequential runtime.',0,'draft','${teacherId}','${teacherId}') on conflict(id) do nothing;
+insert into public.lessons(id,unit_id,title,description,position,status,created_by,updated_by) values
+  (956021,956011,'Smoke Lesson 1','Available first.',0,'draft','${teacherId}','${teacherId}'),
+  (956022,956011,'Smoke Lesson 2','Unlocks after Lesson 1.',1,'draft','${teacherId}','${teacherId}')
+on conflict(id) do nothing;
+insert into public.lesson_versions(id,lesson_id,version_number,status,created_by) values
+  (956031,956021,1,'draft','${teacherId}'),(956032,956022,1,'draft','${teacherId}') on conflict(id) do nothing;
+insert into public.lesson_activities(id,lesson_version_id,type,title,position)
+select fixture.id,fixture.lesson_version_id,fixture.type::public.lesson_activity_type,fixture.title,fixture.position from (values
+  (956041,956031,'theory', 'Smoke Learn 1',0),(956042,956032,'theory','Smoke Learn 2',0)
+) as fixture(id,lesson_version_id,type,title,position)
+where not exists(select 1 from public.lesson_activities existing where existing.id=fixture.id);
+insert into public.theory_blocks(id,activity_id,block_type,position,text)
+select fixture.id,fixture.activity_id,fixture.block_type,fixture.position,fixture.text from (values
+  (956051,956041,'paragraph',0,'Complete this activity to unlock the next smoke Lesson.'),
+  (956052,956042,'paragraph',0,'The second smoke Lesson must open in its own play state.')
+) as fixture(id,activity_id,block_type,position,text)
+where not exists(select 1 from public.theory_blocks existing where existing.id=fixture.id);
+do $$ declare result jsonb; begin
+  if (select status='draft' from public.courses where id=956001) then
+    result:=public.publish_course(956001);
+    if not coalesce((result->>'ok')::boolean,false) then raise exception 'Smoke Course publication failed: %',result; end if;
+  end if;
+end $$;
+update public.courses set learner_visibility='class_only' where id=956001;
+set constraints capture_course_release_after_publication immediate;
+update public.class_course_assignments assignment
+set status='inactive',ended_at=coalesce(assignment.ended_at,pg_catalog.now()),updated_at=pg_catalog.now()
+where assignment.class_id=953101 and assignment.source_course_id=956001 and assignment.status='active'
+  and assignment.course_release_id<>(select release.id from public.course_releases release where release.course_id=956001 order by release.release_number desc limit 1);
+insert into public.class_course_assignments(class_id,course_release_id,source_course_id,assigned_by)
+select 953101,release.id,release.course_id,'${teacherId}' from public.course_releases release
+where release.course_id=956001 and release.release_number=(select max(latest.release_number) from public.course_releases latest where latest.course_id=956001)
+  and not exists(select 1 from public.class_course_assignments assignment where assignment.class_id=953101 and assignment.source_course_id=956001 and assignment.status='active');
 commit;`;
   execFileSync("docker", ["exec", "-i", databaseContainer, "psql", "-v", "ON_ERROR_STOP=1", "-U", "postgres", "-d", "postgres"], {
     input: sql,
     stdio: ["pipe", "inherit", "inherit"],
   });
+  return databaseContainer;
 }
 
 const admin = await ensureUser(adminEmail, adminPassword);
 const teacher = await ensureUser(teacherEmail, teacherPassword);
 const learner = await ensureUser(learnerEmail, learnerPassword);
-seedFixture(admin.id, teacher.id, learner.id);
+const smokeJoinLearner = await ensureUser(smokeJoinEmail, smokePassword);
+const smokeCompletionLearner = await ensureUser(smokeCompletionEmail, smokePassword);
+const databaseContainer = seedFixture(admin.id, teacher.id, learner.id, smokeJoinLearner.id, smokeCompletionLearner.id);
+writeFileSync(new URL("../tests/smoke/.local-fixture.json", import.meta.url), JSON.stringify({
+  apiUrl,
+  databaseUrl,
+  databaseContainer,
+  users: { join: smokeJoinLearner.id, completion: smokeCompletionLearner.id },
+}, null, 2));
 
 async function verifyLogin(email, password, expectedId) {
   const response = await fetch(`${apiUrl}/auth/v1/token?grant_type=password`, {
@@ -236,7 +295,7 @@ const progress = await progressResponse.json();
 const courses = catalog?.courses ?? catalog?.catalog?.courses ?? [];
 const publicCourse = courses.find((course) => String(course.id) === "954001");
 if (!publicCourse || courses.some((course) => ["951001","952001","955001"].includes(String(course.id)))) throw new Error("Course Library visibility fixtures are incorrect.");
-if ((progress?.lessons ?? []).length !== 0 || (progress?.activities ?? []).length !== 0) throw new Error("Local learner fixture must start without progress.");
+if (!Array.isArray(progress?.lessons) || !Array.isArray(progress?.activities)) throw new Error("Local learner progress fixture returned an invalid snapshot.");
 const assignments = await assignmentsResponse.json();
 if (assignments.length !== 1 || assignments[0]?.courseId !== 952001 || assignments[0]?.status !== "active") throw new Error("Local Class assignment fixture is incorrect.");
 
@@ -244,6 +303,7 @@ console.log("Local PronounceLab bootstrap complete.");
 console.log(`Admin:   ${adminEmail}`);
 console.log(`Teacher: ${teacherEmail}`);
 console.log(`Learner: ${learnerEmail}`);
+console.log(`Smoke:   ${smokeJoinEmail} / ${smokeCompletionEmail}`);
 console.log("All local password logins verified.");
 console.log("Teacher fixture visibility verified through RLS.");
 console.log("Class-only, Public, and Unlisted learner visibility fixtures verified.");

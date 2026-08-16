@@ -1,5 +1,9 @@
 # Roadmap
 
+## Sprint 52J — Deterministic Browser Mutation Isolation
+
+Implemented locally. Dedicated smoke learners and bootstrap-owned Class/Release fixtures isolate Join Class and Lesson completion mutations from manual QA data. Pre-test Docker/Postgres setup validates local coordinates and resets only the owning learner's enrollment or Release progress, making failed and consecutive runs self-healing without full database resets. The suite remains single-worker. The next tooling increment may add GitHub Actions once Supabase/Docker/Chromium provisioning and repeated-run reliability are proven in CI.
+
 ## Sprint 52I — Browser Smoke Testing Foundation
 
 Implemented locally. A four-test Playwright Chromium smoke suite protects the highest-risk real-browser seams: learner identity/navigation, Assignment versus Independent Practice routing, separated Progress presentation, Teacher Published Student Preview navigation/refresh/session isolation, and keyboard/mobile navigation. It expects explicit local Supabase/bootstrap/Vite prerequisites and refuses hosted backends. Future browser coverage should remain small; add Join Class or completion flows only after deterministic per-test state isolation, and enable CI only after the local Supabase lifecycle proves reliable in automation.

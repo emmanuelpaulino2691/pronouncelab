@@ -243,13 +243,24 @@ Edge Functions are not required. The suite uses `http://127.0.0.1:5173` and refu
 
 The smoke suite signs in with the documented local Teacher and Learner fixtures. Simultaneous identities use separate Playwright browser contexts because one Supabase session is shared within a browser profile. Manual Teacher/Learner testing likewise requires separate browser profiles or Incognito.
 
+Bootstrap also creates two browser-test-owned learners, `Smoke Joinable Class`, `Smoke Completion Class`, and a two-Lesson immutable `Smoke Assignment Course`. It writes a gitignored `tests/smoke/.local-fixture.json` descriptor containing only local stack coordinates, the local database container, and those test user IDs. Mutation setup validates both API and database hosts as localhost and validates the expected container/UUID shapes before it can run.
+
+Before each mutating test, Playwright resets only its fixture-owned rows:
+
+- Join Class deletes only the Smoke Join learner's enrollment in Class `953102`.
+- Completion deletes only the Smoke Completion learner's Release activity/Lesson progress.
+
+The setup executes the scoped SQL inside the local Supabase database container. It never clears manual learner progress, independent-practice progress, shared Classes, or the database as a whole. A failed test is recoverable because the next run establishes its preconditions before browser navigation. Rerun `npm.cmd run local:bootstrap` if the descriptor or dedicated fixtures are missing; otherwise rerunning `npm.cmd run test:smoke` is sufficient. Docker access is therefore required for the mutation tests.
+
 Failures produce a screenshot and retained trace under `test-results/`; successful runs do not record video or trace artifacts. Inspect a trace with:
 
 ```powershell
 npx.cmd playwright show-trace test-results/<test-name>/trace.zip
 ```
 
-Join Class and completion/Next Lesson remain outside the repeatable smoke baseline because they mutate shared fixture state. Their detailed contracts remain covered by Vitest and pgTAP; add browser versions only with deterministic per-test cleanup. CI execution is deferred until the local suite has established reliability and the repository has an approved local-Supabase CI lifecycle.
+The suite remains single-worker. Dedicated identities and pre-test resets remove ordering dependence, but parallel execution stays disabled until each future mutating flow receives exclusive fixture ownership. Headed mode remains available with `npm.cmd run test:smoke -- --headed`.
+
+CI execution remains deferred for one sprint. The suite is now state-isolated, but GitHub Actions still needs an approved Supabase startup/bootstrap lifecycle, Docker permissions, Chromium caching, and repeated reliability evidence.
 
 ## Git and deployment
 

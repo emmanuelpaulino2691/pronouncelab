@@ -18,6 +18,7 @@ supabase/.temp/
 test-results/
 playwright-report/
 blob-report/
+tests/smoke/.local-fixture.json
 
 # Editor directories and files
 .vscode/*

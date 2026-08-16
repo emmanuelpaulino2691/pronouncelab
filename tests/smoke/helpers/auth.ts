@@ -9,6 +9,14 @@ export const localAccounts = {
     email: "emmanuelpaulino2691@gmail.com",
     password: "PronounceLabLocalTeacher!2026",
   },
+  smokeJoin: {
+    email: "smoke.join@pronouncelab.local",
+    password: "PronounceLabLocalSmoke!2026",
+  },
+  smokeCompletion: {
+    email: "smoke.completion@pronouncelab.local",
+    password: "PronounceLabLocalSmoke!2026",
+  },
 } as const;
 
 export async function signIn(page: Page, account: keyof typeof localAccounts) {
