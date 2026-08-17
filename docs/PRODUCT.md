@@ -171,3 +171,16 @@ may optionally have a due instant. Dates are stored as UTC `timestamptz` values
 and displayed in the Class IANA timezone. A due date never expires access:
 unfinished work becomes Late but remains available for learning. Notifications,
 grace periods, and learner-specific extensions are intentionally deferred.
+
+## Assignment notifications
+
+Learners receive persistent in-app system notifications for new assignments,
+availability, due-soon reminders, and late incomplete work. They are separate
+from Class announcements, direct messages, and Course Library recommendations.
+A due date never revokes access, and notification history survives schedule or
+Release updates.
+
+Learners can remove individual notifications or clear read notifications. Read
+items older than 90 days are hidden automatically; unread items remain visible.
+This cleanup affects only the notification inbox, never Assignment access or
+progress.

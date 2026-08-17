@@ -317,3 +317,15 @@ availability/due ordering in trusted RPCs. Test upcoming, available, and late
 states without waiting for the wall clock by using controlled timestamps in
 local fixtures. No notification, grace-period, or per-learner extension
 behavior is implemented yet.
+
+## Assignment notification checks
+
+Time-based notification behavior is deterministic through
+`process_assignment_notifications_at(test_timestamp)`; do not wait for wall
+clock transitions in browser tests. Reset local Supabase and run the focused
+notification pgTAP test when changing its migration. Staff Preview must not
+fabricate a learner inbox.
+
+Notification UI checks should cover Remove, Clear read, unread badge updates,
+and the 90-day read-retention rule. These operations are soft-dismissals and do
+not alter Assignment or learner progress data.

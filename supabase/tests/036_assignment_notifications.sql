@@ -1,0 +1,32 @@
+begin;
+create extension if not exists pgtap with schema extensions;
+set local search_path=public,extensions,pg_catalog;
+select plan(11);
+insert into auth.users(id,email) values
+('93600000-0000-4000-8000-000000000001','teacher@notifications.test'),
+('93600000-0000-4000-8000-000000000002','learner@notifications.test');
+insert into public.user_roles(user_id,role) values('93600000-0000-4000-8000-000000000001','teacher');
+set local request.jwt.claim.sub='93600000-0000-4000-8000-000000000001';
+set local role authenticated;
+insert into public.courses(id,slug,title,position,status,owner_user_id) values(936001,'notifications','Notifications',936001,'draft','93600000-0000-4000-8000-000000000001');
+reset role;
+insert into public.course_releases(id,course_id,owner_user_id,release_number,course_slug,course_title,course_description,course_level,course_emoji,content_fingerprint) values(936002,936001,'93600000-0000-4000-8000-000000000001',1,'notifications','Notification Course','','A1','',repeat('d',64));
+insert into public.classes(id,owner_user_id,name,join_code) values(936003,'93600000-0000-4000-8000-000000000001','Notification Class','9360AAAABBBBCCCC');
+insert into public.class_course_assignments(id,class_id,course_release_id,source_course_id,assigned_by,available_at,due_at) values(936004,936003,936002,936001,'93600000-0000-4000-8000-000000000001',now()+interval '1 hour',now()+interval '12 hours');
+insert into public.class_enrollments(class_id,learner_user_id) values(936003,'93600000-0000-4000-8000-000000000002');
+select is((select count(*)::integer from public.learner_notifications where learner_user_id='93600000-0000-4000-8000-000000000002'),1,'new enrollment receives one New Assignment notification');
+select is((select count(*)::integer from public.learner_notifications where event_key='assignment:936004:new'),1,'new assignment notification is deduplicated');
+select is(public.process_assignment_notifications_at(now()+interval '2 hours'),2,'available and due-soon processing creates notifications');
+select is((select count(*)::integer from public.learner_notifications where learner_user_id='93600000-0000-4000-8000-000000000002'),3,'available and due-soon rows are persisted');
+select is(public.process_assignment_notifications_at(now()+interval '2 hours'),0,'reprocessing is idempotent');
+set local request.jwt.claim.sub='93600000-0000-4000-8000-000000000002';
+set local role authenticated;
+select is(jsonb_array_length(public.get_my_notifications(50)),3,'learner reads only own notifications');
+select lives_ok($$select public.mark_notification_read((select id from public.learner_notifications limit 1))$$,'learner can mark own notification read');
+select lives_ok($$select public.mark_all_notifications_read()$$,'learner can mark all own notifications read');
+select is((select count(*)::integer from public.learner_notifications where learner_user_id='93600000-0000-4000-8000-000000000002' and read_at is null),0,'all own notifications become read');
+select throws_ok($$insert into public.learner_notifications(learner_user_id,notification_type,class_id,assignment_id,course_release_id,title,body,event_key) values(auth.uid(),'new_assignment',936003,936004,936002,'x','x','forged')$$,'42501',null,'learner cannot forge notification rows');
+reset role;
+select is((select count(*)::integer from public.learner_notifications where event_key like 'assignment:936004:%'),3,'all event keys remain assignment scoped');
+select * from finish();
+rollback;
