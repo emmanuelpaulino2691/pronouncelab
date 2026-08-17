@@ -366,3 +366,13 @@ Changing an active Class assignment to another Release is one transaction. The a
 Authoring deletion and historical deletion are separate operations. `remove_authoring_lesson` and `remove_authoring_unit` hard-delete only draft-only rows that have never entered a Release; previously published rows are archived and therefore omitted from later publication manifests. `remove_authoring_course` similarly hard-deletes a wholly draft-only Course or retires a published Course. Retirement forces Class-only visibility, revokes Unlisted links and independent access grants, and prevents further visibility changes, publication, and new assignments.
 
 Release manifests and learner progress are never rewritten by these operations. Existing active Class assignments remain pinned and accessible after source-Course retirement; Teachers must explicitly end those assignments when desired. This preserves an in-progress assigned journey while blocking every new use of the retired source Course.
+## Assignment scheduling
+
+`class_course_assignments.available_at` and `due_at` are authoritative UTC
+timestamps. `NULL available_at` means available immediately; `due_at` is
+optional and must be later than availability (or later than `now()` for an
+immediate assignment). `classes.timezone` stores the IANA display timezone.
+`can_access_course_release` gates only before availability; due dates do not
+revoke authorization. Schedule edits use the owner-checked
+`update_class_course_assignment_schedule` RPC and do not create Releases or
+delete progress.

@@ -348,3 +348,11 @@ Student Preview carries `desktop`, `tablet`, or `phone` through the preview view
 `MainLayout` is the shared responsive Student shell boundary. The same forced Teacher Preview mode controls its navigation, header, content spacing, and the nested `LessonPlayer`: Desktop retains the permanent student sidebar, while Tablet and Phone replace it with a compact app bar and accessible navigation drawer. Real learner routes continue to pass `auto`, so browser breakpoints remain authoritative outside Teacher Preview.
 
 `MainLayout` also owns route-transition focus: pathname changes focus the main landmark, while data-only updates leave focus untouched. The mobile learner drawer is modal in behavior while open (focus containment, Escape dismissal, focus return, and background-scroll lock). This keeps route pages from implementing competing focus policies.
+## Assignment schedule boundary
+
+Scheduling is assignment metadata, not Course content. The immutable Release
+and its progress identity are unchanged when a Teacher edits availability or a
+due date. Release authorization derives active Class/enrollment/assignment
+relationships and rejects upcoming assignments; after `due_at`, authorization
+continues and presentation derives Late for incomplete learners. Dates are UTC
+timestamps with an explicit Class IANA timezone for academic display.

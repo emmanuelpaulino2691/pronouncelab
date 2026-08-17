@@ -309,3 +309,11 @@ Update the canonical document when changing:
 - durable decisions → add or supersede an [ADR](ADR/).
 
 Label future behavior. Do not copy SQL or repeat long explanations already linked elsewhere.
+## Assignment scheduling checks
+
+Use the Class timezone selector when testing datetime-local assignment fields.
+The browser form sends an instant; the database stores UTC and validates
+availability/due ordering in trusted RPCs. Test upcoming, available, and late
+states without waiting for the wall clock by using controlled timestamps in
+local fixtures. No notification, grace-period, or per-learner extension
+behavior is implemented yet.
