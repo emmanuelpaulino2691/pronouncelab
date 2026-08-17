@@ -356,3 +356,17 @@ due date. Release authorization derives active Class/enrollment/assignment
 relationships and rejects upcoming assignments; after `due_at`, authorization
 continues and presentation derives Late for incomplete learners. Dates are UTC
 timestamps with an explicit Class IANA timezone for academic display.
+
+## Assignment notification boundary
+
+`learner_notifications` is the persistent in-app system-notification domain.
+Trusted assignment lifecycle functions create New Assignment rows; a
+deterministic processor creates Available, Due Soon, and Late rows. The
+processor is scheduled by `pg_cron` every 15 minutes and accepts an explicit
+timestamp for deterministic tests. Learner reads and read-state mutations are
+scoped to `auth.uid()`; notification actions never bypass Release
+authorization. Class announcements and direct messages remain future domains.
+
+Dismissal is represented by `dismissed_at`; the inbox excludes dismissed rows
+and read rows older than 90 days. The underlying event row remains available to
+the deduplication constraint.

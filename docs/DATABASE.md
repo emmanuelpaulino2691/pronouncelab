@@ -376,3 +376,19 @@ immediate assignment). `classes.timezone` stores the IANA display timezone.
 revoke authorization. Schedule edits use the owner-checked
 `update_class_course_assignment_schedule` RPC and do not create Releases or
 delete progress.
+
+## Assignment notifications
+
+Migration `202608210001_assignment_notifications.sql` adds the learner-owned
+`learner_notifications` inbox. Its `(learner_user_id, event_key)` uniqueness
+contract makes generation idempotent. Assignment creation and later enrollment
+use trusted functions for New Assignment events; the timestamped processor
+handles Available, Due Soon, and Late events. Only learner read RPCs are
+executable by authenticated learners. `pg_cron` invokes the processor every 15
+minutes; existing assignment, Release, and progress authorization remains
+authoritative.
+
+`202608210002_notification_dismissal_retention.sql` adds `dismissed_at` and
+learner-scoped `dismiss_notification`/`clear_read_notifications` RPCs. The
+listing RPC excludes dismissed rows and read rows older than 90 days while
+retaining all rows for event-key deduplication. Unread rows are never aged out.

@@ -459,3 +459,14 @@ The next internal increment standardizes domain vocabulary and backend contracts
 Assignment availability and due dates are now foundational metadata. Future
 work may add availability/due notifications, grace periods, and learner-level
 deadline overrides without changing the Release or progress identity model.
+
+## Sprint 53B in-app Assignment notifications
+
+Implemented persistent learner system notifications for assignment creation,
+availability, due-soon, and late events, with read/unread state, a learner
+Notification Center, and a responsive Header indicator. A trusted idempotent
+processor is scheduled with `pg_cron`; email, push, Class announcements, and
+direct messages remain future work.
+
+Notification retention now supports individual Remove, Clear read, and
+automatic hiding of read items older than 90 days without deleting event rows.

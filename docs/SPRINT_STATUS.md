@@ -633,3 +633,18 @@ Implemented locally. Unit titles are unique per Course and Lesson titles are uni
 Published Student Preview now carries an explicit Draft or Published target through Course, Unit, Lesson, refresh, and browser-history URLs. Published preview is independent of learner visibility and enrollment while remaining owner/Admin-authorized and non-mutating. Class assignment Release replacement now atomically projects completed stable source Lessons for active enrolled learners, so a completed two-Lesson Class moved to a four-Lesson Release immediately reports 2/4 while preserving Release 1 history.
 
 The authoring Preview shell no longer renders ordinary learner navigation or account controls. It is a rendering-only staff context and cannot initiate learner authentication; Exit Preview returns through the preserved authoring URL under the unchanged Teacher/Admin session.
+
+## Sprint 53B — In-app Assignment notifications
+
+Implemented locally. Active enrolled learners receive durable, deduplicated
+system notifications for new assignments. A trusted timestamped processor emits
+Assignment Available, Due Soon (24 hours), and Assignment Late events without
+revoking access or mixing Course Library progress. Learners have a responsive
+Notification Center and authenticated Header unread indicator; read state is
+owned by the learner through scoped RPCs. `pg_cron` runs the processor every 15
+minutes. No email, push, chat, or remote operation was performed.
+
+Notification cleanup is included: individual Remove and Clear read use
+soft-dismissal, and the normal inbox hides read notifications older than 90
+days. Event rows remain retained so notification processor deduplication cannot
+recreate historical events.
