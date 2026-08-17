@@ -164,3 +164,10 @@ Authorized Studio users can open a read-only Student Preview from a course, less
 Preview source resolution now prefers the latest saved authorized draft, then published content, then mapped local learner content. The banner identifies the source honestly; unsaved editor changes are not transferred.
 
 **Future, not implemented.** A commercial product may provide premium curricula, synchronized learner history, teacher cohorts, analytics, and subscription access. Any implementation must build on real identity, entitlement, privacy, and progress models rather than local dashboard values.
+## Assignment scheduling
+
+Assignments may be available immediately or scheduled for a future instant and
+may optionally have a due instant. Dates are stored as UTC `timestamptz` values
+and displayed in the Class IANA timezone. A due date never expires access:
+unfinished work becomes Late but remains available for learning. Notifications,
+grace periods, and learner-specific extensions are intentionally deferred.

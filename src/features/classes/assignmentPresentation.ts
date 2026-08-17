@@ -1,6 +1,7 @@
 import type { AssignmentProgress, ClassCourseAssignment } from "./classService";
 
 export type AssignmentCourseStatus = "not-started" | "in-progress" | "completed";
+export type AssignmentScheduleStatus = "upcoming" | "not-started" | "in-progress" | "completed" | "late";
 
 export function assignmentCourseStatus(completedLessons: number, totalLessons: number): AssignmentCourseStatus {
   if (totalLessons > 0 && completedLessons >= totalLessons) return "completed";
@@ -9,6 +10,21 @@ export function assignmentCourseStatus(completedLessons: number, totalLessons: n
 }
 
 export function assignmentStatusLabel(status: AssignmentCourseStatus) {
+  if (status === "completed") return "Completed";
+  if (status === "in-progress") return "In progress";
+  return "Not started";
+}
+
+export function assignmentScheduleStatus(completedLessons: number, totalLessons: number, availableAt: string|null|undefined, dueAt: string|null|undefined, now = new Date()): AssignmentScheduleStatus {
+  if (availableAt && Date.parse(availableAt) > now.getTime()) return "upcoming";
+  if (totalLessons > 0 && completedLessons >= totalLessons) return "completed";
+  if (dueAt && Date.parse(dueAt) < now.getTime()) return "late";
+  return completedLessons > 0 ? "in-progress" : "not-started";
+}
+
+export function assignmentScheduleLabel(status: AssignmentScheduleStatus) {
+  if (status === "upcoming") return "Upcoming";
+  if (status === "late") return "Late";
   if (status === "completed") return "Completed";
   if (status === "in-progress") return "In progress";
   return "Not started";
@@ -29,6 +45,33 @@ export function orderAssignmentHistory(assignments: readonly ClassCourseAssignme
 export function assignmentDate(value: string | null) {
   if (!value) return "—";
   return new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(value));
+}
+
+export function assignmentDateTime(value: string|null|undefined, timezone = "UTC") {
+  if (!value) return "No date set";
+  try { return new Intl.DateTimeFormat(undefined, { dateStyle:"medium", timeStyle:"short", timeZone:timezone }).format(new Date(value)); }
+  catch { return assignmentDate(value); }
+}
+
+export function assignmentLocalInputToUtc(value: string, timezone = "UTC") {
+  if (!value) return null;
+  const naive = Date.parse(`${value}:00Z`);
+  if (!Number.isFinite(naive)) return null;
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", { timeZone: timezone, hour12: false, year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit", second:"2-digit" }).formatToParts(new Date(naive));
+    const get = (type:string) => Number(parts.find((part) => part.type === type)?.value ?? 0);
+    const represented = Date.UTC(get("year"), get("month") - 1, get("day"), get("hour") % 24, get("minute"), get("second"));
+    return new Date(naive - (represented - naive)).toISOString();
+  } catch { return new Date(naive).toISOString(); }
+}
+
+export function assignmentUtcToLocalInput(value: string|null|undefined, timezone = "UTC") {
+  if (!value) return "";
+  try {
+    const parts = new Intl.DateTimeFormat("en-CA", { timeZone: timezone, hour12: false, year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit" }).formatToParts(new Date(value));
+    const get = (type:string) => parts.find((part) => part.type === type)?.value ?? "00";
+    return `${get("year")}-${get("month")}-${get("day")}T${get("hour")==="24"?"00":get("hour")}:${get("minute")}`;
+  } catch { return value.slice(0,16); }
 }
 
 export function assignmentCompletionSummary(report: AssignmentProgress | undefined) {

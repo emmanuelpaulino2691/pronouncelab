@@ -1,5 +1,17 @@
 # Sprint Status
 
+## Sprint 53A — Assignment Scheduling & Due Dates Foundation
+
+Implemented locally with a forward scheduling migration. Assignments now carry
+UTC `available_at` and optional `due_at` timestamps, while Classes carry an
+explicit IANA timezone for display. Availability is enforced by Release
+authorization: upcoming work can be listed but cannot expose manifests,
+lessons, activities, progress, or completion RPCs. Due dates are informational;
+late incomplete work remains accessible and completable. Teacher assignment and
+schedule editing preserve assignment identity, Release history, and progress;
+Release replacement carries schedule metadata forward. Notifications, grace
+periods, and learner-specific extensions remain future work.
+
 ## Sprint 52K — GitHub Actions Browser Smoke CI
 
 Implemented locally with no product or database changes. A read-only GitHub Actions workflow runs build/lint/Vitest and a separate six-test Chromium smoke job for pull requests and main pushes. The smoke job pins Node 24 and Supabase CLI 2.114.0, builds an ephemeral local database from migration zero through `202608190003`, bootstraps isolated fixtures, creates a local-only Vite environment, waits for HTTP readiness, and uploads Playwright failure artifacts. No production secrets, project linking, remote migration, deployment, or browser parallelism are used. The workflow still requires its first real GitHub execution before CI success can be claimed.

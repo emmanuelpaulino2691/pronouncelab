@@ -454,3 +454,8 @@ The Classroom design phase defines the Course/Class distinction, teacher-owned c
 The Classes UI foundation is the first non-data increment: it establishes reusable class cards, filters, creation form states, and workspace navigation without pretending classroom functionality exists.
 
 The next internal increment standardizes domain vocabulary and backend contracts before classroom persistence work. Implementation should reuse these contracts rather than create feature-local permission, status, or error variants.
+## Sprint 53A scheduling
+
+Assignment availability and due dates are now foundational metadata. Future
+work may add availability/due notifications, grace periods, and learner-level
+deadline overrides without changing the Release or progress identity model.

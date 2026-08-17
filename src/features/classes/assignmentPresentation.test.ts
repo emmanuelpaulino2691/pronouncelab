@@ -3,6 +3,8 @@ import {
   assignmentActionLabel,
   assignmentCompletionSummary,
   assignmentCourseStatus,
+  assignmentScheduleLabel, assignmentScheduleStatus,
+  assignmentLocalInputToUtc, assignmentUtcToLocalInput,
   assignmentDeactivationConfirmation,
   classArchiveConfirmation,
   joinCodeRegenerationConfirmation,
@@ -15,6 +17,15 @@ import type { AssignmentProgress, ClassCourseAssignment } from "./classService";
 const assignment = (overrides: Partial<ClassCourseAssignment> = {}): ClassCourseAssignment => ({ assignmentId:1,classId:2,releaseId:3,courseId:4,courseTitle:"Vowels",courseDescription:"",courseLevel:"A1",releaseNumber:1,latestReleaseNumber:1,assignedAt:"2026-08-10T12:00:00Z",endedAt:null,status:"active",...overrides });
 
 describe("assignment lifecycle presentation", () => {
+  it("derives upcoming and late states without changing access semantics", () => {
+    const now = new Date("2026-08-16T12:00:00Z");
+    expect(assignmentScheduleStatus(0, 5, "2026-08-17T12:00:00Z", null, now)).toBe("upcoming");
+    expect(assignmentScheduleStatus(1, 5, null, "2026-08-15T12:00:00Z", now)).toBe("late");
+    expect(assignmentScheduleStatus(5, 5, null, "2026-08-15T12:00:00Z", now)).toBe("completed");
+    expect(assignmentScheduleLabel("upcoming")).toBe("Upcoming");
+    expect(assignmentLocalInputToUtc("2026-08-17T08:00", "America/Santo_Domingo")).toBe("2026-08-17T12:00:00.000Z");
+    expect(assignmentUtcToLocalInput("2026-08-17T12:00:00.000Z", "America/Santo_Domingo")).toBe("2026-08-17T08:00");
+  });
   it("classifies Release-only learner progress", () => {
     expect(assignmentCourseStatus(0, 5)).toBe("not-started");
     expect(assignmentCourseStatus(2, 5)).toBe("in-progress");

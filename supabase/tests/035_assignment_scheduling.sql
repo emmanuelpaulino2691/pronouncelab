@@ -1,0 +1,38 @@
+begin;
+create extension if not exists pgtap with schema extensions;
+set local search_path=public,extensions,pg_catalog;
+select plan(15);
+insert into auth.users(id,email) values
+('93500000-0000-4000-8000-000000000001','teacher@scheduling.test'),
+('93500000-0000-4000-8000-000000000002','learner@scheduling.test');
+insert into public.user_roles(user_id,role) values('93500000-0000-4000-8000-000000000001','teacher');
+set local request.jwt.claim.sub='93500000-0000-4000-8000-000000000001';
+set local role authenticated;
+insert into public.courses(id,slug,title,position,status,owner_user_id) values(935001,'scheduling','Scheduling',935001,'draft','93500000-0000-4000-8000-000000000001');
+reset role;
+insert into public.course_releases(id,course_id,owner_user_id,release_number,course_slug,course_title,course_description,course_level,course_emoji,content_fingerprint) values(935002,935001,'93500000-0000-4000-8000-000000000001',1,'scheduling','Scheduling','','A1','',repeat('c',64));
+insert into public.classes(id,owner_user_id,name,join_code) values(935003,'93500000-0000-4000-8000-000000000001','Scheduling Class','9350AAAABBBBCCCC');
+insert into public.class_enrollments(class_id,learner_user_id) values(935003,'93500000-0000-4000-8000-000000000002');
+set local role authenticated;
+select ok(public.assign_class_course_release(935003,935002,now()+interval '1 day',now()+interval '2 days') > 0,'Teacher can schedule an assignment');
+reset role;
+select is((select available_at is not null from public.class_course_assignments where class_id=935003 and status='active'),true,'future availability is stored');
+select is((select due_at is not null from public.class_course_assignments where class_id=935003 and status='active'),true,'due date is stored');
+select throws_ok($$select public.update_class_course_assignment_schedule((select id from public.class_course_assignments where class_id=935003),now()+interval '2 days',now()+interval '1 day')$$,'22023', 'Due date must be after availability','due date before availability is rejected');
+select lives_ok($$select public.update_class_course_assignment_schedule((select id from public.class_course_assignments where class_id=935003),now()+interval '2 days',null)$$,'removing due date is allowed');
+select lives_ok($$select public.update_class_course_assignment_schedule((select id from public.class_course_assignments where class_id=935003),null,now()+interval '1 day')$$,'immediate assignment accepts a future due date');
+select lives_ok($$select public.update_class_course_assignment_schedule((select id from public.class_course_assignments where class_id=935003),now()+interval '1 day',now()+interval '2 days')$$,'scheduled availability can be restored');
+select lives_ok($$select public.assign_class_course_release(935003,935002)$$,'same Release update is idempotent');
+select is((select available_at is not null from public.class_course_assignments where class_id=935003 and status='active'),true,'schedule remains on idempotent update');
+reset role;
+set local request.jwt.claim.sub='93500000-0000-4000-8000-000000000002';
+select ok(not public.can_access_course_release(935002),'learner cannot access before availability');
+update public.class_course_assignments set available_at=now()-interval '1 hour',due_at=now()-interval '1 minute' where class_id=935003 and status='active';
+select ok(public.can_access_course_release(935002),'late learner remains authorized');
+select is((select timezone from public.classes where id=935003),'UTC','Class timezone defaults explicitly to UTC');
+select throws_ok($$select public.update_owned_class(935003,'Scheduling Class','', 'active','Not/AZone')$$,'22023','A valid Class timezone is required','invalid IANA timezone rejected');
+set local request.jwt.claim.sub='93500000-0000-4000-8000-000000000001';
+select lives_ok($$select public.update_owned_class(935003,'Scheduling Class','', 'active','America/Santo_Domingo')$$,'valid IANA timezone accepted');
+select is((select timezone from public.classes where id=935003),'America/Santo_Domingo','Class timezone can be changed');
+select * from finish();
+rollback;

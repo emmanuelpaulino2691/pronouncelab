@@ -20,6 +20,15 @@ export async function loadLearnerClassWorkspace(): Promise<LearnerClassWorkspace
   const groups = await Promise.all(memberships.map(async (membership) => {
     const assignments = await listClassCourseAssignments(membership.class_id);
     return Promise.all(assignments.map(async (assignment): Promise<LearnerAssignmentSnapshot> => {
+      const upcoming = assignment.availableAt ? Date.parse(assignment.availableAt) > Date.now() : false;
+      if (upcoming) return {
+        ...assignment,
+        classId: membership.class_id,
+        className: membership.classes?.name ?? "Class",
+        navigation: { completed: 0, total: 0, percent: 0, continueLessonId: null, complete: false },
+        progress: { lessons: [], activities: [] },
+        lastAccessedAt: null,
+      };
       const [manifest, progress] = await Promise.all([
         getReleaseManifest(assignment.releaseId),
         getReleaseProgress(assignment.releaseId),
