@@ -1,7 +1,7 @@
 import RecentUnitCard from "./RecentUnitCard";
 
 type Unit = {
-  id: number;
+  id: string;
   title: string;
   completed: boolean;
 };

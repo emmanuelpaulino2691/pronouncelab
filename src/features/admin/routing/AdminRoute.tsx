@@ -7,6 +7,7 @@ import {
 import {
   Navigate,
   Outlet,
+  Link,
   useLocation,
 } from "react-router-dom";
 
@@ -16,6 +17,13 @@ import {
 } from "../../../shared/lib/supabaseClient";
 import type { AdminPermissions } from "../permissions/AdminPermissionsContext";
 import AdminPermissionsProvider from "../permissions/AdminPermissionsProvider";
+import { shouldPreserveAdminContent } from "./adminAccessRecheck";
+import {
+  isMissingAuthorizationRpcError,
+  legacyOwnershipPermissions,
+} from "./adminAuthorizationCompatibility";
+import { verifyStoredSession } from "../../auth/staleSession";
+import { signOutAccount } from "../../auth/sessionActions";
 
 type AccessState =
   | "checking"
@@ -36,6 +44,10 @@ function AdminRoute() {
     useState<AdminPermissions | null>(null);
   const isMountedRef = useRef(false);
   const authorizationCheckRef = useRef(0);
+  const authorizedUserIdRef = useRef<string | null>(null);
+  const ownershipRpcSupportRef = useRef<
+    "unknown" | "available" | "legacy"
+  >("unknown");
 
   const checkAccess = useCallback(
     async (
@@ -45,12 +57,13 @@ function AdminRoute() {
             typeof supabase
           >["auth"]["getSession"]
         >
-      >["data"]["session"]
+      >["data"]["session"],
+      preserveContent = false
     ) => {
       const checkId =
         ++authorizationCheckRef.current;
 
-      if (isMountedRef.current) {
+      if (isMountedRef.current && !preserveContent) {
         setPermissions(null);
         setAccessState("checking");
       }
@@ -85,16 +98,15 @@ function AdminRoute() {
       }
 
       if (sessionError || !session) {
+        authorizedUserIdRef.current = null;
         setPermissions(null);
         setAccessState("signed-out");
         return;
       }
 
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser(
-        session.access_token
+      const verifiedSession = await verifyStoredSession(
+        supabase.auth,
+        session
       );
 
       if (
@@ -105,11 +117,20 @@ function AdminRoute() {
         return;
       }
 
-      if (userError || !user) {
+      if (!verifiedSession) {
+        authorizedUserIdRef.current = null;
         setPermissions(null);
         setAccessState("signed-out");
         return;
       }
+
+      const ownershipChecks =
+        ownershipRpcSupportRef.current === "legacy"
+          ? null
+          : Promise.all([
+              supabase.rpc("can_view_all_courses"),
+              supabase.rpc("is_platform_admin"),
+            ]);
 
       const [
         accessResult,
@@ -120,6 +141,9 @@ function AdminRoute() {
         supabase.rpc("can_edit_drafts"),
         supabase.rpc("can_publish_content"),
       ]);
+      const ownershipResults = ownershipChecks
+        ? await ownershipChecks
+        : null;
 
       if (
         !isMountedRef.current ||
@@ -139,12 +163,62 @@ function AdminRoute() {
         return;
       }
 
+      let ownershipPermissions:
+        Pick<
+          AdminPermissions,
+          "canViewAllCourses" | "isAdmin"
+        >;
+      if (!ownershipResults) {
+        ownershipPermissions =
+          legacyOwnershipPermissions(
+            accessResult.data === true
+          );
+      } else {
+        const [viewAllResult, adminResult] =
+          ownershipResults;
+        const viewAllMissing =
+          isMissingAuthorizationRpcError(
+            viewAllResult.error
+          );
+        const adminMissing =
+          isMissingAuthorizationRpcError(
+            adminResult.error
+          );
+
+        if (
+          (viewAllResult.error && !viewAllMissing) ||
+          (adminResult.error && !adminMissing)
+        ) {
+          setPermissions(null);
+          setAccessState("unavailable");
+          return;
+        }
+
+        if (viewAllMissing || adminMissing) {
+          ownershipRpcSupportRef.current = "legacy";
+          ownershipPermissions =
+            legacyOwnershipPermissions(
+              accessResult.data === true
+            );
+        } else {
+          ownershipRpcSupportRef.current = "available";
+          ownershipPermissions = {
+            canViewAllCourses:
+              viewAllResult.data === true,
+            isAdmin: adminResult.data === true,
+          };
+        }
+      }
+
       const nextPermissions: AdminPermissions = {
         canAccessAdmin:
           accessResult.data === true,
         canEditDrafts: editResult.data === true,
         canPublish: publishResult.data === true,
+        ...ownershipPermissions,
       };
+
+      authorizedUserIdRef.current = verifiedSession.user.id;
 
       setPermissions(nextPermissions);
       setAccessState(
@@ -180,12 +254,12 @@ function AdminRoute() {
     } = supabase.auth.onAuthStateChange(
       (event, session) => {
         authorizationCheckRef.current += 1;
-        setPermissions(null);
 
         if (
           event === "SIGNED_OUT" ||
           !session
         ) {
+          authorizedUserIdRef.current = null;
           setAccessState("signed-out");
           return;
         }
@@ -196,11 +270,26 @@ function AdminRoute() {
           event === "USER_UPDATED" ||
           event === "INITIAL_SESSION"
         ) {
-          setAccessState("checking");
+          const trigger = event === "TOKEN_REFRESHED"
+            ? "token-refresh"
+            : event === "SIGNED_IN"
+              ? "signed-in"
+              : event === "USER_UPDATED"
+                ? "user-updated"
+                : "initial";
+          const preserveContent = shouldPreserveAdminContent(
+            trigger,
+            authorizedUserIdRef.current === session.user.id
+          );
+
+          if (!preserveContent) {
+            setPermissions(null);
+            setAccessState("checking");
+          }
 
           window.setTimeout(() => {
             if (isMountedRef.current) {
-              void checkAccess(session);
+              void checkAccess(session, preserveContent);
             }
           }, 0);
         }
@@ -208,7 +297,10 @@ function AdminRoute() {
     );
 
     function handleWindowFocus() {
-      void checkAccess();
+      void checkAccess(
+        undefined,
+        shouldPreserveAdminContent("window-focus")
+      );
     }
 
     window.addEventListener(
@@ -267,6 +359,10 @@ function AdminRoute() {
             Your account does not have an editor,
             publisher, or administrator role.
           </p>
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
+            <Link to="/" className="inline-flex min-h-11 items-center justify-center rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">Back to learner Home</Link>
+            <button type="button" onClick={() => { if (supabase) void signOutAccount(supabase.auth); }} className="min-h-11 rounded-xl border border-slate-300 px-5 text-sm font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">Sign out</button>
+          </div>
         </section>
       </main>
     );

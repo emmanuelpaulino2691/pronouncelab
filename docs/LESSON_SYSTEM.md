@@ -1,0 +1,157 @@
+# Lesson System
+
+## Smart Content Builder
+
+Lesson Studio uses a reusable activity-template registry for Learn, Listening, Pronunciation, Quiz, and AI Speaking Mission starting points. Registry entries contain a stable local ID, activity type, description, suggested level, duration, recommended use, and optional tags. Opening a template records it locally as recent and displays preview information only. Favorites and recents never enter lesson serialization. Empty lessons link directly to Templates, Recently Used, Favorites, and Blank Activities. Duplicate Activity and Copy Activity dialogs support Learn, Listening, Pronunciation, Quiz, legacy Practice, and AI Speaking Mission, but do not mutate until matching backend contracts exist.
+
+## Contents
+
+- [Two representations](#two-representations)
+- [Concept hierarchy](#concept-hierarchy)
+- [Activity types](#activity-types)
+- [Lesson Studio](#lesson-studio)
+- [Learner rendering](#learner-rendering)
+- [Authoring invariants](#authoring-invariants)
+- [Adding an activity type](#adding-an-activity-type)
+
+## Two representations
+
+PronounceLab currently has two lesson representations:
+
+1. `src/shared/types/LessonData.ts` and static fixtures drive learner routes.
+2. Supabase `lessons` → `lesson_versions` → `lesson_activities` and subtype tables drive Lesson Studio.
+
+They are conceptually aligned but there is no implemented projection from published Supabase versions into learner `LessonData`. Never assume matching IDs or automatic delivery.
+
+## Concept hierarchy
+
+- **Course**: curriculum root.
+- **Unit**: ordered course section.
+- **Lesson**: ordered teaching unit and stable catalog identity.
+- **Lesson version**: mutable draft or sealed release of one lesson.
+- **Activity**: ordered metadata (`type`, title, required, position) in a version.
+- **Subtype content**: theory blocks, listening/pronunciation items, assessment/questions/options, or AI mission configuration.
+- **Renderer**: learner component selected by activity type.
+- **Editor**: staff component selected by Studio activity type.
+
+## Activity types
+
+| Type | Admin model/editor | Learner model/renderer |
+| --- | --- | --- |
+| `theory` | Ordered `theory_blocks`: heading, paragraph, tip, example, image, audio | Theory block content |
+| `listening` | `listening_items`: title, instructions, optional manual transcript, and managed audio reference | Listening exercises from static data |
+| `pronunciation` | Ordered `pronunciation_items`: backward-compatible display-text items or pronunciation-specific `word_list` / `minimal_pairs` blocks with structured entries and optional audio | Legacy word/phrase practice plus responsive Word List and Minimal Pairs presentation |
+| `practice` | Activity metadata only in the current Studio; no dedicated database subtype | Static practice exercise data |
+| `quiz` | `assessment_sets`, questions, and answer options | Static quiz interactions |
+| `interactive_practice` | Staff-only exercise configuration for Multiple Choice, True / False, Match, or Fill in the Blank | **Not implemented.** Learner projections and renderers intentionally omit this type in Sprint 39A |
+| `ai_speaking_mission` | One JSON configuration row per activity | Structured external-AI mission card |
+
+The student static models can be richer than the current admin subtype schema. For example, static theory/practice types are not a direct serialization of `theory_blocks`.
+
+Word List and Minimal Pairs deliberately extend the pronunciation subtype
+rather than introducing a universal block table. New block mutations use
+parent-scoped RPCs, while legacy pronunciation rows remain readable and
+editable. This focused model provides a migration seam for a future Universal
+Block System without claiming that the generic system exists today.
+
+## Lesson Studio
+
+## Learn block editor
+
+Learn block actions duplicate existing persisted content with a new block identity and preserve media references. Populated blocks require confirmation before deletion; media files are not deleted automatically. Current theory-block persistence remains the authority for supported fields.
+
+Learn uses a centralized block registry for heading, paragraph, example, tip, image, and audio content. The registry keeps presentation metadata and validation together so future blocks can be added without distributing activity-specific logic. Existing `theory` persistence values remain compatible; media authoring continues to use the existing protected draft media contracts.
+
+Image and Audio blocks persist only their stable `media_assets.id` reference in `theory_blocks.media_asset_id`. Signed draft URLs are resolved at runtime for Studio and authorized Student Preview and are never part of a save payload. Save is treated as successful only when the authoritative returned theory row preserves the requested reference; replacement and removal use the same scoped block save path.
+
+Learn Audio stores its teacher-facing label in the existing theory-block `title` field and its optional transcript in `text`. Reload reconstructs those fields and regenerates a URL from the referenced media row. URL resolution failure preserves the reference, label, and transcript and shows a block-local unavailable state.
+
+Sprint 45D adds persistent Learn block actions without changing this contract. Duplicate creates a new theory-block row at a safe append position, preserves every content and media reference without copying Storage bytes, and then uses the existing scoped reorder operation to place it after the source. Populated deletion uses the shared confirmation dialog and deletes only the theory row. Native drag handles and keyboard-accessible Move Up/Move Down controls update local order; **Save block order** persists it. Block collapse state remains editor-local.
+
+Sprint 45E moves workspace presentation controls above the selected activity. Editor only and Split preview apply consistently to every activity; saved preview uses the shared `ActivityRenderer` for Learn, Listening, Pronunciation, Quiz, legacy Practice, and AI Speaking Mission. Interactive Practice truthfully reports that preview is unavailable. Collapse All and Expand All delegate to the selected editor's registered section controller (currently Learn blocks); unsupported editors disable them. The complete selected activity editor can also be collapsed independently, with local per-activity remembered state and no effect on saving.
+
+Sprint 45F extends that section-controller contract across supported editors. Controllers expose support, total-section, and collapsed-section counts plus Collapse All and Expand All actions. Listening items, pronunciation blocks, quiz settings/questions, the legacy Practice compatibility section, and grouped AI Mission authoring sections use stable activity-scoped section identifiers. Collapsing hides mounted form content, so unsaved values and save serialization remain unchanged. Interactive Practice remains outside this contract.
+
+Sprint 46B connects the shared Media Picker to the existing `media_assets` registry. Learn Image, Learn Audio, Listening audio, and Pronunciation audio attach a selected stable media asset ID and continue through their existing save/parser/preview paths. Reuse never copies Storage bytes. Existing direct uploads appear in the library automatically after registering their media row. Signed preview URLs are regenerated at runtime and excluded from saved content.
+
+The optional Split Preview renders the last saved Learn snapshot through the learner `ActivityRenderer`. Unsaved editor changes are intentionally excluded and display **Preview shows the last saved version.**
+
+Route:
+
+```text
+/admin/courses/:courseId/units/:unitId/lessons/:lessonId/studio
+```
+
+The page verifies the compound course → unit → lesson relationship and clears old hierarchy state before route loads. It ignores stale asynchronous results.
+
+The shell contains:
+
+- hierarchy breadcrumbs and lesson/version status;
+- activity timeline and selection;
+- create, duplicate, reorder, and delete actions for editable drafts;
+- shared metadata form;
+- type-specific editor panel;
+- read-only state for publisher-only or sealed content;
+- disabled preview placeholder.
+
+### Save behavior
+
+Forms use explicit saves rather than per-keystroke autosave. They reset when activity selection changes, prevent double submission, and only apply a pending result when it still belongs to the selected activity. Simple updates request the authoritative saved row; zero-row updates are errors.
+
+Quiz question saves are atomic and use the loaded `updated_at` as an optimistic concurrency token. A conflict rejects the stale save and reloads authoritative content.
+
+Interactive Practice uses one staff-only subtype row per activity. Its mode
+selects the exercise contract, while its JSON configuration keeps the four
+initial authoring shapes together without introducing a universal block model.
+Correctness data and private explanations are not included in learner
+projections. Draft saves allow incomplete work; publication requires a complete
+exercise for the selected mode. During the authoring-only Sprint 39A boundary,
+publication then stops before release because the learner projection and
+renderer do not support this activity yet.
+
+## Learner rendering
+
+The ordered `LessonData.activities` list is the learner source of truth. `ActivityRenderer` uses `activityRegistry` to select:
+
+- `TheoryActivity`
+- `ListeningActivity`
+- `PronunciationActivity`
+- `PracticeActivity`
+- `QuizActivity`
+- `AiSpeakingMissionActivity`
+
+Renderers receive the full lesson because subtype content is stored in separate arrays. The Lesson Player also provides a readiness callback for interactions that should be completed before continuing.
+
+Sprint 39A does not add an Interactive Practice learner renderer. Published
+learner RPCs continue to omit `interactive_practice` and all of its private
+configuration. Existing Practice and Quiz rendering is unchanged.
+
+See [Student Experience](STUDENT_EXPERIENCE.md).
+
+## Authoring invariants
+
+- Only a fully draft course → unit → lesson → version hierarchy is editable.
+- Publishers can view but not edit drafts.
+- Activity create/duplicate/reorder operations use parent-scoped RPCs.
+- Existing rows cannot change parent foreign keys.
+- Reorder operations require an exact permutation scoped to the expected parent.
+- Published or archived descendants cannot be changed or deleted.
+- Lifecycle status is not an ordinary metadata field.
+- Authoring and publication share a hierarchy gate.
+
+Database detail is in [Database](DATABASE.md).
+
+## Adding an activity type
+
+An activity type is cross-cutting. A complete change normally includes:
+
+1. a forward-only enum/schema migration;
+2. subtype constraints and RLS;
+3. atomic create/duplicate support;
+4. publication completeness validation;
+5. Studio type union, label/icon map, service, editor, and read-only behavior;
+6. learner `LessonActivityType`, subtype data shape, registry mapping, and renderer;
+7. static fixture compatibility until learner delivery moves to Supabase;
+8. documentation and validation.
+
+Do not add only an enum value. That can create activities without the subtype data their editor and renderer require.

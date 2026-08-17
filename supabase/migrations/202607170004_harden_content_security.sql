@@ -650,7 +650,7 @@ returns table (
   id bigint,
   assessment_set_id bigint,
   prompt text,
-  position integer,
+  "position" integer,
   required boolean
 )
 language sql
@@ -687,7 +687,7 @@ returns table (
   id bigint,
   question_id bigint,
   text text,
-  position integer
+  "position" integer
 )
 language sql
 stable

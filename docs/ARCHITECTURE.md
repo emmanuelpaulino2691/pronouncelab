@@ -1,0 +1,350 @@
+# Architecture
+
+Authoring hierarchy names follow immediate-container semantics: Unit titles are compared among siblings in one Course, while Lesson titles are compared only among siblings in one Unit. The frontend provides an early sibling check and preserves entered form state, but database expression indexes remain authoritative for RPCs, direct permitted updates, concurrency, duplication, and future callers.
+
+Published source content remains removable from future authoring state without mutating history. Draft-only rows are physically deleted; released Lessons and Units are archived, and published Courses are retired. Immutable Course Releases continue to own the historical learner delivery contract, so an existing Class assignment remains usable until the Teacher ends or replaces it while retired sources cannot be newly published, shared, listed, or assigned.
+
+Student Preview is a URL-backed staff runtime with an explicit `draft` or `published` target. Course, Unit, and Lesson preview links preserve that target across refresh and history navigation. Published preview reads the owner-authorized current published hierarchy and exact published Lesson version independently of Course Library visibility, Unlisted redemption, enrollment, or assignment access. The shared Lesson Player runs in `teacher_preview` mode and never invokes current or Release progress persistence.
+
+Authoring Student Preview uses an immersive preview shell rather than the authenticated learner shell. It deliberately omits Home, My Classes, Course Library, Progress, and learner account controls. Preview never calls Supabase authentication mutations or impersonates a learner; the original staff session remains authoritative for entry, refresh, navigation, and exit. Because Supabase stores one same-origin session per browser profile, simultaneous Teacher/Learner manual testing requires separate profiles or Incognito.
+
+## Course Library and assignment separation
+
+Published content is not automatically public. `courses.learner_visibility` controls only current-course discoverability: `class_only` is private to immutable Class Release delivery, `unlisted` requires an authenticated learner to redeem a revocable random share token, and `public` appears in Course Library. Release creation and fingerprints exclude this setting.
+
+The current/public provider remains the independent-practice adapter and writes Sprint 52A progress. The Release provider remains the Class-assignment adapter and writes Release progress. Both use the shared Lesson Player presentation, while their hierarchy, eligibility, completion, review, restart, and Next Lesson adapters stay distinct. Home composes only active Class assignments; Course Library alone composes current/public resume state from server `last_accessed_at` and `last_activity_id`, with device-local position as the same-device fallback.
+
+`learnerClassWorkspace` is the shared read composition for learner Home and Progress. It joins only learner-visible active memberships, active Class assignments, immutable Release manifests, and the learner's Release progress through existing controlled contracts. Home orders incomplete work by started state and latest Release access, then assignment age. `/progress` renders that same Class snapshot beside—never merged with—the current/public Course Library journey. No aggregate progress identity is introduced.
+
+## Command Palette
+
+Command contracts, registry construction, matching, ranking, history, and keyboard utilities live under `src/domain/command-palette`. `AdminLayout` lazy-loads the visual palette only when opened, keeping it global to protected admin routes without affecting learner bundles. The first registry combines static navigation and templates with IDs already present in the current route; it does not crawl Supabase or introduce a parallel content cache. Future page data can contribute commands through the same typed registry contract.
+
+## Performance boundaries
+
+The router keeps every learner page, admin page, the protected `AdminRoute`, and the admin layout behind explicit dynamic imports. This prevents Supabase authentication and authoring code from entering the application entry chunk before a route needs them. `routeModuleLoaders` is the canonical route-chunk registry.
+
+Lesson Studio loads only the editor matching the selected activity type. Metadata and workspace state remain mounted above the lazy editor boundary, preserving selection, dirty-state coordination, split-preview state, and activity-level controls. Each editor receives a stable skeleton while loading and a scoped, teacher-safe recovery state if its chunk cannot load. The shared learner `ActivityRenderer` remains one small shared chunk because learner routes, Student Preview, and saved Split Preview all use it.
+
+Future features should preserve route-level dynamic imports, place substantial type-specific authoring UI behind activity boundaries, and avoid importing Supabase-backed admin protection into the entry graph. Chunking should follow measured module weight rather than arbitrary vendor grouping.
+
+## Smart Content Builder foundation
+
+The template registry and browser-preference utilities live under `src/domain/templates`; Lesson Studio consumes them through the shared Activity Picker without embedding template definitions in route code. Favorites and recents are versioned local-storage preferences, not lesson content. Blank activity creation retains the established service path. Template previews, destination-aware activity duplication, and cross-lesson copy do not issue mutations or simulate persistence.
+
+## Content operations foundation
+
+Reusable contracts under `src/domain/content-operations` support shared quick actions, operation dialogs, publication-state presentation, and reorder helpers. Cross-parent copy/move and persistent reorder require trusted atomic backend operations; the frontend does not compose them from unrelated writes or optimistically present order as persisted.
+
+## Contents
+
+- [System view](#system-view)
+- [Frontend organization](#frontend-organization)
+- [Routing and layouts](#routing-and-layouts)
+- [Learner content and rendering](#learner-content-and-rendering)
+- [Admin architecture](#admin-architecture)
+- [Ownership model](#ownership-model)
+- [TypeScript and state](#typescript-and-state)
+- [Lazy loading](#lazy-loading)
+- [Design system](#design-system)
+- [Extension points](#extension-points)
+- [Known architecture gaps](#known-architecture-gaps)
+
+## System view
+
+```mermaid
+flowchart TB
+  Browser[React browser app]
+  Router[React Router]
+  Learner[Learner features]
+  Admin[Admin features]
+  Local[Static data + localContentProvider]
+  LS[Browser localStorage]
+  Auth[Supabase Auth]
+  DB[(Supabase Postgres)]
+  Storage[Supabase Storage]
+  External[External ChatGPT/Gemini]
+
+  Browser --> Router
+  Router --> Learner
+  Router --> Admin
+  Learner --> Local
+  Learner --> LS
+  Learner -. copy/paste .-> External
+  Admin --> Auth
+  Admin --> DB
+  DB --> Storage
+```
+
+The React app is a single Vite application. `src/shared/lib/supabaseClient.ts` creates the one browser Supabase client from public environment values.
+
+## Frontend organization
+
+```text
+src/
+├── app/
+│   └── router/                 # Route declarations and lazy boundaries
+├── features/
+│   ├── activities/shared/      # Learner activity registry and renderers
+│   ├── admin/                  # Protected CMS, dashboard, hierarchy, studio, UI
+│   ├── ai-missions/            # Shared mission types, prompt, parser, learner card
+│   ├── auth/                   # Staff login
+│   ├── courses|units|lessons/  # Learner catalog pages
+│   ├── dashboard/              # Learner/local dashboard
+│   └── lesson/                 # Guided Lesson Player
+├── shared/
+│   ├── components/ and ui/     # Legacy learner/general UI
+│   ├── content/                # Content provider abstraction and local provider
+│   ├── data/                   # Static course registry and lesson fixtures
+│   ├── hooks/                  # Local progress/readiness/stat hooks
+│   ├── layouts/                # Main learner layout
+│   ├── lib/                    # Supabase client
+│   ├── services/               # Learner content/progress facades
+│   ├── types/                  # Learner domain types
+│   └── utils/                  # localStorage and utility functions
+└── index.css                   # Tailwind import, tokens, shared styles
+```
+
+Feature folders own page-specific services and components. Shared folders contain cross-feature learner infrastructure. Admin code has a separate reusable visual layer under `features/admin/ui`.
+
+## Routing and layouts
+
+`src/app/router/index.tsx` defines all routes with `createBrowserRouter`.
+
+| Route | Responsibility |
+| --- | --- |
+| `/` | Learner dashboard backed by the published catalog |
+| `/courses` | Course catalog |
+| `/courses/:courseId` | Units |
+| `/units/:unitId` | Lessons |
+| `/lessons/:lessonId` | Guided Lesson Player |
+| `/login` | Supabase staff login |
+| `/admin` | Protected admin dashboard |
+| `/admin/courses` | Course management |
+| `/admin/media` | UI-only Teacher Media Library foundation |
+| `/admin/courses/:courseId` | Unit management |
+| `/admin/courses/:courseId/units/:unitId` | Lesson management |
+| `/admin/.../lessons/:lessonId/studio` | Lesson Studio |
+
+`AdminRoute` is the protected boundary. It restores and validates the session, calls the database permission helpers, responds to auth events and window focus, suppresses protected content while rechecking, and supplies `AdminPermissionsProvider`.
+
+`AdminLayout` supplies the responsive Content Studio shell and nested `<Outlet>`. Learner pages use `MainLayout`; Lesson Player requests its immersive variant.
+
+## Learner content and rendering
+
+Learner routes use the asynchronous `LearnerContentProvider` contract. The active composition is `supabaseLearnerContentProvider`, which reads the published catalog and one published lesson through learner-safe RPC projections. The static provider remains only as an explicit compatibility adapter for fixtures and focused tests; it is not the runtime learner source.
+
+Published learner DTOs contain an ordered activity union. `ActivityRenderer` consumes that answer-safe union directly and reuses the existing Lesson Player shell. Quiz and listening projections omit correctness and explanations, so the browser can record response completion but cannot reveal answer keys. Public media paths are resolved through the existing Supabase Storage client.
+
+```mermaid
+sequenceDiagram
+  participant Page as LessonPage
+  participant Provider as Supabase learner provider
+  participant RPC as Published RPC projections
+  participant Player as LessonPlayer
+  Page->>Provider: Load published lesson
+  Provider->>RPC: get_published_lesson
+  RPC-->>Provider: Answer-safe current published version
+  Provider-->>Page: LearnerLesson DTO
+  Page->>Player: lesson + return context
+  Player->>Player: Render activity.type
+```
+
+Lesson Player shows one primary step while keeping activity renderers mounted and hidden. That preserves quiz and interactive component state when a learner goes backward. Details are in [Student Experience](STUDENT_EXPERIENCE.md).
+
+## Admin architecture
+
+Admin features follow a page → service → Supabase pattern:
+
+- `dashboard/` loads RLS-visible rows and derives truthful counts.
+- `courses/`, `units/`, and `lessons/` implement permission-aware CRUD.
+- nested loaders use compound parent filters and stale-request guards;
+- mutations include expected parent IDs and draft filters;
+- `lesson-studio/` separates shell, metadata editor, subtype editors, types, validation, and services.
+
+Permissions are typed as:
+
+- `canAccessAdmin`
+- `canEditDrafts`
+- `canPublish`
+- `canViewAllCourses`
+- `isAdmin`
+
+These values improve the UI. RLS and internal RPC authorization decide access.
+
+During the Sprint 40 migration window, `AdminRoute` detects only structured
+missing-function responses for the new ownership helpers and falls back to the
+pre-ownership `can_manage_content()` surface. The result is cached for the
+current route mount to avoid repeated missing-RPC requests. Other authorization
+or network failures remain fail-closed. A reload automatically probes the new
+helpers again after deployment.
+
+Lesson Studio uses direct RLS-protected exact-row writes for simple subtype
+updates and security-definer RPCs for atomic creation, duplication, reordering,
+version creation, publication, and quiz compound writes. Authorized teachers,
+publishers, and administrators receive an explicit lesson-version publication
+action; the RPC remains the authorization and validation boundary.
+
+The media domain under `src/domain/media` defines schema-aligned summaries, queries, stable selections, UI permission predicates, and `MediaLibraryService`. Its Supabase adapter reads the owner-scoped `media_assets` registry through RLS and applies server-side kind, filename, and sort constraints. Cards resolve private draft objects with temporary signed URLs and intentional public buckets with public URLs; failures remain card-local. Runtime URLs are never selection data. Media Picker returns only the stable asset ID and kind, so Learn, Listening, and Pronunciation reuse one registered asset without copying its Storage object.
+
+Editor uploads first write a private draft Storage object, then call the trusted
+`register-media` Edge Function. The function hashes the stored bytes and an
+atomic service-only RPC resolves `(owner, kind, SHA-256)` to one stable asset.
+The losing object in a duplicate race is removed. Browser hashes are not
+trusted and browser roles cannot insert registry rows directly. See
+[ADR 0010](ADR/0010-owner-scoped-media-content-identity.md).
+
+Lesson and course publication call the trusted `publish-content` Edge Function.
+Ownership-checked SQL plans enumerate Learn `media_asset_id` and
+Listening/Pronunciation `audio_asset_id` references. The function copies and
+hashes physical Storage bytes through the existing prepare/finalize lifecycle,
+promotes the same media row to its public bucket, and only then invokes content
+publication. Draft signed URLs never enter saved content or published DTOs.
+
+When a published lesson is selected, the Studio presents the published version
+as read-only. `create_lesson_draft_version` creates the next draft version by
+copying the published activity tree, specialist content, and assessment
+descendants with new content IDs while retaining stable media IDs. Authorization
+is course-scoped and does not depend on the published parent status. Learners continue
+to resolve the current published version until the draft is published.
+
+Draft-version mutation authorization is centralized in
+`can_edit_lesson_version(version_id)`: the target version must be draft and its
+course must be editable by the authenticated owner or administrator. Parent
+hierarchy lifecycle status does not determine draft editability.
+
+Progressive structural authoring preserves that separation. A published course
+can receive a new draft unit, and a published unit can receive a new draft
+lesson. Creation RPCs append under the hierarchy lock; lesson creation also
+creates Version 1 transactionally. Published siblings remain read-only. Course
+**Publish updates** releases validated additions without interrupting the
+already-published learner hierarchy.
+
+## Ownership model
+
+Course ownership is the root authorization boundary for private educational
+content. Every course stores one immutable `owner_user_id` referencing the
+authenticated user who created it. Units, lessons, versions, activities, and
+activity subtype rows derive ownership through their existing parent chain;
+they do not duplicate owner columns.
+
+Teachers can see, author, duplicate, and publish their own hierarchy.
+Administrators can access and manage every hierarchy. Publishers retain
+cross-course read and publication authority for future editorial workflows,
+while legacy editors remain owner-scoped draft authors and cannot publish.
+Published learner projections remain public and do not expose ownership.
+
+RLS controls browser visibility and simple writes. An ownership trigger applies
+the same course-root check inside existing security-definer mutation RPCs, so
+an RPC cannot bypass teacher isolation. The Studio labels owner-scoped course
+catalogs as **My Courses**; administrators and publishers receive the
+cross-course view.
+
+## TypeScript and state
+
+The application uses strict TypeScript configurations. Domain-specific unions exist for activity types, theory blocks, AI mission configuration, and parser output. Supabase results are mapped into local feature types; generated database types are not present.
+
+State is intentionally local:
+
+- form/editor state in components;
+- stale-load sequence tokens and mounted checks for route changes;
+- admin permissions in React context;
+- learner progress and local dashboard statistics in namespaced `localStorage`.
+
+There is no global state library.
+
+## Lazy loading
+
+All route pages are loaded with `React.lazy` behind `LazyRoute`. The AI Speaking Mission editor is additionally lazy-loaded inside the Lesson Studio editor dispatch. This keeps admin authoring code out of the initial login and learner chunks.
+
+There is no heavy chart, animation, rich-text, or AI SDK dependency.
+
+## Design system
+
+Admin pages use typed components from `src/features/admin/ui`: buttons, form controls, surfaces/cards, badges, alerts, skeletons, page headers, breadcrumbs, avatars, and icons. CSS tokens live in `src/index.css`.
+
+The learner side retains older shared components plus the newer lesson shell styles. Consolidation is a future opportunity; do not silently replace working learner UI. See [Design System](DESIGN_SYSTEM.md).
+
+## Extension points
+
+- Add a cache/revalidation policy only if production traffic requires it; provider requests currently return the newest published revision without client caching.
+- Add activity types through the enum/schema, authoring RPC, Studio types/editor, learner `LessonActivity` type, subtype data, and registry together.
+- Add server progress through a secure account/enrollment/attempt model while retaining the Lesson Player state interface.
+- Persist AI mission results using the existing future journal type after identity and RLS are designed.
+- Generate Supabase TypeScript types to reduce handwritten mappings.
+- Extend the focused Vitest suite for pure domain utilities; browser and database contract testing remain separate future layers.
+
+## Known architecture gaps
+
+These are current facts, not proposals:
+
+- Learner progress remains device-local and is not synchronized to an account.
+- Focused Vitest utility tests are configured, but browser and database integration tests are not.
+- Learner progress is device-local and not user-namespaced.
+- The repository contains both `activityRegistry.ts` and `activityRegistry.tsx`; the TSX module is the active registry import path and the duplication should be resolved carefully.
+- Migration 009 hardens AI configuration, creation, concurrency, and publication locally; it must be reviewed and applied before the linked database has those guarantees.
+## Course-wide publication
+
+Course publication is handled by the controlled `public.publish_course(bigint)` RPC. It locks the hierarchy, validates new draft structure, draft lesson versions, activities, and specialist content, and returns structured errors without writes when validation fails. Sealed historical versions are retained and counted but are not revalidated during an unrelated update. When validation succeeds, eligible draft lesson versions are published through the existing lesson-version lifecycle and the hierarchy is activated. Published versions remain immutable; lessons without a new draft continue serving their current published version.
+
+Learner Course and Unit routes apply a shared sequential policy to published,
+usable content: the first item is available, each following Lesson requires the
+previous Lesson's completion, and each following Unit requires the previous
+Unit's completion. Recommended cards duplicate the current item as a prominent
+next action; complete lists still contain every item. Route-level checks prevent
+direct navigation from bypassing locks. Progress remains device-local.
+
+## Teacher workspace
+
+## Student Preview
+
+Student Preview remains isolated from synchronized progress. `teacher_preview` suppresses local and server learner mutations, and staff identities are rejected by learner-progress RPCs as defense in depth.
+
+## Synchronized learner progress
+
+Ordinary authenticated users without a staff role are learners. Learner routes remain publicly readable, while the account entry in the learner header enables synchronization. `useUserProgress` retains the established local snapshot as an offline cache, merges server snapshots monotonically, and uploads only local activity indexes that map to activity IDs in the currently loaded published lesson. Server RPCs revalidate the current published hierarchy before accepting those IDs. Course and Unit completion, sequential locks, and Continue Learning remain derived from the merged Lesson/activity snapshot rather than persisted separately.
+
+Student Preview uses dedicated lazy-loaded `/admin/preview/courses/:courseId` and `/admin/preview/courses/:courseId/lessons/:lessonId` routes. It reuses the learner `LessonPlayer` and activity renderers with a `teacher_preview` runtime mode. The mode prevents learner progress, completion, XP, scoring, assignment, and AI mission mutations while retaining local interaction. Preview content is resolved through the authorized draft adapter, then published learner-safe content, then local learner content.
+
+Preview resolution is centralized in `teacherPreviewResolver`: saved draft first, published second, local learner content third, and unavailable last. Draft loading reuses existing admin hierarchy/version/activity services and never exposes draft content through `/learn`.
+
+`mapDraftLessonToLearnerLessonData` is the single draft adapter for specialist content. It preserves stable activity IDs and maps theory, listening, pronunciation, quiz, legacy practice, and AI Speaking Mission configuration into the learner renderer shape without changing published projections.
+
+The draft adapter resolves saved Learn Image and Audio `media_assets` references to short-lived secure URLs only while building the authorized preview model. Preview launch URLs carry a validated admin return location; Lesson Studio also carries the selected activity so Exit Preview restores the exact editing context.
+
+Preview resource loading is total and generation-scoped: fulfilled failures and unexpected rejections both leave loading, aborted or stale requests cannot replace the current request, and retry starts a new generation. Draft-source failure may fall through to published and local sources. A Learn media URL failure remains local to that block and does not reject the lesson preview.
+
+Student Preview owns a local presentation-width mode (`desktop`, `tablet`, or `phone`). It constrains only the preview content container and does not modify learner DTOs, runtime mode, progress behavior, route parameters, or the validated return location.
+
+Learn block duplication is performed as a scoped child insert through the existing activity content service. It copies content and stable media references while generating a new block ID; deletion removes only the content reference.
+
+Learn block interaction state is local and ID-based. Drag and keyboard moves preserve block identity until the existing reorder RPC saves the ordered ID list. Split Preview keeps a separate saved block snapshot and calls the shared learner renderer, avoiding a second Learn rendering implementation and preventing unsaved media URLs from replacing the saved preview.
+
+The current `/admin` route remains the lazy-loaded Content Studio entry point for compatibility. Its dashboard and sidebar derive visible workspace language from the existing permission context; no new role or persistence model is introduced. My Courses uses the existing RLS-visible course query. Future workspace sections are non-interactive placeholders until Classes, Students, and Assignments are implemented.
+
+Course workspace tabs use the existing `/admin/courses/:courseId` route and a query-state tab selector, so Curriculum continues to use the existing unit and Lesson Studio routes without a route migration or new RPC.
+
+## Classroom architecture (future)
+
+Classroom work is intentionally separate from the current Course Workspace. A future class assignment will reference an immutable published course release, while the existing lesson-version publication model remains the authoring and release foundation. No classroom routes, schema, enrollment, or progress synchronization are implemented yet. The design is documented in [Classroom Architecture](CLASSROOM_ARCHITECTURE.md) and ADRs 0007–0008.
+
+Sprint 52B connects lazy-loaded `/admin/classes`, `/admin/classes/new`, and `/admin/classes/:classId` routes to teacher-owned Classes and soft enrollment. Learners join through `/classes` with a regenerable opaque code. Sprint 52C adds immutable Release assignment selection and assignment-scoped reporting inside the Class workspace. `/classes` shows active assigned Courses and reuses the existing Release runtime. Direct Teacher progress-table access remains forbidden.
+
+Sprint 52D keeps those server contracts unchanged and composes lifecycle presentation from existing assignment, Release, Class, enrollment, and Release-progress data. Teacher update review is explicit, inactive assignment rows form ordered history, and destructive-looking actions explain access revocation versus preserved progress. Learner cards derive Not started, In progress, and Completed solely from Release progress. Availability and due dates remain future scheduling work rather than implicit client rules.
+
+Learner Class cards compose each immutable Release manifest with its server-authored progress snapshot to show completion and open the Release Course overview as the canonical orientation point. Release Lesson URLs retain optional `classId` query context across refresh. Historical delivery normalizes the pinned-version RPC payload into the same `LearnerLesson` contract used by the shared `LessonPlayer`; an injected Release adapter records only Release progress while the public adapter retains Sprint 52A behavior. After authoritative completion refresh, the player offers the next server-available manifest Lesson—including across Unit boundaries—or a Class-aware Course-complete return.
+
+Completed Release Lessons open on the canonical completion summary. Review is a browse-only player session with an explicit summary return and no completion writes. Restart creates a fresh Release-scoped local player key and replays activity interactions from Activity 1, while authoritative Release activity/Lesson completion remains monotonic and keeps later content unlocked. The complete Release Lesson route runtime is keyed by Release and Release Lesson identity, so route-parameter navigation remounts all play, summary, Review, and Restart state before hydrating the destination Lesson.
+
+Immutable Course Releases snapshot Course metadata, ordered Unit/Lesson metadata, and exact sealed Lesson-version IDs. Publication captures a fingerprinted manifest atomically through the final Course publication update. `/releases/:releaseId` authorization is derived from active Class enrollment plus active assignment, with a restricted direct-entitlement seam for non-Class delivery. Release progress has separate Release-Lesson identity; the public/current journey remains unchanged.
+
+## Domain contracts
+
+The progressive domain layer lives under `src/domain`. It centralizes shared status and activity constants, course/class/publishing types, frontend-safe permission predicates, domain error classes, and future service interfaces. These contracts do not replace existing feature services or authorize requests; Supabase RLS and controlled RPCs remain the security boundary. Classroom and release types are intentionally descriptive until their backend contracts are implemented.
+### Forced teacher-preview layout modes
+
+Student Preview carries `desktop`, `tablet`, or `phone` through the preview viewport boundary into the shared `LessonPlayer`. Width and learner-shell behavior therefore change together: desktop uses the outline sidebar, while tablet and phone use the compact activity selector and a full-width activity column. Normal learner routes keep `auto` mode and their existing browser-responsive behavior. Lesson Studio owns shared editor/split view state and renders saved activity content through `ActivityRenderer`; it does not inject unsaved editor state or persist learner mutations.
+
+`MainLayout` is the shared responsive Student shell boundary. The same forced Teacher Preview mode controls its navigation, header, content spacing, and the nested `LessonPlayer`: Desktop retains the permanent student sidebar, while Tablet and Phone replace it with a compact app bar and accessible navigation drawer. Real learner routes continue to pass `auto`, so browser breakpoints remain authoritative outside Teacher Preview.
+
+`MainLayout` also owns route-transition focus: pathname changes focus the main landmark, while data-only updates leave focus untouched. The mobile learner drawer is modal in behavior while open (focus containment, Escape dismissal, focus return, and background-scroll lock). This keeps route pages from implementing competing focus policies.

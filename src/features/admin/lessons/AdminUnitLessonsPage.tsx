@@ -7,6 +7,8 @@ import {
 } from "react";
 import {
   Link,
+  useLocation,
+  useNavigate,
   useParams,
 } from "react-router-dom";
 
@@ -18,17 +20,35 @@ import {
   type AdminCourse,
 } from "../courses/adminCourseService";
 import { useAdminPermissions } from "../permissions/useAdminPermissions";
+import { ContentOperationDialog, PublicationStatusBadge, QuickActionsMenu, UnavailableOperationDialog } from "../content-operations";
+import { Alert, Button, ButtonLink, Card, ConfirmDeleteDialog, EmptyState, LoadingSkeleton, PageHeader, StatusBadge } from "../ui";
+import {
+  beginDeleteConfirmation,
+  cancelDeleteConfirmation,
+  completeDeleteConfirmation,
+  createDeleteConfirmationState,
+  failDeleteConfirmation,
+  openDeleteConfirmation,
+} from "../ui/deleteConfirmationState";
 import {
   getAdminUnit,
+  listAdminUnits,
   type AdminUnit,
 } from "../units/adminUnitService";
 import {
   createAdminLesson,
-  deleteDraftLesson,
+  removeAdminLesson,
+  duplicateDraftLesson,
   listAdminLessons,
   updateAdminLesson,
   type AdminLesson,
 } from "./adminLessonService";
+import LessonCreationDialog from "./LessonCreationDialog";
+import { canStartLessonCreation } from "./lessonCreationState";
+import { buildStudentPreviewUrl } from "../preview/previewNavigation";
+import { canCreateDraftLesson, canEditDraftLesson } from "../hierarchyAuthoring";
+import { hasSiblingTitle, hierarchyTitleSaveError } from "../hierarchyTitleIntegrity";
+import { lessonRemovalDescription } from "../removalPresentation";
 
 type FormState =
   | { mode: "closed" }
@@ -38,21 +58,9 @@ type FormState =
 type LoadedHierarchy = {
   course: AdminCourse;
   unit: AdminUnit;
+  units: AdminUnit[];
   lessons: AdminLesson[];
 };
-
-function getErrorMessage(error: unknown) {
-  if (
-    typeof error === "object" &&
-    error !== null &&
-    "message" in error &&
-    typeof error.message === "string"
-  ) {
-    return error.message;
-  }
-
-  return "Something went wrong. Please try again.";
-}
 
 function parseId(value: string | undefined) {
   const id = Number(value);
@@ -65,13 +73,14 @@ async function getHierarchy(
   courseId: number,
   unitId: number
 ): Promise<LoadedHierarchy> {
-  const [course, unit] = await Promise.all([
+  const [course, unit, units] = await Promise.all([
     getAdminCourse(courseId),
     getAdminUnit(unitId, courseId),
+    listAdminUnits(courseId),
   ]);
   const lessons = await listAdminLessons(unit.id);
 
-  return { course, unit, lessons };
+  return { course, unit, units, lessons };
 }
 
 type UnitLessonsContentProps = {
@@ -83,13 +92,20 @@ function UnitLessonsContent({
   courseId,
   unitId,
 }: UnitLessonsContentProps) {
+  const location = useLocation();
+  const navigate = useNavigate();
   const { canEditDrafts } =
     useAdminPermissions();
   const isActiveRef = useRef(true);
+  const saveInFlightRef = useRef(false);
+  const deleteInFlightRef = useRef(false);
+  const duplicateInFlightRef = useRef(false);
+  const creationCompletedRef = useRef(false);
   const [course, setCourse] =
     useState<AdminCourse | null>(null);
   const [unit, setUnit] =
     useState<AdminUnit | null>(null);
+  const [courseUnits, setCourseUnits] = useState<AdminUnit[]>([]);
   const [lessons, setLessons] = useState<
     AdminLesson[]
   >([]);
@@ -101,15 +117,30 @@ function UnitLessonsContent({
     deletingLessonId,
     setDeletingLessonId,
   ] = useState<number | null>(null);
+  const [, setDuplicatingLessonId] = useState<number | null>(null);
+  const [deleteConfirmation, setDeleteConfirmation] = useState(
+    createDeleteConfirmationState<AdminLesson>
+  );
   const [formState, setFormState] =
     useState<FormState>({ mode: "closed" });
   const [errorMessage, setErrorMessage] =
     useState<string | null>(null);
+  const [formErrorMessage, setFormErrorMessage] =
+    useState<string | null>(null);
+  const [lessonOperation, setLessonOperation] = useState<{ kind: "copy" | "move"; lesson: AdminLesson } | null>(null);
+  const [destinationUnitId, setDestinationUnitId] = useState(0);
+  const [operationTitle, setOperationTitle] = useState("");
+  const [operationPosition, setOperationPosition] = useState(1);
+  const [unavailableOperation, setUnavailableOperation] = useState<string | null>(null);
+  const [draggedLessonId, setDraggedLessonId] = useState<number | null>(null);
+  const [dropLessonId, setDropLessonId] = useState<number | null>(null);
+  const [reorderAnnouncement, setReorderAnnouncement] = useState("");
 
   const applyHierarchy = useCallback(
     (hierarchy: LoadedHierarchy) => {
       setCourse(hierarchy.course);
       setUnit(hierarchy.unit);
+      setCourseUnits(hierarchy.units);
       setLessons(hierarchy.lessons);
     },
     []
@@ -131,9 +162,9 @@ function UnitLessonsContent({
       if (isActiveRef.current) {
         applyHierarchy(hierarchy);
       }
-    } catch (error) {
+    } catch {
       if (isActiveRef.current) {
-        setErrorMessage(getErrorMessage(error));
+        setErrorMessage("We couldn’t load these lessons. Try again.");
       }
     } finally {
       if (isActiveRef.current) {
@@ -143,6 +174,7 @@ function UnitLessonsContent({
   }, [applyHierarchy, courseId, unitId]);
 
   useEffect(() => {
+    isActiveRef.current = true;
     let isActive = true;
 
     void getHierarchy(courseId, unitId)
@@ -151,11 +183,9 @@ function UnitLessonsContent({
           applyHierarchy(hierarchy);
         }
       })
-      .catch((error: unknown) => {
+      .catch(() => {
         if (isActive) {
-          setErrorMessage(
-            getErrorMessage(error)
-          );
+          setErrorMessage("We couldn’t load these lessons. Try again.");
         }
       })
       .finally(() => {
@@ -181,12 +211,29 @@ function UnitLessonsContent({
           ) + 1,
     [lessons]
   );
+  const canCreateLesson = canCreateDraftLesson(
+    canEditDrafts,
+    course?.status ?? null,
+    unit?.status ?? null
+  );
 
   async function handleSave(
     input: HierarchyItemInput
   ) {
+    if (formState.mode === "closed" || saveInFlightRef.current) return;
+    if (
+      formState.mode === "create" &&
+      !canStartLessonCreation(isSaving, creationCompletedRef.current)
+    ) return;
+    const editedLessonId = formState.mode === "edit" ? formState.lesson.id : undefined;
+    if (hasSiblingTitle(lessons, input.title, editedLessonId)) {
+      setFormErrorMessage(`A Lesson named '${input.title.trim()}' already exists in this Unit.`);
+      return;
+    }
+
+    saveInFlightRef.current = true;
     setIsSaving(true);
-    setErrorMessage(null);
+    setFormErrorMessage(null);
 
     try {
       if (formState.mode === "edit") {
@@ -224,6 +271,7 @@ function UnitLessonsContent({
           isActiveRef.current &&
           createdLesson.unitId === unitId
         ) {
+          creationCompletedRef.current = true;
           setLessons((current) =>
             [...current, createdLesson].sort(
               (first, second) =>
@@ -231,6 +279,11 @@ function UnitLessonsContent({
                 second.position
             )
           );
+          setFormState({ mode: "closed" });
+          navigate(
+            `/admin/courses/${courseId}/units/${unitId}/lessons/${createdLesson.id}/studio`
+          );
+          return;
         }
       }
 
@@ -239,9 +292,10 @@ function UnitLessonsContent({
       }
     } catch (error) {
       if (isActiveRef.current) {
-        setErrorMessage(getErrorMessage(error));
+        setFormErrorMessage(hierarchyTitleSaveError(error, "Lesson", input.title));
       }
     } finally {
+      saveInFlightRef.current = false;
       if (isActiveRef.current) {
         setIsSaving(false);
       }
@@ -251,19 +305,14 @@ function UnitLessonsContent({
   async function handleDelete(
     lesson: AdminLesson
   ) {
-    if (
-      !window.confirm(
-        `Delete the draft lesson "${lesson.title}"? This cannot be undone.`
-      )
-    ) {
-      return;
-    }
-
+    if (deleteInFlightRef.current) return;
+    deleteInFlightRef.current = true;
+    setDeleteConfirmation((current) => beginDeleteConfirmation(current));
     setDeletingLessonId(lesson.id);
     setErrorMessage(null);
 
     try {
-      await deleteDraftLesson(
+      await removeAdminLesson(
         lesson.id,
         unitId
       );
@@ -273,114 +322,78 @@ function UnitLessonsContent({
             (item) => item.id !== lesson.id
           )
         );
+        setDeleteConfirmation(completeDeleteConfirmation());
       }
-    } catch (error) {
+    } catch {
       if (isActiveRef.current) {
-        setErrorMessage(getErrorMessage(error));
+        setErrorMessage("The lesson could not be deleted. It is still available. Try again.");
+        setDeleteConfirmation((current) => failDeleteConfirmation(current));
       }
     } finally {
+      deleteInFlightRef.current = false;
       if (isActiveRef.current) {
         setDeletingLessonId(null);
       }
     }
   }
 
+  async function handleDuplicate(lesson: AdminLesson) {
+    if (duplicateInFlightRef.current) return;
+    duplicateInFlightRef.current = true;
+    setDuplicatingLessonId(lesson.id);
+    setErrorMessage(null);
+    try {
+      const duplicated = await duplicateDraftLesson(lesson.id, unitId);
+      if (isActiveRef.current) {
+        setLessons((current) => [...current, duplicated].sort((a, b) => a.position - b.position));
+        navigate(`/admin/courses/${courseId}/units/${unitId}/lessons/${duplicated.id}/studio`);
+      }
+    } catch {
+      if (isActiveRef.current) setErrorMessage("The lesson could not be duplicated. Nothing was changed. Try again.");
+    } finally {
+      duplicateInFlightRef.current = false;
+      if (isActiveRef.current) setDuplicatingLessonId(null);
+    }
+  }
+
   if (isLoading) {
     return (
-      <p
-        role="status"
-        className="py-16 text-center text-slate-500"
-      >
-        Loading unit hierarchy…
-      </p>
+      <section className="mx-auto max-w-7xl" aria-busy="true">
+        <PageHeader
+          title="Loading lessons"
+          description="Preparing the unit and its lessons."
+          breadcrumbs={[{ label: "Courses", to: "/admin/courses" }, { label: "Loading lessons" }]}
+          actions={<ButtonLink icon="arrow-left" variant="secondary" to={`/admin/courses/${courseId}`}>Back to curriculum</ButtonLink>}
+        />
+        <div role="status" className="mt-8 space-y-5">
+          <LoadingSkeleton className="h-28" />
+          <LoadingSkeleton className="h-28" />
+          <span className="sr-only">Loading unit lessons…</span>
+        </div>
+      </section>
     );
   }
 
   return (
     <section className="mx-auto max-w-7xl">
-      <nav
-        aria-label="Breadcrumb"
-        className="flex flex-wrap items-center gap-2 text-sm text-slate-500"
-      >
-        <Link
-          to="/admin/courses"
-          className="font-medium text-blue-700 hover:underline"
-        >
-          Courses
-        </Link>
-        <span aria-hidden="true">/</span>
-        <Link
-          to={`/admin/courses/${courseId}`}
-          className="font-medium text-blue-700 hover:underline"
-        >
-          {course?.title ?? "Course"}
-        </Link>
-        <span aria-hidden="true">/</span>
-        <span>{unit?.title ?? "Unit"}</span>
-      </nav>
-
-      <div className="mt-6 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-widest text-blue-600">
-            Course → Units → Lessons
-          </p>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">
-            {unit?.title ?? "Unit"}
-          </h1>
-          <p className="mt-3 max-w-2xl text-slate-600">
-            {unit?.description ||
-              "Manage the lessons in this unit."}
-          </p>
-        </div>
-
-        {canEditDrafts &&
-        course?.status === "draft" &&
-        unit?.status === "draft" ? (
-          <button
-            type="button"
-            onClick={() =>
-              setFormState({ mode: "create" })
-            }
-            className="rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white shadow-sm transition hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
-          >
-            Create lesson
-          </button>
-        ) : (
-          <p className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-600">
-            {course?.status === "draft" &&
-            unit?.status === "draft"
-              ? "View-only lesson access"
-              : "Parent hierarchy is sealed; lessons are read only"}
-          </p>
-        )}
-      </div>
+      <PageHeader
+        eyebrow="Unit lessons"
+        title={`${unit?.title ?? "Unit"} lessons`}
+        description={unit?.description || "Manage the ordered lessons and open the authoring studio."}
+        breadcrumbs={[{ label: "Courses", to: "/admin/courses" }, { label: course?.title ?? "Course", to: `/admin/courses/${courseId}` }, { label: unit?.title ?? "Unit" }]}
+        meta={unit ? <StatusBadge status={unit.status} /> : undefined}
+        actions={<><ButtonLink icon="arrow-left" variant="secondary" to={`/admin/courses/${courseId}`}>Back to curriculum</ButtonLink>{unit?.status === "published" && <ButtonLink variant="secondary" to={buildStudentPreviewUrl({courseId,unitId,target:"published",returnTo:`${location.pathname}${location.search}`})}>Preview Published</ButtonLink>}<ButtonLink variant="secondary" to={buildStudentPreviewUrl({courseId,unitId,target:"draft",returnTo:`${location.pathname}${location.search}`})}>Preview Draft</ButtonLink>{canCreateLesson && <Button icon="plus" onClick={() => { creationCompletedRef.current = false; setFormErrorMessage(null); setFormState({ mode: "create" }); }}>Create lesson</Button>}</>}
+      />
+      {!canEditDrafts && <div className="mt-5"><Alert>You can view these lessons, but your role does not allow authoring drafts.</Alert></div>}
+      {canEditDrafts && unit?.status === "published" && <div className="mt-5"><Alert><strong>Published unit.</strong> Published lessons remain read-only. You can append new draft lessons; learners will not see them until you publish updates.</Alert></div>}
 
       {errorMessage && (
-        <div
-          role="alert"
-          className="mt-6 flex flex-col gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 sm:flex-row sm:items-center sm:justify-between"
-        >
-          <span>{errorMessage}</span>
-          <button
-            type="button"
-            onClick={() => void loadHierarchy()}
-            className="font-semibold underline underline-offset-4"
-          >
-            Try again
-          </button>
-        </div>
+        <div className="mt-6"><Alert tone="error" action={<Button variant="secondary" onClick={() => void loadHierarchy()}>Try again</Button>}>{errorMessage}</Alert></div>
       )}
 
-      <div className="mt-8 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <Card className="mt-8 overflow-hidden">
         {lessons.length === 0 ? (
-          <div className="px-6 py-16 text-center">
-            <p className="text-lg font-semibold text-slate-900">
-              No lessons yet
-            </p>
-            <p className="mt-2 text-sm text-slate-500">
-              Add the first draft lesson to this unit.
-            </p>
-          </div>
+          <EmptyState title="No lessons yet" description={canCreateLesson ? "Create the first draft lesson to begin authoring this unit." : "This unit does not contain any lessons to view."} action={canCreateLesson ? <Button icon="plus" onClick={() => { creationCompletedRef.current = false; setFormErrorMessage(null); setFormState({ mode: "create" }); }}>Create lesson</Button> : undefined} />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-3xl text-left">
@@ -406,7 +419,7 @@ function UnitLessonsContent({
                     lesson.status === "draft";
 
                   return (
-                    <tr key={lesson.id}>
+                    <tr key={lesson.id} draggable={canEditDraftLesson(canEditDrafts, lesson.status, lesson.currentPublishedVersionId)} onDragStart={() => setDraggedLessonId(lesson.id)} onDragOver={(event) => { event.preventDefault(); setDropLessonId(lesson.id); }} onDragEnd={() => { setDraggedLessonId(null); setDropLessonId(null); }} onDrop={(event) => { event.preventDefault(); if (draggedLessonId !== null && draggedLessonId !== lesson.id) { setReorderAnnouncement("Lesson order was not changed because persistent reordering is unavailable."); setUnavailableOperation("Reorder lessons"); } setDraggedLessonId(null); setDropLessonId(null); }} className={dropLessonId === lesson.id && draggedLessonId !== lesson.id ? "border-t-4 border-t-blue-500" : ""}>
                       <td className="px-6 py-5">
                         <p className="font-semibold text-slate-950">
                           {lesson.title}
@@ -421,59 +434,48 @@ function UnitLessonsContent({
                         {lesson.position}
                       </td>
                       <td className="px-4 py-5">
-                        <span
-                          className={[
-                            "rounded-full px-2.5 py-1 text-xs font-semibold capitalize",
-                            isDraft
-                              ? "bg-amber-100 text-amber-800"
-                              : "bg-emerald-100 text-emerald-800",
-                          ].join(" ")}
-                        >
-                          {lesson.status}
-                        </span>
+                        <PublicationStatusBadge status={lesson.status} currentPublishedVersionId={lesson.currentPublishedVersionId} />
                       </td>
                       <td className="px-6 py-5">
-                        {isDraft &&
-                        canEditDrafts &&
-                        course?.status === "draft" &&
-                        unit?.status === "draft" ? (
-                          <div className="flex justify-end gap-2">
+                        <div className="flex justify-end gap-2">
+                          <ButtonLink icon="sparkle" to={`/admin/courses/${courseId}/units/${unitId}/lessons/${lesson.id}/studio`}>Open Studio</ButtonLink>
+                          {lesson.currentPublishedVersionId ? <ButtonLink variant="secondary" to={buildStudentPreviewUrl({ courseId, lessonId: lesson.id, target: "published", returnTo: `${location.pathname}${location.search}` })}>Preview Published</ButtonLink> : <ButtonLink variant="secondary" to={buildStudentPreviewUrl({ courseId, lessonId: lesson.id, target: "draft", returnTo: `${location.pathname}${location.search}` })}>Preview Draft</ButtonLink>}
+                        {isDraft && canEditDraftLesson(
+                          canEditDrafts,
+                          lesson.status,
+                          lesson.currentPublishedVersionId
+                        ) ? (
+                          <>
                             <button
                               type="button"
-                              onClick={() =>
+                              onClick={() => {
+                                setFormErrorMessage(null);
                                 setFormState({
                                   mode: "edit",
                                   lesson,
-                                })
-                              }
+                                });
+                              }}
                               className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
                             >
                               Edit
                             </button>
-                            <button
-                              type="button"
-                              disabled={
-                                deletingLessonId ===
-                                lesson.id
-                              }
-                              onClick={() =>
-                                void handleDelete(
-                                  lesson
-                                )
-                              }
-                              className="rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:cursor-not-allowed disabled:opacity-40"
-                            >
-                              {deletingLessonId ===
-                              lesson.id
-                                ? "Deleting…"
-                                : "Delete"}
-                            </button>
-                          </div>
+                            <QuickActionsMenu label={`More actions for lesson ${lesson.title}`} actions={[
+                              { label: "Rename", onSelect: () => { setFormErrorMessage(null); setFormState({ mode: "edit", lesson }); } },
+                              { label: "Duplicate", onSelect: () => void handleDuplicate(lesson) },
+                              { label: "Copy", onSelect: () => { setLessonOperation({ kind: "copy", lesson }); setOperationTitle(`${lesson.title} copy`); setDestinationUnitId(courseUnits.find((item) => item.id !== unitId)?.id ?? 0); } },
+                              { label: "Move", onSelect: () => { setLessonOperation({ kind: "move", lesson }); setDestinationUnitId(courseUnits.find((item) => item.id !== unitId)?.id ?? 0); setOperationPosition(1); } },
+                              { label: "Move up", disabled: lesson === lessons[0], explanation: "This lesson is already first.", onSelect: () => setUnavailableOperation("Reorder lessons") },
+                              { label: "Move down", disabled: lesson === lessons.at(-1), explanation: "This lesson is already last.", onSelect: () => setUnavailableOperation("Reorder lessons") },
+                              { label: "Archive", disabled: true, explanation: "Archiving is planned for a future release.", onSelect: () => undefined },
+                            ]} />
+                          </>
                         ) : (
-                          <p className="text-right text-sm text-slate-400">
+                          <span className="self-center text-sm text-slate-400">
                             View only
-                          </p>
+                          </span>
                         )}
+                        {canEditDrafts && <button type="button" disabled={deletingLessonId === lesson.id} onClick={() => { setErrorMessage(null); setDeleteConfirmation(openDeleteConfirmation(lesson)); }} className="rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:cursor-not-allowed disabled:opacity-40">{deletingLessonId === lesson.id ? "Deleting…" : "Delete"}</button>}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -482,26 +484,53 @@ function UnitLessonsContent({
             </table>
           </div>
         )}
-      </div>
+      </Card>
+      <p className="sr-only" aria-live="polite">{reorderAnnouncement}</p>
 
-      {formState.mode !== "closed" && (
-        <HierarchyItemForm
-          itemType="lesson"
-          item={
-            formState.mode === "edit"
-              ? formState.lesson
-              : null
-          }
+      {formState.mode === "create" && (
+        <LessonCreationDialog
           nextPosition={nextPosition}
           isSaving={isSaving}
-          onCancel={() =>
-            setFormState({ mode: "closed" })
-          }
+          errorMessage={formErrorMessage}
+          onClose={() => {
+            setFormErrorMessage(null);
+            setFormState({ mode: "closed" });
+          }}
+          onSubmit={(input) => void handleSave(input)}
+        />
+      )}
+
+      {formState.mode === "edit" && (
+        <HierarchyItemForm
+          itemType="lesson"
+          item={formState.lesson}
+          nextPosition={nextPosition}
+          isSaving={isSaving}
+          errorMessage={formErrorMessage}
+          onCancel={() => {
+            setFormErrorMessage(null);
+            setFormState({ mode: "closed" });
+          }}
           onSubmit={(input) =>
             void handleSave(input)
           }
         />
       )}
+      <ConfirmDeleteDialog
+        isOpen={deleteConfirmation.target !== null}
+        title="Delete lesson"
+        description={deleteConfirmation.target ? lessonRemovalDescription(deleteConfirmation.target) : ""}
+        isDeleting={deleteConfirmation.pending}
+        errorMessage={deleteConfirmation.target ? errorMessage : null}
+        onCancel={() => setDeleteConfirmation((current) => cancelDeleteConfirmation(current))}
+        onConfirm={() => { if (deleteConfirmation.target) void handleDelete(deleteConfirmation.target); }}
+      />
+      <ContentOperationDialog open={lessonOperation !== null} title={lessonOperation?.kind === "move" ? "Move lesson" : "Copy lesson"} description={lessonOperation?.kind === "move" ? "Choose the destination unit and new order position." : "Choose the destination unit and optional new title."} valid={destinationUnitId > 0 && destinationUnitId !== unitId && (lessonOperation?.kind !== "copy" || operationTitle.trim().length > 0)} onClose={() => setLessonOperation(null)} actionLabel={lessonOperation?.kind === "move" ? "Move lesson" : "Copy lesson"}>
+        {lessonOperation && <div className="rounded-xl border border-slate-200 bg-slate-50 p-4"><p className="text-xs font-semibold uppercase text-slate-500">Current unit</p><p className="mt-1 font-semibold text-slate-900">{unit?.title}</p><p className="mt-2 text-sm text-slate-600">{lessonOperation.lesson.title}</p></div>}
+        <label className="block text-sm font-semibold text-slate-800">Destination unit<select value={destinationUnitId} onChange={(event) => setDestinationUnitId(Number(event.target.value))} className="admin-focus mt-2 min-h-11 w-full rounded-lg border border-slate-300 px-3"><option value={0}>Select a different unit</option>{courseUnits.filter((item) => item.id !== unitId).map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}</select></label>
+        {lessonOperation?.kind === "copy" ? <label className="block text-sm font-semibold text-slate-800">New lesson title<input value={operationTitle} onChange={(event) => setOperationTitle(event.target.value)} className="admin-focus mt-2 min-h-11 w-full rounded-lg border border-slate-300 px-3" /></label> : <label className="block text-sm font-semibold text-slate-800">New order position<input type="number" min={1} value={operationPosition} onChange={(event) => setOperationPosition(Math.max(1, Number(event.target.value)))} className="admin-focus mt-2 min-h-11 w-full rounded-lg border border-slate-300 px-3" /></label>}
+      </ContentOperationDialog>
+      <UnavailableOperationDialog open={unavailableOperation !== null} operation={unavailableOperation ?? "Operation"} onClose={() => setUnavailableOperation(null)} />
     </section>
   );
 }

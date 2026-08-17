@@ -1,23 +1,60 @@
-import { Outlet } from "react-router-dom";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { Outlet, useLocation } from "react-router-dom";
 
 import AdminSidebar from "../components/AdminSidebar";
+import { AdminIcon } from "../ui";
+import { isCommandPaletteShortcut } from "../../../domain/command-palette/keyboard";
+
+const CommandPalette = lazy(() => import("../command-palette/CommandPalette"));
+
+function getPageContext(pathname: string) {
+  if (pathname.includes("/studio")) return "Lesson Studio";
+  if (pathname.startsWith("/admin/media")) return "Media Library";
+  if (/\/units\/\d+/.test(pathname)) return "Lessons";
+  if (/\/courses\/\d+/.test(pathname)) return "Course curriculum";
+  if (pathname.startsWith("/admin/courses")) return "Courses";
+  return "Dashboard";
+}
 
 function AdminLayout() {
+  const location = useLocation();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isPaletteOpen, setIsPaletteOpen] = useState(false);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const closeMenu = useCallback(() => {
+    setIsMenuOpen(false);
+    if (isMenuOpen) {
+      window.requestAnimationFrame(() => menuButtonRef.current?.focus());
+    }
+  }, [isMenuOpen]);
+
+  useEffect(() => {
+    function openPalette(event: KeyboardEvent) {
+      if (!isCommandPaletteShortcut(event)) return;
+      event.preventDefault(); setIsPaletteOpen(true);
+    }
+    window.addEventListener("keydown", openPalette);
+    return () => window.removeEventListener("keydown", openPalette);
+  }, []);
+
   return (
-    <div className="min-h-screen bg-slate-100 lg:flex">
-      <AdminSidebar />
-
+    <div className="min-h-screen bg-[var(--pl-page)] lg:flex">
+      <AdminSidebar isOpen={isMenuOpen} onClose={closeMenu} />
       <div className="min-w-0 flex-1">
-        <header className="border-b border-slate-200 bg-white px-5 py-5 sm:px-8 lg:px-10">
-          <p className="text-sm font-medium text-slate-500">
-            Improve your English every day.
-          </p>
+        <header className="sticky top-0 z-30 border-b border-slate-200/90 bg-white/95 px-4 py-3 backdrop-blur sm:px-7 lg:px-10">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex min-w-0 items-center gap-3">
+              <button ref={menuButtonRef} type="button" aria-label="Open navigation" aria-expanded={isMenuOpen} onClick={() => setIsMenuOpen(true)} className="admin-focus min-h-11 min-w-11 rounded-xl border border-slate-200 p-2.5 text-slate-700 hover:bg-slate-50 lg:hidden">
+                <AdminIcon name="menu" className="h-5 w-5" />
+              </button>
+              <div className="min-w-0"><p className="truncate text-sm font-bold text-slate-900">{getPageContext(location.pathname)}</p><p className="hidden truncate text-xs text-slate-500 sm:block">Improve your English every day.</p></div>
+            </div>
+            <div className="flex items-center gap-2"><button type="button" aria-haspopup="dialog" aria-expanded={isPaletteOpen} onClick={() => setIsPaletteOpen(true)} className="admin-focus min-h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-600 hover:bg-slate-50"><span className="hidden sm:inline">Search commands </span><kbd className="rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-xs">Ctrl K</kbd></button><span className="hidden rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 md:inline-flex">PronounceLab Content Studio</span></div>
+          </div>
         </header>
-
-        <main className="px-5 py-7 sm:px-8 lg:px-10 lg:py-10">
-          <Outlet />
-        </main>
+        <main className="px-4 py-7 sm:px-7 lg:px-10 lg:py-10"><Outlet /></main>
       </div>
+      {isPaletteOpen && <Suspense fallback={null}><CommandPalette open pathname={location.pathname} search={location.search} onClose={() => setIsPaletteOpen(false)} /></Suspense>}
     </div>
   );
 }

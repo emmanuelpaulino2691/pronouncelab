@@ -3,7 +3,8 @@ export type LessonActivityType =
   | "listening"
   | "pronunciation"
   | "practice"
-  | "quiz";
+  | "quiz"
+  | "ai_speaking_mission";
 
 export type LessonActivity = {
   id: number;

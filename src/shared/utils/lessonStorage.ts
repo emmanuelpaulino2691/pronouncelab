@@ -3,7 +3,7 @@ const PREFIX = "pronouncelab:lesson:";
 import type { LessonState } from "../types/LessonState";
 
 export function loadLessonState(
-  lessonId: number
+  lessonId: string
 ): LessonState | null {
   const value = localStorage.getItem(
     `${PREFIX}${lessonId}`
@@ -27,11 +27,15 @@ export function loadLessonState(
 }
 
 export function saveLessonState(
-  lessonId: number,
+  lessonId: string,
   state: LessonState
 ) {
   localStorage.setItem(
     `${PREFIX}${lessonId}`,
     JSON.stringify(state)
   );
+}
+
+export function clearLessonState(lessonId: string) {
+  localStorage.removeItem(`${PREFIX}${lessonId}`);
 }

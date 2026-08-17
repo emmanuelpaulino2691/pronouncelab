@@ -8,6 +8,7 @@ import ToggleSection from "../ui/ToggleSection";
 import QuestionGroup from "../questions/QuestionGroup";
 
 import type { ListeningData } from "../../types/ListeningData";
+import { hasListeningTranscript } from "./listeningPresentation";
 
 type Props = {
   listening: ListeningData;
@@ -18,17 +19,18 @@ function ListeningCard({
   listening,
   onReadyChange,
 }: Props) {
+  const transcript = listening.transcript?.trim();
   return (
     <Card title={listening.title}>
       {listening.instructions && (
         <ListeningInstructions text={listening.instructions} />
       )}
 
-      <AudioPlayer src={listening.audio} />
+      {listening.audio && <AudioPlayer src={listening.audio} />}
 
-      {listening.transcript && (
-        <ToggleSection buttonText="Show Transcript">
-          <ListeningTranscript text={listening.transcript} />
+      {hasListeningTranscript(transcript) && transcript && (
+        <ToggleSection buttonText="Show transcript" closeButtonText="Hide transcript" regionLabel="Listening transcript">
+          <ListeningTranscript text={transcript} />
         </ToggleSection>
       )}
 

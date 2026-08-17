@@ -1,81 +1,149 @@
-import {
-  NavLink,
-  useNavigate,
-} from "react-router-dom";
+import { useEffect, useState } from "react";
+import { NavLink, useNavigate } from "react-router-dom";
 
 import { supabase } from "../../../shared/lib/supabaseClient";
+import { useAdminPermissions } from "../permissions/useAdminPermissions";
+import { AdminIcon, Avatar, Badge, Button } from "../ui";
+import { futureWorkspaceSections, getWorkspaceRole } from "../workspace";
+import { adminMediaLibraryPath, canViewMediaLibrary } from "../../../domain/media";
+import { drawerKeyboardAction, shouldWrapDrawerFocus } from "../../../shared/components/drawerKeyboard";
+import {
+  adminSidebarAccountClassName,
+  adminSidebarClassName,
+  adminSidebarHeaderClassName,
+  adminSidebarNavigationClassName,
+} from "./adminSidebarLayout";
+
+const drawerFocusableSelector = "a[href], button:not([disabled]), [tabindex]:not([tabindex='-1'])";
 
 const navigationItems = [
-  {
-    label: "Courses",
-    to: "/admin/courses",
-  },
+  { label: "Dashboard", to: "/admin", icon: "dashboard" as const, end: true },
+  { label: "Courses", to: "/admin/courses", icon: "courses" as const, end: false },
 ];
 
-function AdminSidebar() {
+type Props = {
+  isOpen: boolean;
+  onClose: () => void;
+};
+
+function AdminSidebar({ isOpen, onClose }: Props) {
   const navigate = useNavigate();
+  const permissions = useAdminPermissions();
+  const {
+    canEditDrafts,
+    canPublish,
+    isAdmin,
+  } = permissions;
+  const workspaceRole = getWorkspaceRole({ canEditDrafts, canPublish, isAdmin });
+  const [email, setEmail] = useState("Content manager");
+  const [isSigningOut, setIsSigningOut] = useState(false);
+  const [signOutError, setSignOutError] = useState<string | null>(null);
+  const roleLabel = isAdmin
+    ? "Administrator"
+    : canEditDrafts && canPublish
+      ? "Teacher"
+      : canEditDrafts
+        ? "Editor"
+        : canPublish
+          ? "Publisher"
+          : "Content manager";
+
+  useEffect(() => {
+    let active = true;
+    void supabase?.auth.getUser().then(({ data }) => {
+      if (active && data.user?.email) setEmail(data.user.email);
+    });
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      const action = drawerKeyboardAction(event.key);
+      if (action === "close") { event.preventDefault(); onClose(); return; }
+      if (action !== "trap-focus") return;
+      const drawer = document.querySelector<HTMLElement>("[data-admin-navigation-drawer]");
+      const items = Array.from(drawer?.querySelectorAll<HTMLElement>(drawerFocusableSelector) ?? []);
+      if (!items.length) return;
+      const activeIndex = items.indexOf(document.activeElement as HTMLElement);
+      if (shouldWrapDrawerFocus(event.shiftKey, activeIndex, items.length - 1)) { event.preventDefault(); (event.shiftKey ? items.at(-1) : items[0])?.focus(); }
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [isOpen, onClose]);
 
   async function handleSignOut() {
-    await supabase?.auth.signOut();
-    navigate("/login", { replace: true });
+    if (isSigningOut) return;
+    setIsSigningOut(true);
+    setSignOutError(null);
+    try {
+      if (!supabase) throw new Error("Authentication is not configured.");
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      onClose();
+      navigate("/login", { replace: true });
+    } catch {
+      setSignOutError("Sign out failed. Please try again.");
+      setIsSigningOut(false);
+    }
   }
 
   return (
-    <aside className="border-b border-slate-800 bg-slate-950 text-white lg:min-h-screen lg:w-72 lg:border-r lg:border-b-0">
-      <div className="flex items-center justify-between px-5 py-5 lg:block lg:px-7 lg:py-8">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-blue-400">
-            PronounceLab
-          </p>
-          <p className="mt-1 text-xl font-bold">
-            Content Studio
-          </p>
+    <>
+      {isOpen && <button type="button" aria-label="Close navigation" onClick={onClose} className="fixed inset-0 z-40 bg-slate-950/55 backdrop-blur-[2px] lg:hidden" />}
+      <aside
+        data-admin-navigation-drawer
+        aria-label="Content Studio navigation"
+        className={`${adminSidebarClassName} ${isOpen ? "translate-x-0" : "-translate-x-full"}`}
+      >
+        <div className={adminSidebarHeaderClassName}>
+          <div>
+            <div className="flex items-center gap-3">
+              <span className="grid h-10 w-10 place-items-center rounded-xl bg-blue-600 font-black shadow-lg shadow-blue-950/30">P</span>
+              <div><p className="text-lg font-bold tracking-tight">PronounceLab</p><p className="text-[11px] text-slate-400">with Emmanuel Paulino</p></div>
+            </div>
+            <p className="mt-5 text-xs font-bold uppercase tracking-[0.2em] text-blue-400">{workspaceRole === "administrator" ? "Platform Admin" : "Teacher Workspace"}</p>
+          </div>
+          <button autoFocus={isOpen} type="button" aria-label="Close menu" onClick={onClose} className="admin-focus min-h-11 min-w-11 rounded-lg p-2 text-slate-400 hover:bg-slate-800 hover:text-white lg:hidden">
+            <AdminIcon name="close" className="h-5 w-5" />
+          </button>
         </div>
 
-        <button
-          type="button"
-          onClick={handleSignOut}
-          className="rounded-lg border border-slate-700 px-3 py-2 text-sm font-medium text-slate-200 transition hover:border-slate-500 hover:bg-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400 lg:hidden"
-        >
-          Sign out
-        </button>
-      </div>
-
-      <nav
-        aria-label="Admin navigation"
-        className="px-4 pb-4 lg:px-5"
-      >
-        <ul className="flex gap-2 lg:block lg:space-y-2">
-          {navigationItems.map((item) => (
-            <li key={item.to}>
+        <nav className={adminSidebarNavigationClassName}>
+          <ul className="space-y-1.5">
+            {navigationItems.map((item) => <li key={item.to}>
               <NavLink
                 to={item.to}
-                className={({ isActive }) =>
-                  [
-                    "block rounded-xl px-4 py-3 text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400",
-                    isActive
-                      ? "bg-blue-600 text-white"
-                      : "text-slate-300 hover:bg-slate-900 hover:text-white",
-                  ].join(" ")
-                }
+                end={item.end}
+                onClick={onClose}
+                className={({ isActive }) => `admin-focus flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition ${isActive ? "bg-blue-600 text-white shadow-lg shadow-blue-950/25" : "text-slate-300 hover:bg-slate-900 hover:text-white"}`}
               >
-                {item.label}
+                <AdminIcon name={item.icon} className="h-5 w-5" />{item.to === "/admin" && workspaceRole !== "administrator" ? "Overview" : item.to === "/admin/courses" && workspaceRole !== "administrator" ? "My Courses" : item.label}
               </NavLink>
-            </li>
-          ))}
-        </ul>
-      </nav>
+            </li>)}
+            <li className="pt-4"><p className="px-4 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500">Workspace</p></li>
+            <li><NavLink to="/admin/classes" end onClick={onClose} className={({ isActive }) => `admin-focus flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition ${isActive ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-slate-900 hover:text-white"}`}><AdminIcon name="book" className="h-5 w-5" />Classes</NavLink></li>
+            {canViewMediaLibrary(permissions) && <li><NavLink to={adminMediaLibraryPath} end onClick={onClose} className={({ isActive }) => `admin-focus flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition ${isActive ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-slate-900 hover:text-white"}`}><AdminIcon name="listening" className="h-5 w-5" />Media Library</NavLink></li>}
+            {futureWorkspaceSections.filter((label) => label !== "Classes").map((label) => <li key={label}>
+              <div aria-disabled="true" className="flex items-center justify-between gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-slate-500">
+                <span className="flex items-center gap-3"><AdminIcon name="book" className="h-5 w-5" />{label}</span><span className="text-[10px] font-bold uppercase tracking-wide text-slate-600">Later</span>
+              </div>
+            </li>)}
+          </ul>
+        </nav>
 
-      <div className="mt-auto hidden px-5 pb-8 lg:block">
-        <button
-          type="button"
-          onClick={handleSignOut}
-          className="w-full rounded-xl border border-slate-700 px-4 py-3 text-left text-sm font-semibold text-slate-300 transition hover:border-slate-500 hover:bg-slate-900 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400"
-        >
-          Sign out
-        </button>
-      </div>
-    </aside>
+        <div className={adminSidebarAccountClassName}>
+          <div className="mb-3 flex min-w-0 items-center gap-3 rounded-xl bg-slate-900 p-3">
+            <Avatar label={email} />
+            <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-white" title={email}>{email}</p><div className="mt-1"><Badge tone="info">{roleLabel}</Badge></div></div>
+          </div>
+          {signOutError && <p role="alert" className="mb-3 rounded-lg bg-red-950 px-3 py-2 text-xs text-red-200">{signOutError}</p>}
+          <Button variant="ghost" icon="sign-out" isLoading={isSigningOut} onClick={() => void handleSignOut()} className="w-full justify-start text-slate-300 hover:bg-slate-900 hover:text-white">
+            {isSigningOut ? "Signing out…" : "Sign out"}
+          </Button>
+        </div>
+      </aside>
+    </>
   );
 }
 

@@ -1,396 +1,247 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
-import { Link } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
-import CourseForm from "./CourseForm";
-import {
-  createAdminCourse,
-  deleteDraftCourse,
-  listAdminCourses,
-  updateAdminCourse,
-  type AdminCourse,
-  type CourseInput,
-} from "./adminCourseService";
 import { useAdminPermissions } from "../permissions/useAdminPermissions";
+import { Alert, Button, ButtonLink, Card, ConfirmDeleteDialog, Dialog, EmptyState, LoadingSkeleton, PageHeader, Select, StatusBadge, TextInput } from "../ui";
+import {
+  beginDeleteConfirmation,
+  cancelDeleteConfirmation,
+  completeDeleteConfirmation,
+  createDeleteConfirmationState,
+  failDeleteConfirmation,
+  openDeleteConfirmation,
+} from "../ui/deleteConfirmationState";
+import { formatDate } from "../utils/format";
+import CourseForm from "./CourseForm";
+import { getCourseSaveErrorMessage } from "./courseSaveErrors";
+import { shouldRenderCourseForm } from "./courseFormState";
+import { courseWorkspacePath } from "./courseNavigation";
+import { publicationErrorLabel } from "./coursePublicationState";
+import { publicationFunctionErrorMessage } from "../lesson-studio/publicationErrors";
+import {
+  createAdminCourse, removeAdminCourse, duplicateDraftCourse, listAdminCourses, publishAdminCourse, updateAdminCourse,
+  isMissingCoursePublicationRpcError, regenerateAdminCourseShareLink, setAdminCourseVisibility, type AdminCourse, type CourseInput, type CoursePublicationError, type CourseStatus,
+} from "./adminCourseService";
+import { courseRemovalDescription, isActiveAuthoringCourse } from "../removalPresentation";
 
-type FormState =
-  | { mode: "closed" }
-  | { mode: "create" }
-  | {
-      mode: "edit";
-      course: AdminCourse;
-    };
-
-function getErrorMessage(error: unknown) {
-  if (
-    typeof error === "object" &&
-    error !== null &&
-    "message" in error &&
-    typeof error.message === "string"
-  ) {
-    return error.message;
-  }
-
-  return "Something went wrong. Please try again.";
-}
+type FormState = { mode: "closed" } | { mode: "create" } | { mode: "edit"; course: AdminCourse };
+type SortMode = "updated" | "title" | "position";
 
 function AdminCoursesPage() {
-  const { canEditDrafts } =
-    useAdminPermissions();
-  const [courses, setCourses] = useState<
-    AdminCourse[]
-  >([]);
-  const [isLoading, setIsLoading] =
-    useState(true);
-  const [isSaving, setIsSaving] =
-    useState(false);
-  const [deletingCourseId, setDeletingCourseId] =
-    useState<number | null>(null);
-  const [formState, setFormState] =
-    useState<FormState>({
-      mode: "closed",
-    });
-  const [errorMessage, setErrorMessage] =
-    useState<string | null>(null);
+  const navigate = useNavigate();
+  const {
+    canEditDrafts,
+    canPublish,
+    canViewAllCourses,
+  } = useAdminPermissions();
+  const deleteInFlightRef = useRef(false);
+  const duplicateInFlightRef = useRef(false);
+  const [searchParams] = useSearchParams();
+  const [courses, setCourses] = useState<AdminCourse[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [deletingCourseId, setDeletingCourseId] = useState<number | null>(null);
+  const [duplicatingCourseId, setDuplicatingCourseId] = useState<number | null>(null);
+  const [publishingCourseId, setPublishingCourseId] = useState<number | null>(null);
+  const [publicationErrors, setPublicationErrors] = useState<CoursePublicationError[]>([]);
+  const [publicationSummary, setPublicationSummary] = useState<string | null>(null);
+  const [publishConfirmation, setPublishConfirmation] = useState<AdminCourse | null>(null);
+  const [deleteConfirmation, setDeleteConfirmation] = useState(
+    createDeleteConfirmationState<AdminCourse>
+  );
+  const [formState, setFormState] = useState<FormState>(() => canEditDrafts && searchParams.get("create") === "1" ? { mode: "create" } : { mode: "closed" });
+  const [formErrorMessage, setFormErrorMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const [status, setStatus] = useState<"active" | "all" | CourseStatus>("active");
+  const [sort, setSort] = useState<SortMode>("updated");
+  const [visibilityDrafts,setVisibilityDrafts]=useState<Record<number,AdminCourse["learnerVisibility"]>>({});
+  const [shareLinks,setShareLinks]=useState<Record<number,string>>({});
 
   const loadCourses = useCallback(async () => {
     setIsLoading(true);
     setErrorMessage(null);
-
-    try {
-      setCourses(await listAdminCourses());
-    } catch (error) {
-      setErrorMessage(getErrorMessage(error));
-    } finally {
-      setIsLoading(false);
-    }
+    try { setCourses(await listAdminCourses()); }
+    catch { setCourses([]); setErrorMessage("We couldn’t load the courses. Try again."); }
+    finally { setIsLoading(false); }
   }, []);
 
   useEffect(() => {
-    let isActive = true;
-
-    void listAdminCourses()
-      .then((loadedCourses) => {
-        if (isActive) {
-          setCourses(loadedCourses);
-        }
-      })
-      .catch((error: unknown) => {
-        if (isActive) {
-          setErrorMessage(
-            getErrorMessage(error)
-          );
-        }
-      })
-      .finally(() => {
-        if (isActive) {
-          setIsLoading(false);
-        }
-      });
-
-    return () => {
-      isActive = false;
-    };
+    let active = true;
+    void listAdminCourses().then((loaded) => { if (active) setCourses(loaded); })
+      .catch(() => { if (active) setErrorMessage("We couldn’t load the courses. Try again."); })
+      .finally(() => { if (active) setIsLoading(false); });
+    return () => { active = false; };
   }, []);
 
-  const nextPosition = useMemo(
-    () =>
-      courses.length === 0
-        ? 0
-        : Math.max(
-            ...courses.map(
-              (course) => course.position
-            )
-          ) + 1,
-    [courses]
-  );
+  const visibleCourses = useMemo(() => {
+    const normalized = query.trim().toLocaleLowerCase();
+    return courses
+      .filter((course) => status === "all" ? true : status === "active" ? isActiveAuthoringCourse(course.status) : course.status === status)
+      .filter((course) => !normalized || `${course.title} ${course.description} ${course.level}`.toLocaleLowerCase().includes(normalized))
+      .sort((first, second) => sort === "title"
+        ? first.title.localeCompare(second.title)
+        : sort === "position"
+          ? first.position - second.position
+          : Date.parse(second.updatedAt) - Date.parse(first.updatedAt));
+  }, [courses, query, sort, status]);
+
+  const nextPosition = useMemo(() => courses.length ? Math.max(...courses.map((course) => course.position)) + 1 : 0, [courses]);
 
   async function handleSave(input: CourseInput) {
+    if (isSaving) return;
     setIsSaving(true);
-    setErrorMessage(null);
-
+    setFormErrorMessage(null);
     try {
       if (formState.mode === "edit") {
-        const updatedCourse =
-          await updateAdminCourse(
-            formState.course.id,
-            input
-          );
-
-        setCourses((current) =>
-          current
-            .map((course) =>
-              course.id === updatedCourse.id
-                ? updatedCourse
-                : course
-            )
-            .sort(
-              (first, second) =>
-                first.position - second.position
-            )
-        );
+        const updated = await updateAdminCourse(formState.course.id, input);
+        setCourses((current) => current.map((course) => course.id === updated.id ? updated : course));
       } else {
-        const createdCourse =
-          await createAdminCourse(input);
-        setCourses((current) =>
-          [...current, createdCourse].sort(
-            (first, second) =>
-              first.position - second.position
-          )
-        );
+        const created = await createAdminCourse(input);
+        setCourses((current) => [...current, created]);
+        navigate(courseWorkspacePath(created.id));
       }
-
       setFormState({ mode: "closed" });
-    } catch (error) {
-      setErrorMessage(getErrorMessage(error));
-    } finally {
-      setIsSaving(false);
-    }
+    } catch (error) { setFormErrorMessage(getCourseSaveErrorMessage(error)); }
+    finally { setIsSaving(false); }
   }
 
-  async function handleDelete(
-    course: AdminCourse
-  ) {
-    if (
-      !window.confirm(
-        `Delete the draft course “${course.title}”? This cannot be undone.`
-      )
-    ) {
-      return;
-    }
-
+  async function handleDelete(course: AdminCourse) {
+    if (deleteInFlightRef.current) return;
+    deleteInFlightRef.current = true;
+    setDeleteConfirmation((current) => beginDeleteConfirmation(current));
     setDeletingCourseId(course.id);
     setErrorMessage(null);
+    try { await removeAdminCourse(course.id); setCourses((current) => current.filter((item) => item.id !== course.id)); setDeleteConfirmation(completeDeleteConfirmation()); }
+    catch { setErrorMessage("The course could not be deleted. It is still available. Try again."); setDeleteConfirmation((current) => failDeleteConfirmation(current)); }
+    finally { deleteInFlightRef.current = false; setDeletingCourseId(null); }
+  }
 
+  async function handleDuplicate(course: AdminCourse) {
+    if (duplicateInFlightRef.current) return;
+    duplicateInFlightRef.current = true;
+    setDuplicatingCourseId(course.id);
+    setErrorMessage(null);
     try {
-      await deleteDraftCourse(course.id);
-      setCourses((current) =>
-        current.filter(
-          (item) => item.id !== course.id
-        )
-      );
-    } catch (error) {
-      setErrorMessage(getErrorMessage(error));
+      const duplicated = await duplicateDraftCourse(course.id);
+      setCourses((current) => [...current, duplicated]);
+    } catch {
+      setErrorMessage("The course could not be duplicated. Nothing was changed. Try again.");
     } finally {
-      setDeletingCourseId(null);
+      duplicateInFlightRef.current = false;
+      setDuplicatingCourseId(null);
     }
   }
 
+  async function handlePublish(course: AdminCourse) {
+    if (publishingCourseId !== null) return;
+    setPublishingCourseId(course.id);
+    setPublicationErrors([]);
+    setPublicationSummary(null);
+    try {
+      const result = await publishAdminCourse(course.id);
+      if (!result.ok) {
+        setPublicationErrors(result.errors);
+        return;
+      }
+      setCourses((current) => current.map((item) => item.id === course.id ? { ...item, status: "published", updatedAt: result.publishedAt } : item));
+      setPublicationSummary(`${course.title} was published. ${result.publishedLessons} lesson${result.publishedLessons === 1 ? "" : "s"} updated; ${result.unchangedLessons} unchanged.`);
+      setPublishConfirmation(null);
+    } catch (error) {
+      setPublicationErrors([{ category: "course", courseId: course.id, courseTitle: course.title, message: isMissingCoursePublicationRpcError(error) ? "Course publishing is not available until the publication service is deployed." : await publicationFunctionErrorMessage(error) }]);
+    } finally {
+      setPublishingCourseId(null);
+    }
+  }
+
+  async function handleVisibility(course:AdminCourse){
+    const visibility=visibilityDrafts[course.id]??course.learnerVisibility;
+    try{const result=await setAdminCourseVisibility(course.id,visibility);setCourses(current=>current.map(item=>item.id===course.id?{...item,learnerVisibility:visibility}:item));if(result.shareToken)setShareLinks(current=>({...current,[course.id]:`${window.location.origin}/shared/${result.shareToken}`}));setPublicationSummary(`Learner visibility for ${course.title} is now ${visibility.replace("_"," ")}. Publishing and Class assignments were not changed.`)}catch{setErrorMessage("Learner visibility could not be changed.")}
+  }
+
+  async function handleNewShareLink(course:AdminCourse){try{const token=await regenerateAdminCourseShareLink(course.id);setShareLinks(current=>({...current,[course.id]:`${window.location.origin}/shared/${token}`}));setPublicationSummary("A new Unlisted share link is ready. The previous link no longer works.")}catch{setErrorMessage("A new share link could not be created.")}}
+
+  async function handleCopyShareLink(course:AdminCourse){try{await navigator.clipboard.writeText(shareLinks[course.id]);setPublicationSummary(`Share link for ${course.title} copied.`)}catch{setErrorMessage("The share link could not be copied. Select it manually.")}}
+
   return (
-    <section className="mx-auto max-w-7xl">
-      <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-widest text-blue-600">
-            Content
-          </p>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">
-            Courses
-          </h1>
-          <p className="mt-3 max-w-2xl text-slate-600">
-            Create and maintain the course catalog.
-            Published content remains sealed.
-          </p>
+    <section className="mx-auto max-w-7xl space-y-7">
+      <PageHeader
+        eyebrow="Curriculum"
+        title={
+          canViewAllCourses ? "Courses" : "My Courses"
+        }
+        breadcrumbs={[{ label: "Courses" }]}
+        description="Organize courses, units, and lessons into clear learning experiences."
+        actions={canEditDrafts
+          ? <Button icon="plus" onClick={() => { setFormErrorMessage(null); setFormState({ mode: "create" }); }}>Create course</Button>
+          : <span className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600">View-only access</span>}
+      />
+      {!canEditDrafts && <Alert>You can view courses, but your role does not allow creating or editing course drafts.</Alert>}
+      {errorMessage && <Alert tone="error" action={<Button variant="secondary" onClick={() => void loadCourses()}>Try again</Button>}>{errorMessage}</Alert>}
+      {publicationSummary && <Alert>{publicationSummary}</Alert>}
+      {publicationErrors.length > 0 && <Alert tone="error" action={<Button variant="secondary" onClick={() => setPublicationErrors([])}>Dismiss</Button>}>
+        <p className="font-semibold">Course cannot be published.</p>
+        <ul className="mt-2 list-disc space-y-1 pl-5">
+          {publicationErrors.map((item, index) => <li key={`${item.activityId ?? item.lessonId ?? item.unitId ?? item.courseId}-${index}`}>
+            {publicationErrorLabel(item)} {item.message}
+          </li>)}
+        </ul>
+      </Alert>}
+
+      <Card className="p-4">
+        <div className="grid gap-3 md:grid-cols-[minmax(15rem,1fr)_12rem_12rem]">
+          <label className="relative"><span className="sr-only">Search courses</span><TextInput value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search by title, level, or description…" className="pl-4" /></label>
+          <label><span className="sr-only">Filter by status</span><Select value={status} onChange={(event) => setStatus(event.target.value as typeof status)}><option value="active">Active Courses</option><option value="all">All statuses</option><option value="draft">Draft</option><option value="published">Published</option><option value="unpublished">Unpublished</option><option value="archived">Retired</option></Select></label>
+          <label><span className="sr-only">Sort courses</span><Select value={sort} onChange={(event) => setSort(event.target.value as SortMode)}><option value="updated">Recently updated</option><option value="title">Title A–Z</option><option value="position">Curriculum order</option></Select></label>
         </div>
+      </Card>
 
-        {canEditDrafts ? (
-          <button
-            type="button"
-            onClick={() =>
-              setFormState({ mode: "create" })
-            }
-            className="rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white shadow-sm transition hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
-          >
-            Create course
-          </button>
-        ) : (
-          <p className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-600">
-            View-only course access
-          </p>
-        )}
-      </div>
+      {isLoading ? <div role="status" className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">{[1, 2, 3, 4, 5, 6].map((item) => <Card key={item} className="p-6"><LoadingSkeleton className="h-12 w-12" /><LoadingSkeleton className="mt-5 h-6 w-2/3" /><LoadingSkeleton className="mt-3 h-16" /><LoadingSkeleton className="mt-5 h-10" /></Card>)}<span className="sr-only">Loading courses…</span></div>
+        : visibleCourses.length === 0 ? <EmptyState title={courses.length ? "No courses match your filters" : canEditDrafts ? "Build your first course" : "No courses yet"} description={courses.length ? "Clear the search and status filters to see all available courses." : canEditDrafts ? "Create a course draft and begin organizing units and lessons." : "There are no courses available to your role yet."} action={courses.length ? <Button variant="secondary" onClick={() => { setQuery(""); setStatus("all"); }}>Clear filters</Button> : canEditDrafts ? <Button icon="plus" onClick={() => { setFormErrorMessage(null); setFormState({ mode: "create" }); }}>Create course</Button> : undefined} />
+          : <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            {visibleCourses.map((course) => {
+              const editable = canEditDrafts && course.status === "draft";
+              return <Card key={course.id} className="group flex min-h-72 flex-col overflow-hidden">
+                <div className="flex flex-1 flex-col p-6">
+                  <div className="flex items-start justify-between gap-3"><span className="grid h-12 w-12 place-items-center rounded-2xl bg-blue-50 text-2xl">{course.emoji || "📘"}</span><StatusBadge status={course.status} /></div>
+                  <h2 className="mt-5 text-xl font-bold text-slate-950">{course.title}</h2>
+                  <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-slate-500">{course.level || "All levels"} · Position {course.position}</p>
+                  <p className="mt-2 text-xs font-medium text-slate-500">{canViewAllCourses ? "Platform course" : "My course"}</p>
+                  <p className="mt-3 line-clamp-3 text-sm leading-6 text-slate-600" title={course.description}>{course.description || "No description has been added yet."}</p>
+                  <p className="mt-auto pt-5 text-xs text-slate-500">Updated {formatDate(course.updatedAt)}</p>
+                  <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3"><label className="text-xs font-bold uppercase tracking-wide text-slate-500">Learner visibility<Select className="mt-2" value={visibilityDrafts[course.id]??course.learnerVisibility} onChange={event=>setVisibilityDrafts(current=>({...current,[course.id]:event.target.value as AdminCourse["learnerVisibility"]}))}><option value="class_only">Class only</option><option value="unlisted">Unlisted</option><option value="public">Public — Course Library</option></Select></label><p className="mt-2 text-xs leading-5 text-slate-600">{(visibilityDrafts[course.id]??course.learnerVisibility)==="class_only"?"Ready for Class assignment; hidden from independent practice.":(visibilityDrafts[course.id]??course.learnerVisibility)==="unlisted"?"Independent practice for signed-in learners with the secure link.":"Listed in Course Library for independent practice."}</p><div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap"><Button variant="secondary" onClick={()=>void handleVisibility(course)}>Save visibility</Button>{course.learnerVisibility==="unlisted"&&<Button variant="secondary" onClick={()=>void handleNewShareLink(course)}>Create new share link</Button>}</div>{shareLinks[course.id]&&<div className="mt-3"><TextInput aria-label={`Share link for ${course.title}`} readOnly value={shareLinks[course.id]}/><Button className="mt-2" variant="secondary" onClick={()=>void handleCopyShareLink(course)}>Copy link</Button></div>}</div>
+                </div>
+                <div className="flex flex-wrap gap-2 border-t border-slate-200 bg-slate-50/70 p-4">
+                  <ButtonLink to={`/admin/courses/${course.id}`} className="flex-1">{editable ? "Continue editing" : "View course"}</ButtonLink>
+                  {editable && <Button variant="secondary" icon="edit" aria-label={`Edit ${course.title}`} onClick={() => { setFormErrorMessage(null); setFormState({ mode: "edit", course }); }}>Edit</Button>}
+                  {editable && <Button type="button" variant="secondary" aria-label={`Duplicate ${course.title}`} isLoading={duplicatingCourseId === course.id} disabled={duplicatingCourseId !== null} onClick={() => void handleDuplicate(course)}>Duplicate</Button>}
+                  {canPublish && course.status !== "archived" && <Button type="button" variant="primary" isLoading={publishingCourseId === course.id} disabled={publishingCourseId !== null} onClick={() => setPublishConfirmation(course)}>{course.status === "published" ? "Publish updates" : "Publish course"}</Button>}
+                  {canEditDrafts && course.status !== "archived" && <Button type="button" variant="danger" icon="delete" aria-label={`Delete ${course.title}`} isLoading={deletingCourseId === course.id} onClick={() => { setErrorMessage(null); setDeleteConfirmation(openDeleteConfirmation(course)); }}>Delete</Button>}
+                </div>
+              </Card>;
+            })}
+          </div>}
 
-      {errorMessage && (
-        <div
-          role="alert"
-          className="mt-6 flex flex-col gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 sm:flex-row sm:items-center sm:justify-between"
-        >
-          <span>{errorMessage}</span>
-          <button
-            type="button"
-            onClick={() => void loadCourses()}
-            className="font-semibold underline underline-offset-4"
-          >
-            Try again
-          </button>
-        </div>
-      )}
-
-      <div className="mt-8 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        {isLoading ? (
-          <p
-            role="status"
-            className="px-6 py-16 text-center text-slate-500"
-          >
-            Loading courses…
-          </p>
-        ) : courses.length === 0 ? (
-          <div className="px-6 py-16 text-center">
-            <p className="text-lg font-semibold text-slate-900">
-              No courses yet
-            </p>
-            <p className="mt-2 text-sm text-slate-500">
-              Create the first draft course to get
-              started.
-            </p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-3xl text-left">
-              <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wider text-slate-500">
-                <tr>
-                  <th className="px-6 py-4">
-                    Course
-                  </th>
-                  <th className="px-4 py-4">
-                    Level
-                  </th>
-                  <th className="px-4 py-4">
-                    Position
-                  </th>
-                  <th className="px-4 py-4">
-                    Status
-                  </th>
-                  <th className="px-6 py-4 text-right">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200">
-                {courses.map((course) => {
-                  const isDraft =
-                    course.status === "draft";
-
-                  return (
-                    <tr
-                      key={course.id}
-                      className="align-top"
-                    >
-                      <td className="px-6 py-5">
-                        <div className="flex items-start gap-3">
-                          <span
-                            className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-slate-100 text-xl"
-                            aria-hidden="true"
-                          >
-                            {course.emoji || "📘"}
-                          </span>
-                          <div>
-                            <p className="font-semibold text-slate-950">
-                              {course.title}
-                            </p>
-                            <p className="mt-1 text-sm text-slate-500">
-                              /{course.slug}
-                            </p>
-                            {course.description && (
-                              <p className="mt-2 max-w-xl text-sm leading-6 text-slate-600">
-                                {course.description}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-5 text-sm text-slate-600">
-                        {course.level || "—"}
-                      </td>
-                      <td className="px-4 py-5 text-sm text-slate-600">
-                        {course.position}
-                      </td>
-                      <td className="px-4 py-5">
-                        <span
-                          className={[
-                            "inline-flex rounded-full px-2.5 py-1 text-xs font-semibold capitalize",
-                            isDraft
-                              ? "bg-amber-100 text-amber-800"
-                              : "bg-emerald-100 text-emerald-800",
-                          ].join(" ")}
-                        >
-                          {course.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-5">
-                        <div className="flex justify-end gap-2">
-                          <Link
-                            to={`/admin/courses/${course.id}`}
-                            className="rounded-lg border border-blue-200 px-3 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
-                          >
-                            Manage
-                          </Link>
-                          {isDraft &&
-                          canEditDrafts && (
-                            <>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setFormState({
-                                  mode: "edit",
-                                  course,
-                                })
-                              }
-                              className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              type="button"
-                              disabled={
-                                deletingCourseId ===
-                                course.id
-                              }
-                              onClick={() =>
-                                void handleDelete(
-                                  course
-                                )
-                              }
-                              className="rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:cursor-not-allowed disabled:opacity-40"
-                            >
-                              {deletingCourseId ===
-                              course.id
-                                ? "Deleting…"
-                                : "Delete"}
-                            </button>
-                            </>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {formState.mode !== "closed" && (
-        <CourseForm
-          course={
-            formState.mode === "edit"
-              ? formState.course
-              : null
-          }
-          nextPosition={nextPosition}
-          isSaving={isSaving}
-          onCancel={() =>
-            setFormState({ mode: "closed" })
-          }
-          onSubmit={(input) =>
-            void handleSave(input)
-          }
-        />
-      )}
+      {shouldRenderCourseForm(formState.mode !== "closed", isLoading) && <CourseForm course={formState.mode === "edit" ? formState.course : null} nextPosition={nextPosition} isSaving={isSaving} errorMessage={formErrorMessage} onCancel={() => { setFormErrorMessage(null); setFormState({ mode: "closed" }); }} onSubmit={(input) => void handleSave(input)} />}
+      <ConfirmDeleteDialog
+        isOpen={deleteConfirmation.target !== null}
+        title="Delete course"
+        description={deleteConfirmation.target ? courseRemovalDescription(deleteConfirmation.target) : ""}
+        isDeleting={deleteConfirmation.pending}
+        errorMessage={deleteConfirmation.target ? errorMessage : null}
+        onCancel={() => setDeleteConfirmation((current) => cancelDeleteConfirmation(current))}
+        onConfirm={() => { if (deleteConfirmation.target) void handleDelete(deleteConfirmation.target); }}
+      />
+      <Dialog
+        isOpen={publishConfirmation !== null}
+        onClose={() => { if (publishingCourseId === null) setPublishConfirmation(null); }}
+        title="Publish course"
+        description={publishConfirmation ? `Review and publish “${publishConfirmation.title}”. Publishing freezes an immutable Release and makes it ready for assignment; Learner visibility remains separate.` : undefined}
+        preventClose={publishingCourseId !== null}
+        footer={<><Button type="button" variant="secondary" disabled={publishingCourseId !== null} onClick={() => setPublishConfirmation(null)}>Cancel</Button><Button type="button" isLoading={publishingCourseId !== null} onClick={() => { if (publishConfirmation) void handlePublish(publishConfirmation); }}>Publish course</Button></>}
+      >
+        <p className="text-sm text-slate-600">New draft units, lessons, activities, and draft lesson versions must be complete. Already-published content remains unchanged. Every draft blocker is listed and nothing is published until all blockers are resolved.</p>
+      </Dialog>
     </section>
   );
 }

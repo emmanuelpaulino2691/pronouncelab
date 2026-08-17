@@ -1,9 +1,9 @@
 export type UserProgress = {
-  lessonsStarted: number[];
-  lessonsCompleted: number[];
+  lessonsStarted: string[];
+  lessonsCompleted: string[];
 
   activitiesCompleted: {
-    lessonId: number;
+    lessonId: string;
     activities: number[];
   }[];
 };

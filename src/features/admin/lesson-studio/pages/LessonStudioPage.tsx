@@ -1,0 +1,723 @@
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { useBlocker, useLocation, useParams, useSearchParams } from "react-router-dom";
+
+import { getAdminCourse } from "../../courses/adminCourseService";
+import {
+  getAdminLesson,
+  listAdminLessons,
+  type AdminLesson,
+} from "../../lessons/adminLessonService";
+import { useAdminPermissions } from "../../permissions/useAdminPermissions";
+import {
+  getAdminUnit,
+  type AdminUnit,
+} from "../../units/adminUnitService";
+import ActivityEditor from "../editors/ActivityEditor";
+import { isSaveShortcut } from "../../ui/saveShortcut";
+import ActivityPicker from "../components/ActivityPicker";
+import { getActivityPresentation } from "../activityCatalog";
+import { removeActivityAndSelectNearest } from "../activityDeletionState";
+import { canDiscardDirtyEditor, reconcileSelectedActivityId, shouldWarnBeforeUnload } from "../studioSelectionState";
+import {
+  beginDeleteConfirmation,
+  cancelDeleteConfirmation,
+  completeDeleteConfirmation,
+  createDeleteConfirmationState,
+  failDeleteConfirmation,
+  openDeleteConfirmation,
+} from "../../ui/deleteConfirmationState";
+import {
+  createActivity,
+  createDraftVersion,
+  deleteActivity,
+  listActivities,
+  loadLessonVersion,
+  publishLessonVersion,
+  reorderActivities,
+  updateActivity,
+} from "../services/lessonStudioService";
+import { ContentOperationDialog, QuickActionsMenu } from "../../content-operations";
+import { canOfferLessonPublication } from "../publicationState";
+import { publicationFunctionErrorMessage, publicationOperationErrorMessage } from "../publicationErrors";
+import {
+  type ActivityType,
+  type LessonActivity,
+  type LessonVersion,
+} from "../types";
+import type { AdminCourse } from "../../courses/adminCourseService";
+import {
+  AdminIcon,
+  Alert,
+  Badge,
+  Button,
+  ButtonLink,
+  Card,
+  ConfirmDeleteDialog,
+  LoadingSkeleton,
+  PageHeader,
+} from "../../ui";
+import { buildStudentPreviewUrl } from "../../preview/previewNavigation";
+import { setRememberedActivityCollapse, type StudioViewMode } from "../studioViewState";
+import { canOfferActivityOperations, validCopyActivityInput, validDuplicateActivityPosition } from "../activityOperationState";
+import { smartBuilderEmptyAction } from "../smartBuilderPresentation";
+import { lessonStudioMutationErrorMessage } from "../mutationErrors";
+
+function parseId(value: string | undefined) {
+  const id = Number(value);
+  return Number.isSafeInteger(id) && id > 0
+    ? id
+    : null;
+}
+
+type Props = {
+  courseId: number;
+  unitId: number;
+  lessonId: number;
+};
+
+function Studio({
+  courseId,
+  unitId,
+  lessonId,
+}: Props) {
+  const { canEditDrafts, canPublish } =
+    useAdminPermissions();
+  const active = useRef(true);
+  const mutation = useRef(0);
+  const activityCreationRef = useRef(false);
+  const mutationInFlightRef = useRef(false);
+  const editorRef = useRef<HTMLElement>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
+  const [course, setCourse] =
+    useState<AdminCourse | null>(null);
+  const [unit, setUnit] =
+    useState<AdminUnit | null>(null);
+  const [lesson, setLesson] =
+    useState<AdminLesson | null>(null);
+  const [destinationLessons, setDestinationLessons] = useState<AdminLesson[]>([]);
+  const [version, setVersion] =
+    useState<LessonVersion | null>(null);
+  const [activities, setActivities] = useState<
+    LessonActivity[]
+  >([]);
+  const [selectedId, setSelectedId] = useState<
+    number | null
+  >(() => parseId(searchParams.get("activity") ?? undefined));
+  const selectedIdRef = useRef(selectedId);
+  const [editorDirty, setEditorDirty] = useState(false);
+  const editorDirtyRef = useRef(false);
+  const [editorRevision, setEditorRevision] = useState(0);
+  const [studioViewMode, setStudioViewMode] = useState<StudioViewMode>("editor");
+  const [collapsedActivityEditors, setCollapsedActivityEditors] = useState<Set<number>>(new Set());
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(
+    null
+  );
+  const [saved, setSaved] = useState("Saved");
+  const [isPickerOpen, setIsPickerOpen] = useState(() => searchParams.get("builder") === "open");
+  const [deleteConfirmation, setDeleteConfirmation] = useState(
+    createDeleteConfirmationState<LessonActivity>
+  );
+  const [activityOperation, setActivityOperation] = useState<{ kind: "duplicate" | "copy"; activity: LessonActivity } | null>(null);
+  const [destinationPosition, setDestinationPosition] = useState(1);
+  const [destinationLessonId, setDestinationLessonId] = useState(0);
+  const [copyTitle, setCopyTitle] = useState("");
+
+  const selectActivity = useCallback((activityId: number | null, discardDirty = true) => {
+    selectedIdRef.current = activityId;
+    setSelectedId(activityId);
+    if (discardDirty) {
+      editorDirtyRef.current = false;
+      setEditorDirty(false);
+    }
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      if (activityId === null) next.delete("activity");
+      else next.set("activity", String(activityId));
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
+
+  function requestActivitySelection(activityId: number) {
+    if (activityId === selectedIdRef.current) return;
+    if (!canDiscardDirtyEditor(editorDirty, () => window.confirm("Discard unsaved changes and open another activity?"))) return;
+    selectActivity(activityId);
+  }
+
+  function reportEditorDirty(dirty: boolean) {
+    editorDirtyRef.current = dirty;
+    setEditorDirty(dirty);
+  }
+
+  const navigationBlocker = useBlocker(({ currentLocation, nextLocation }) =>
+    editorDirtyRef.current &&
+    (currentLocation.pathname !== nextLocation.pathname || currentLocation.search !== nextLocation.search)
+  );
+
+  useEffect(() => {
+    if (navigationBlocker.state !== "blocked") return;
+    if (window.confirm("Discard unsaved changes and leave this activity?")) {
+      editorDirtyRef.current = false;
+      navigationBlocker.proceed();
+    } else {
+      navigationBlocker.reset();
+    }
+  }, [navigationBlocker]);
+
+  useEffect(() => {
+    function handleBeforeUnload(event: BeforeUnloadEvent) {
+      if (!shouldWarnBeforeUnload(editorDirty)) return;
+      event.preventDefault();
+      event.returnValue = "";
+    }
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [editorDirty]);
+
+  useEffect(() => {
+    active.current = true;
+    const request = ++mutation.current;
+
+    void Promise.all([
+      getAdminCourse(courseId),
+      getAdminUnit(unitId, courseId),
+      getAdminLesson(lessonId, unitId),
+      listAdminLessons(unitId),
+    ])
+      .then(async ([nextCourse, nextUnit, nextLesson, nextLessons]) => {
+        const nextVersion =
+          await loadLessonVersion(lessonId);
+        const nextActivities = nextVersion
+          ? await listActivities(nextVersion.id)
+          : [];
+        return {
+          nextCourse,
+          nextUnit,
+          nextLesson,
+          nextLessons,
+          nextVersion,
+          nextActivities,
+        };
+      })
+      .then(
+        (result) => {
+          if (
+            !active.current ||
+            request !== mutation.current
+          )
+            return;
+          setCourse(result.nextCourse);
+          setUnit(result.nextUnit);
+          setLesson(result.nextLesson);
+          setDestinationLessons(result.nextLessons);
+          setVersion(result.nextVersion);
+          setActivities(result.nextActivities);
+          selectActivity(reconcileSelectedActivityId(selectedIdRef.current, result.nextActivities), false);
+        },
+        (reason: unknown) => {
+          if (
+            active.current &&
+            request === mutation.current
+          ) {
+            void reason;
+            setError("We couldn’t load Lesson Studio. Try again.");
+          }
+        }
+      )
+      .finally(() => {
+        if (
+          active.current &&
+          request === mutation.current
+        ) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      active.current = false;
+      mutation.current += 1;
+    };
+  }, [courseId, lessonId, selectActivity, unitId]);
+
+  const selected = useMemo(
+    () =>
+      activities.find(
+        (activity) => activity.id === selectedId
+      ) ?? null,
+    [activities, selectedId]
+  );
+  const editable =
+    canEditDrafts &&
+    version?.status === "draft";
+  const publishable = canOfferLessonPublication({
+    canPublish,
+    courseStatus: course?.status ?? null,
+    unitStatus: unit?.status ?? null,
+    lessonStatus: lesson?.status ?? null,
+    versionStatus: version?.status ?? null,
+  });
+
+  useEffect(() => {
+    function openTemplateBuilder() { if (editable && version) setIsPickerOpen(true); }
+    window.addEventListener("pronouncelab:open-template-builder", openTemplateBuilder);
+    return () => window.removeEventListener("pronouncelab:open-template-builder", openTemplateBuilder);
+  }, [editable, version]);
+
+  function closeActivityPicker() {
+    setIsPickerOpen(false);
+    if (searchParams.has("builder")) setSearchParams((current) => { const next = new URLSearchParams(current); next.delete("builder"); return next; }, { replace: true });
+  }
+
+  useEffect(() => {
+    function handleSaveShortcut(event: KeyboardEvent) {
+      if (!isSaveShortcut(event) || !editable || busy) return;
+      const active = document.activeElement;
+      if (!(active instanceof Element) || !editorRef.current?.contains(active)) return;
+      const form = active.closest("form");
+      if (!(form instanceof HTMLFormElement)) return;
+      event.preventDefault();
+      form.requestSubmit();
+    }
+    document.addEventListener("keydown", handleSaveShortcut);
+    return () => document.removeEventListener("keydown", handleSaveShortcut);
+  }, [busy, editable]);
+
+  async function run<T>(
+    action: () => Promise<T>,
+    apply: (value: T) => void | Promise<void>,
+    errorMessage: (reason: unknown) => string | Promise<string> = publicationOperationErrorMessage
+  ) {
+    if (mutationInFlightRef.current) return false;
+    mutationInFlightRef.current = true;
+    const request = mutation.current;
+    setBusy(true);
+    setSaved("Saving…");
+    setError(null);
+    try {
+      const value = await action();
+      if (
+        active.current &&
+        request === mutation.current
+      ) {
+        await apply(value);
+        setSaved("Saved");
+        return true;
+      }
+      return false;
+    } catch (reason) {
+      if (
+        active.current &&
+        request === mutation.current
+      ) {
+        setError(await errorMessage(reason));
+        setSaved("Save failed");
+      }
+      return false;
+    } finally {
+      mutationInFlightRef.current = false;
+      if (
+        active.current &&
+        request === mutation.current
+      ) {
+        setBusy(false);
+      }
+    }
+  }
+
+  async function refreshActivities(
+    versionId: number
+  ) {
+    const rows = await listActivities(versionId);
+    return rows;
+  }
+
+  function handlePublish() {
+    if (!version || !publishable || busy) return;
+    if (editorDirtyRef.current) {
+      setError(
+        "Save or discard the current activity changes before publishing."
+      );
+      return;
+    }
+    if (
+      !window.confirm(
+        "Publish this lesson version? Published versions become read-only."
+      )
+    ) {
+      return;
+    }
+
+    void run(
+      () => publishLessonVersion(version.id),
+      (published) => {
+        setVersion(published);
+        setSaved("Published");
+      },
+      publicationFunctionErrorMessage
+    );
+  }
+
+  function handleCreateDraftVersion() {
+    if (!lesson || !canEditDrafts || busy) return;
+    void run(
+      () => createDraftVersion(lesson.id, unitId),
+      async (created) => {
+        const nextActivities = await listActivities(created.id);
+        setVersion(created);
+        setActivities(nextActivities);
+        selectActivity(
+          reconcileSelectedActivityId(null, nextActivities),
+          false
+        );
+      }
+    );
+  }
+
+  function move(activityId: number, offset: -1 | 1) {
+    if (!version || busy || !editable) return;
+    const index = activities.findIndex(
+      (activity) => activity.id === activityId
+    );
+    const target = index + offset;
+    if (index < 0 || target < 0 || target >= activities.length)
+      return;
+    const ids = activities.map((item) => item.id);
+    [ids[index], ids[target]] = [
+      ids[target],
+      ids[index],
+    ];
+    void run(
+      async () => {
+        await reorderActivities(version.id, ids);
+        return refreshActivities(version.id);
+      },
+      setActivities,
+      (reason) => lessonStudioMutationErrorMessage(reason, "reorder activities")
+    );
+  }
+
+  async function handleCreateActivity(type: ActivityType) {
+    if (!version || !editable || busy || activityCreationRef.current) {
+      throw new Error("Activity creation is not currently available.");
+    }
+
+    activityCreationRef.current = true;
+    const request = mutation.current;
+    const presentation = getActivityPresentation(type);
+    setBusy(true);
+    setSaved("Saving…");
+    setError(null);
+    try {
+      const created = await createActivity(
+        version.id,
+        type,
+        `New ${presentation.title.toLowerCase()} activity`
+      );
+      if (!active.current || request !== mutation.current) return;
+
+      setActivities((current) => [...current, created]);
+      selectActivity(created.id);
+      setSaved("Saved");
+      closeActivityPicker();
+      window.requestAnimationFrame(() => editorRef.current?.focus());
+    } catch (reason) {
+      if (active.current && request === mutation.current) {
+        setSaved("Save failed");
+      }
+      throw reason;
+    } finally {
+      activityCreationRef.current = false;
+      if (active.current && request === mutation.current) setBusy(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <section className="mx-auto max-w-[1500px]" aria-busy="true">
+        <PageHeader
+          title="Loading Lesson Studio"
+          description="Preparing the lesson and its activities."
+          breadcrumbs={[{ label: "Courses", to: "/admin/courses" }, { label: "Loading Lesson Studio" }]}
+          actions={<ButtonLink icon="arrow-left" variant="secondary" to={`/admin/courses/${courseId}/units/${unitId}`}>Back to lessons</ButtonLink>}
+        />
+        <div role="status" className="mt-8 grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
+          <LoadingSkeleton className="h-72" />
+          <LoadingSkeleton className="h-96" />
+          <span className="sr-only">Loading Lesson Studio…</span>
+        </div>
+      </section>
+    );
+  }
+
+  if (!course || !unit || !lesson) {
+    return (
+      <section className="mx-auto max-w-[1500px]">
+        <PageHeader
+          title="Lesson Studio unavailable"
+          description="The requested lesson could not be prepared."
+          breadcrumbs={[{ label: "Courses", to: "/admin/courses" }, { label: "Lesson Studio unavailable" }]}
+          actions={<ButtonLink icon="arrow-left" variant="secondary" to={`/admin/courses/${courseId}/units/${unitId}`}>Back to lessons</ButtonLink>}
+        />
+        <div className="mt-6"><Alert tone="error">{error ?? "The lesson may be unavailable or outside your access."}</Alert></div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="mx-auto max-w-[1500px]">
+      <PageHeader
+        eyebrow="Lesson Studio"
+        title={`${lesson.title} Studio`}
+        description={version ? `Version ${version.versionNumber} · ${saved}` : "This lesson has not been started yet."}
+        breadcrumbs={[{ label: "Courses", to: "/admin/courses" }, { label: course.title, to: `/admin/courses/${courseId}` }, { label: unit.title, to: `/admin/courses/${courseId}/units/${unitId}` }, { label: lesson.title }]}
+        meta={<Badge tone={(version?.status ?? lesson.status) === "draft" ? "draft" : "success"}>{version?.status ?? lesson.status}</Badge>}
+        actions={<><ButtonLink icon="arrow-left" variant="secondary" to={`/admin/courses/${courseId}/units/${unitId}`}>Back to lessons</ButtonLink>{lesson?.currentPublishedVersionId && <ButtonLink variant="secondary" to={buildStudentPreviewUrl({ courseId, lessonId, target: "published", returnTo: `${location.pathname}${location.search}`, activityId: selected?.id })}>Preview Published</ButtonLink>}{version?.status === "draft" && <ButtonLink variant="secondary" to={buildStudentPreviewUrl({ courseId, lessonId, target: "draft", returnTo: `${location.pathname}${location.search}`, activityId: selected?.id })}>Preview Draft</ButtonLink>}{publishable && <Button type="button" icon="check" isLoading={busy} onClick={handlePublish}>{busy ? "Publishing…" : "Publish lesson version"}</Button>}{version?.status === "published" && canEditDrafts && <Button type="button" icon="edit" isLoading={busy} onClick={handleCreateDraftVersion}>{busy ? "Creating draft…" : "Create draft version"}</Button>}</>}
+      />
+      <span role="status" aria-live="polite" className="sr-only">{saved}</span>
+
+      {!editable && version && <div className="mt-4"><Alert tone="info"><strong>Published version.</strong> This version is read-only. Create a draft version to continue improving the lesson.</Alert></div>}
+      {error && (
+        <p role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+          {error}
+        </p>
+      )}
+
+      {!version ? (
+        <div className="mt-6 rounded-2xl border border-dashed border-blue-300 bg-blue-50 p-8 text-center">
+          <h2 className="font-semibold text-blue-950">
+            {canEditDrafts && lesson.status === "draft" ? "Start authoring this lesson" : "No lesson draft to view"}
+          </h2>
+          <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-blue-900">
+            {canEditDrafts && lesson.status === "draft" ? "Start the lesson draft before adding activities." : "A lesson draft has not been started, and editing is unavailable for this lesson."}
+          </p>
+          {canEditDrafts && lesson.status === "draft" && <Button isLoading={busy} icon="sparkle"
+            onClick={() =>
+              void run(
+                () =>
+                  createDraftVersion(
+                    lessonId,
+                    unitId
+                  ),
+                (created) => setVersion(created)
+              )
+            }
+            className="mt-4"
+          >
+            {busy ? "Saving…" : "Start lesson draft"}
+          </Button>}
+        </div>
+      ) : (
+        <div className="mt-6 grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
+          <aside className="self-start rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:sticky lg:top-24">
+            <div className="flex items-center gap-2"><AdminIcon name="activity" className="h-5 w-5 text-blue-600" /><h2 className="font-semibold text-slate-950">Activities</h2></div>
+            {editable && (
+              <Button
+                type="button"
+                icon="plus"
+                className="mt-4 w-full"
+                disabled={busy || !version}
+                onClick={() => setIsPickerOpen(true)}
+              >
+                Add Activity
+              </Button>
+            )}
+            {activities.length === 0 ? (
+              editable ? <div className="mt-5 rounded-xl border border-dashed border-blue-200 bg-blue-50 p-4"><h3 className="font-bold text-slate-950">Build your first activity</h3><p className="mt-2 text-sm leading-6 text-slate-600">Create a blank activity now, or explore template previews, favorites, and recently viewed ideas in the Smart Content Builder.</p><button type="button" onClick={() => setIsPickerOpen(true)} className="admin-focus mt-4 min-h-11 rounded-lg border border-blue-200 bg-white px-4 text-sm font-semibold text-blue-800 hover:bg-blue-100">{smartBuilderEmptyAction}</button></div> : <p className="mt-5 rounded-xl bg-slate-50 p-4 text-sm text-slate-500">This lesson does not contain any activities to view.</p>
+            ) : (
+              <ol className="mt-4 space-y-2">
+                {activities.map((activity, index) => (
+                  <li
+                    key={activity.id}
+                    className={[
+                      "rounded-xl border p-3 transition",
+                      selectedId === activity.id
+                        ? "border-blue-400 bg-blue-50"
+                        : "border-slate-200 hover:border-slate-300 hover:bg-slate-50",
+                    ].join(" ")}
+                  >
+                    <button
+                      type="button"
+                      aria-pressed={selectedId === activity.id}
+                      onClick={() => requestActivitySelection(activity.id)}
+                      className="admin-focus min-h-11 w-full rounded-lg text-left"
+                    >
+                      <span className="text-xs font-semibold uppercase text-blue-600">
+                        {index + 1} ·{" "}
+                        {getActivityPresentation(activity.type).title}
+                      </span>
+                      <span className="mt-1 block text-sm font-semibold text-slate-900">
+                        {activity.title}
+                      </span>
+                      {selectedId === activity.id && <span className="mt-1 block text-xs font-semibold text-blue-800">Selected activity</span>}
+                    </button>
+                    {editable && (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          aria-label={`Move ${activity.title} up`}
+                          disabled={busy || index === 0}
+                          onClick={() => move(activity.id, -1)}
+                          className="admin-focus min-h-10 rounded-lg border px-3 py-2 text-xs disabled:opacity-40"
+                        >
+                          Up
+                        </button>
+                        <button
+                          type="button"
+                          aria-label={`Move ${activity.title} down`}
+                          disabled={
+                            busy ||
+                            index === activities.length - 1
+                          }
+                          onClick={() => move(activity.id, 1)}
+                          className="admin-focus min-h-10 rounded-lg border px-3 py-2 text-xs disabled:opacity-40"
+                        >
+                          Down
+                        </button>
+                        {canOfferActivityOperations(activity.type) && <QuickActionsMenu label={`Content operations for ${activity.title}`} actions={[
+                          { label: "Duplicate Activity", onSelect: () => { setDestinationPosition(activity.position + 2); setActivityOperation({ kind: "duplicate", activity }); } },
+                          { label: "Copy Activity", onSelect: () => { setDestinationLessonId(destinationLessons.find((item) => item.id !== lessonId)?.id ?? 0); setCopyTitle(""); setActivityOperation({ kind: "copy", activity }); } },
+                        ]} />}
+                        <button
+                          type="button"
+                          aria-label={`Delete ${activity.title}`}
+                          disabled={busy || !version}
+                          onClick={() => {
+                            setError(null);
+                            setDeleteConfirmation(openDeleteConfirmation(activity));
+                          }}
+                          className="admin-focus min-h-10 rounded-lg border border-red-200 px-3 py-2 text-xs text-red-700"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ol>
+            )}
+          </aside>
+
+          <main ref={editorRef} tabIndex={-1} aria-label="Activity editor" className="admin-focus min-w-0 rounded-2xl">
+            {selected && version ? (
+              <div className="space-y-4">
+              {editorDirty && editable && <div className="flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3"><p className="text-sm font-medium text-amber-900">Unsaved changes</p><Button type="button" variant="secondary" onClick={() => { if (window.confirm("Discard the unsaved changes in this activity?")) { reportEditorDirty(false); setEditorRevision((value) => value + 1); } }}>Discard changes</Button></div>}
+              <ActivityEditor
+                key={`${selected.id}:${editorRevision}`}
+                activity={selected}
+                editable={editable}
+                busy={busy}
+                onDirtyChange={reportEditorDirty}
+                viewMode={studioViewMode}
+                onViewModeChange={setStudioViewMode}
+                collapsed={collapsedActivityEditors.has(selected.id)}
+                onCollapsedChange={(collapsed) => setCollapsedActivityEditors((current) => setRememberedActivityCollapse(current, selected.id, collapsed))}
+                onSaveMetadata={async (input) => {
+                  await run(
+                    () =>
+                      updateActivity(
+                        selected.id,
+                        version.id,
+                        input
+                      ),
+                    (updated) =>
+                      setActivities((current) =>
+                        current.map((item) =>
+                          item.id === updated.id
+                            ? updated
+                            : item
+                        )
+                      ),
+                    (reason) => lessonStudioMutationErrorMessage(reason, "save activity")
+                  );
+                }}
+              />
+              </div>
+            ) : (
+              <Card className="border-dashed p-12 text-center"><AdminIcon name="sparkle" className="mx-auto h-8 w-8 text-blue-500" /><p className="mt-3 text-sm text-slate-500">Select or add an activity to begin.</p></Card>
+            )}
+          </main>
+        </div>
+      )}
+
+      {isPickerOpen && editable && version && (
+        <ActivityPicker
+          onClose={closeActivityPicker}
+          onCreate={handleCreateActivity}
+        />
+      )}
+      <ContentOperationDialog open={activityOperation?.kind === "duplicate"} title="Duplicate Activity" description="Review the activity and choose where its future copy should appear." valid={validDuplicateActivityPosition(destinationPosition, activities.length + 1)} onClose={() => setActivityOperation(null)} actionLabel="Duplicate Activity">
+        {activityOperation?.kind === "duplicate" && <div className="rounded-xl border border-slate-200 bg-slate-50 p-4"><p className="text-xs font-bold uppercase text-blue-700">{getActivityPresentation(activityOperation.activity.type).title}</p><p className="mt-1 font-semibold text-slate-950">{activityOperation.activity.title}</p></div>}
+        <label className="block text-sm font-semibold text-slate-800">Destination position<input type="number" min={1} max={activities.length + 1} value={destinationPosition} onChange={(event) => setDestinationPosition(Number(event.target.value))} className="admin-focus mt-2 min-h-11 w-full rounded-lg border border-slate-300 px-3" /></label>
+      </ContentOperationDialog>
+      <ContentOperationDialog open={activityOperation?.kind === "copy"} title="Copy Activity" description="Choose another lesson and an optional title for the future copy." valid={validCopyActivityInput({ sourceLessonId: lessonId, destinationLessonId, title: copyTitle })} onClose={() => setActivityOperation(null)} actionLabel="Copy Activity">
+        {activityOperation?.kind === "copy" && <div className="rounded-xl border border-slate-200 bg-slate-50 p-4"><p className="text-xs font-bold uppercase text-blue-700">{getActivityPresentation(activityOperation.activity.type).title}</p><p className="mt-1 font-semibold text-slate-950">{activityOperation.activity.title}</p></div>}
+        <label className="block text-sm font-semibold text-slate-800">Destination Lesson<select value={destinationLessonId} onChange={(event) => setDestinationLessonId(Number(event.target.value))} className="admin-focus mt-2 min-h-11 w-full rounded-lg border border-slate-300 px-3"><option value={0}>Select another lesson</option>{destinationLessons.filter((item) => item.id !== lessonId).map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}</select></label>
+        <label className="block text-sm font-semibold text-slate-800">New activity title <span className="font-normal text-slate-500">(optional)</span><input value={copyTitle} onChange={(event) => setCopyTitle(event.target.value)} placeholder={activityOperation?.activity.title} className="admin-focus mt-2 min-h-11 w-full rounded-lg border border-slate-300 px-3" /></label>
+      </ContentOperationDialog>
+      <ConfirmDeleteDialog
+        isOpen={deleteConfirmation.target !== null}
+        title="Delete activity"
+        description={deleteConfirmation.target ? `Delete “${deleteConfirmation.target.title}” from this lesson draft?` : ""}
+        isDeleting={deleteConfirmation.pending}
+        errorMessage={deleteConfirmation.target ? error : null}
+        onCancel={() => setDeleteConfirmation((current) => cancelDeleteConfirmation(current))}
+        onConfirm={() => {
+          const activity = deleteConfirmation.target;
+          if (!activity || !version || deleteConfirmation.pending) return;
+          setDeleteConfirmation((current) => beginDeleteConfirmation(current));
+          void run(
+            () => deleteActivity(activity.id, version.id),
+            () => {
+              const next = removeActivityAndSelectNearest(
+                activities,
+                activity.id,
+                selectedId
+              );
+              setActivities(next.activities);
+              selectActivity(next.selectedActivityId);
+            },
+            (reason) => lessonStudioMutationErrorMessage(reason, "delete activity")
+          ).then((succeeded) => {
+            setDeleteConfirmation((current) =>
+              succeeded
+                ? completeDeleteConfirmation()
+                : failDeleteConfirmation(current)
+            );
+          });
+        }}
+      />
+    </section>
+  );
+}
+
+export default function LessonStudioPage() {
+  const params = useParams();
+  const courseId = parseId(params.courseId);
+  const unitId = parseId(params.unitId);
+  const lessonId = parseId(params.lessonId);
+
+  if (!courseId || !unitId || !lessonId) {
+    return (
+      <p role="alert" className="rounded-xl bg-red-50 p-4 text-red-800">
+        Invalid lesson studio route.
+      </p>
+    );
+  }
+
+  return (
+    <Studio
+      key={`${courseId}:${unitId}:${lessonId}`}
+      courseId={courseId}
+      unitId={unitId}
+      lessonId={lessonId}
+    />
+  );
+}

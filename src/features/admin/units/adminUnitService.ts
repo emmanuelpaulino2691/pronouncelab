@@ -76,6 +76,7 @@ export async function listAdminUnits(
     .from("units")
     .select(unitColumns)
     .eq("course_id", courseId)
+    .neq("status", "archived")
     .order("position", { ascending: true });
 
   if (error) {
@@ -115,18 +116,14 @@ export async function createAdminUnit(
   courseId: number,
   input: HierarchyItemInput
 ) {
-  const userId = await getCurrentUserId();
-  const { data, error } = await requireSupabase()
-    .from("units")
-    .insert({
-      ...input,
-      course_id: courseId,
-      status: "draft",
-      created_by: userId,
-      updated_by: userId,
-    })
-    .select(unitColumns)
-    .single();
+  const { data, error } = await requireSupabase().rpc(
+    "create_draft_unit",
+    {
+      requested_course_id: courseId,
+      requested_title: input.title,
+      requested_description: input.description,
+    }
+  );
 
   if (error) {
     throw error;
@@ -166,26 +163,35 @@ export async function updateAdminUnit(
   return toAdminUnit(data as unknown as UnitRow);
 }
 
-export async function deleteDraftUnit(
+export async function removeAdminUnit(
   unitId: number,
   expectedCourseId: number
 ) {
-  const { data, error } = await requireSupabase()
-    .from("units")
-    .delete()
-    .eq("id", unitId)
-    .eq("course_id", expectedCourseId)
-    .eq("status", "draft")
-    .select("id")
-    .maybeSingle();
+  const { data, error } = await requireSupabase().rpc(
+    "remove_authoring_unit",
+    {
+      requested_unit_id: unitId,
+      expected_course_id: expectedCourseId,
+    }
+  );
 
   if (error) {
     throw error;
   }
 
-  if (!data) {
+  if (data !== unitId) {
     throw new Error(
-      "Draft unit not found in the expected course, or it is no longer deletable."
+      "Unit not found in the expected Course, or it is no longer removable."
     );
   }
+}
+
+export async function duplicateDraftUnit(unitId: number, expectedCourseId: number) {
+  const { data, error } = await requireSupabase().rpc(
+    "duplicate_draft_unit",
+    { requested_unit_id: unitId, expected_course_id: expectedCourseId }
+  );
+  if (error) throw error;
+  if (!data) throw new Error("The unit could not be duplicated.");
+  return toAdminUnit(data as unknown as UnitRow);
 }

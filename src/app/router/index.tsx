@@ -1,75 +1,146 @@
-import {
-  Navigate,
-  createBrowserRouter,
-} from "react-router-dom";
+/* eslint-disable react-refresh/only-export-components */
+import { lazy, Suspense, type ReactNode } from "react";
+import { createBrowserRouter, useParams } from "react-router-dom";
+import { routeModuleLoaders } from "./routeModules";
+import { releaseLessonRuntimeKey } from "../../features/releases/releaseLessonSession";
 
-import AdminCoursesPage from "../../features/admin/courses/AdminCoursesPage";
-import AdminUnitLessonsPage from "../../features/admin/lessons/AdminUnitLessonsPage";
-import AdminLayout from "../../features/admin/layouts/AdminLayout";
-import AdminRoute from "../../features/admin/routing/AdminRoute";
-import AdminCourseUnitsPage from "../../features/admin/units/AdminCourseUnitsPage";
-import DashboardPage from "../../features/dashboard/DashboardPage";
-import LoginPage from "../../features/auth/LoginPage";
-import CoursesPage from "../../features/courses/CoursesPage";
-import UnitsPage from "../../features/units/UnitsPage";
-import LessonsPage from "../../features/lessons/LessonsPage";
-import LessonPage from "../../features/lesson/LessonPage";
+const AdminRoute = lazy(routeModuleLoaders.adminRoute);
+const DashboardPage = lazy(routeModuleLoaders.dashboard);
+const ProgressPage = lazy(routeModuleLoaders.progress);
+const CoursesPage = lazy(routeModuleLoaders.courses);
+const SharedCoursePage = lazy(routeModuleLoaders.sharedCourse);
+const UnitsPage = lazy(routeModuleLoaders.units);
+const LessonsPage = lazy(routeModuleLoaders.lessons);
+const LessonPage = lazy(routeModuleLoaders.lesson);
+const LoginPage = lazy(routeModuleLoaders.login);
+const AdminLayout = lazy(routeModuleLoaders.adminLayout);
+const AdminDashboardPage = lazy(routeModuleLoaders.adminDashboard);
+const AdminCoursesPage = lazy(routeModuleLoaders.adminCourses);
+const AdminCourseUnitsPage = lazy(routeModuleLoaders.courseWorkspace);
+const AdminUnitLessonsPage = lazy(routeModuleLoaders.unitLessons);
+const LessonStudioPage = lazy(routeModuleLoaders.lessonStudio);
+const AdminClassesPage = lazy(routeModuleLoaders.classes);
+const CreateClassForm = lazy(routeModuleLoaders.createClass);
+const ClassWorkspaceLayout = lazy(routeModuleLoaders.classWorkspace);
+const LearnerClassesPage = lazy(routeModuleLoaders.learnerClasses);
+const ReleaseCoursePage = lazy(routeModuleLoaders.releaseCourse);
+const ReleaseLessonPage = lazy(routeModuleLoaders.releaseLesson);
+const StudentPreviewCoursePage = lazy(routeModuleLoaders.previewCourse);
+const StudentPreviewUnitPage = lazy(routeModuleLoaders.previewUnit);
+const StudentPreviewLessonPage = lazy(routeModuleLoaders.previewLesson);
+const AdminMediaLibraryPage = lazy(routeModuleLoaders.mediaLibrary);
+
+function LazyRoute({ children }: { children: ReactNode }) {
+  return <Suspense fallback={<div role="status" className="grid min-h-64 place-items-center text-sm font-medium text-slate-500">Loading PronounceLab…</div>}>{children}</Suspense>;
+}
+
+function ReleaseLessonRoute() {
+  const { releaseId, releaseLessonId } = useParams();
+  return <ReleaseLessonPage key={releaseLessonRuntimeKey(releaseId, releaseLessonId)} />;
+}
 
 export const router = createBrowserRouter([
   {
     path: "/",
-    element: <DashboardPage />,
+    element: <LazyRoute><DashboardPage /></LazyRoute>,
   },
   {
     path: "/login",
-    element: <LoginPage />,
+    element: <LazyRoute><LoginPage /></LazyRoute>,
   },
   {
     path: "/admin",
-    element: <AdminRoute />,
+    element: <LazyRoute><AdminRoute /></LazyRoute>,
     children: [
       {
-        element: <AdminLayout />,
+        element: <LazyRoute><AdminLayout /></LazyRoute>,
         children: [
           {
             index: true,
-            element: (
-              <Navigate
-                to="courses"
-                replace
-              />
-            ),
+            element: <LazyRoute><AdminDashboardPage /></LazyRoute>,
           },
           {
             path: "courses",
-            element: <AdminCoursesPage />,
+            element: <LazyRoute><AdminCoursesPage /></LazyRoute>,
           },
           {
             path: "courses/:courseId",
-            element: <AdminCourseUnitsPage />,
+            element: <LazyRoute><AdminCourseUnitsPage /></LazyRoute>,
           },
           {
             path: "courses/:courseId/units/:unitId",
-            element: <AdminUnitLessonsPage />,
+            element: <LazyRoute><AdminUnitLessonsPage /></LazyRoute>,
+          },
+          {
+            path: "courses/:courseId/units/:unitId/lessons/:lessonId/studio",
+            element: <LazyRoute><LessonStudioPage /></LazyRoute>,
+          },
+          {
+            path: "classes",
+            element: <LazyRoute><AdminClassesPage /></LazyRoute>,
+          },
+          {
+            path: "media",
+            element: <LazyRoute><AdminMediaLibraryPage /></LazyRoute>,
+          },
+          {
+            path: "classes/new",
+            element: <LazyRoute><CreateClassForm /></LazyRoute>,
+          },
+          {
+            path: "classes/:classId",
+            element: <LazyRoute><ClassWorkspaceLayout /></LazyRoute>,
+          },
+          {
+            path: "preview/courses/:courseId",
+            element: <LazyRoute><StudentPreviewCoursePage /></LazyRoute>,
+          },
+          {
+            path: "preview/courses/:courseId/lessons/:lessonId",
+            element: <LazyRoute><StudentPreviewLessonPage /></LazyRoute>,
+          },
+          {
+            path: "preview/courses/:courseId/units/:unitId",
+            element: <LazyRoute><StudentPreviewUnitPage /></LazyRoute>,
           },
         ],
       },
     ],
   },
   {
+    path: "/releases/:releaseId",
+    element: <LazyRoute><ReleaseCoursePage /></LazyRoute>,
+  },
+  {
+    path: "/progress",
+    element: <LazyRoute><ProgressPage /></LazyRoute>,
+  },
+  {
+    path: "/releases/:releaseId/lessons/:releaseLessonId",
+    element: <LazyRoute><ReleaseLessonRoute /></LazyRoute>,
+  },
+  {
+    path: "/classes",
+    element: <LazyRoute><LearnerClassesPage /></LazyRoute>,
+  },
+  {
     path: "/courses",
-    element: <CoursesPage />,
+    element: <LazyRoute><CoursesPage /></LazyRoute>,
+  },
+  {
+    path: "/shared/:token",
+    element: <LazyRoute><SharedCoursePage /></LazyRoute>,
   },
   {
     path: "/courses/:courseId",
-    element: <UnitsPage />,
+    element: <LazyRoute><UnitsPage /></LazyRoute>,
   },
   {
     path: "/units/:unitId",
-    element: <LessonsPage />,
+    element: <LazyRoute><LessonsPage /></LazyRoute>,
   },
   {
     path: "/lessons/:lessonId",
-    element: <LessonPage />,
+    element: <LazyRoute><LessonPage /></LazyRoute>,
   },
 ]);

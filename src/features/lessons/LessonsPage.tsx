@@ -1,181 +1,56 @@
-﻿import { useNavigate, useParams } from "react-router-dom";
-
+import { Link, useNavigate, useParams } from "react-router-dom";
 import MainLayout from "../../shared/layouts/MainLayout";
-import Card from "../../shared/components/ui/Card";
+import ProgressBar from "../../shared/components/ui/ProgressBar";
 import NotFoundState from "../../shared/components/ui/NotFoundState";
+import { learnerContentProvider } from "../../shared/content/learnerContentComposition";
+import { useLearnerResource } from "../../shared/content/hooks/useLearnerResource";
+import { isDecimalContentId } from "../../shared/content/contracts/publishedRpcGuards";
+import { hasLearnerLoadFailure } from "../../shared/content/learnerResourcePresentation";
+import type { ContentId, LearnerCourse, LearnerUnit } from "../../shared/content/contracts/learnerContent";
+import { contentFailure, contentSuccess } from "../../shared/content/errors/contentErrors";
+import { useUserProgress } from "../../shared/hooks/useUserProgress";
+import { loadLessonState } from "../../shared/utils/lessonStorage";
+import { normalizeLessonState } from "../lesson/studentExperience";
+import { isLearnerUnitUnlocked, resolveLearnerUnitState, resolveRecommendedLearnerStep, resolveSequentialLessonJourneys } from "../learner-journey/learnerJourney";
+import LessonJourneyCard from "./components/LessonJourneyCard";
 
-import {
-  getLessonsByUnit,
-  getPlayableLessonsByUnit,
-  getUnit,
-} from "../../shared/services/courseEngineService";
-import { loadUserProgress } from "../../shared/utils/progressStorage";
+type UnitContext = { unit: LearnerUnit; course: LearnerCourse };
 
-type LessonStatus =
-  | "Not Started"
-  | "In Progress"
-  | "Completed";
-
-function LessonsPage() {
-
-  const { unitId } = useParams();
-
+export default function LessonsPage() {
+  const { progress } = useUserProgress();
+  const { unitId = "" } = useParams();
   const navigate = useNavigate();
+  const validId = isDecimalContentId(unitId) ? unitId as unknown as ContentId : null;
+  const resource = useLearnerResource<UnitContext>(async (signal) => {
+    if (!validId) return contentFailure("not_found", "Unit not found.");
+    const unitResult = await learnerContentProvider.getUnit(validId, signal);
+    if (!unitResult.ok) return unitResult;
+    const courseResult = await learnerContentProvider.getCourse(unitResult.value.courseId, signal);
+    if (!courseResult.ok) return courseResult;
+    return contentSuccess({ unit: unitResult.value, course: courseResult.value }, unitResult.revision);
+  }, [validId]);
 
-  const unit = getUnit(Number(unitId));
+  if (hasLearnerLoadFailure(resource.loading, resource.error)) return <MainLayout><section className="rounded-2xl border border-red-200 bg-white p-6"><h1 className="text-2xl font-bold">Lessons could not be loaded</h1><p className="mt-2 text-slate-600">This unit is temporarily unavailable.</p><button type="button" onClick={resource.retry} className="mt-5 min-h-11 rounded-xl bg-blue-600 px-5 font-semibold text-white">Try again</button></section></MainLayout>;
+  if (!resource.loading && !resource.value) return <MainLayout><NotFoundState title="Unit not found" message="This unit does not exist or is no longer available." actionLabel="Browse Courses" onAction={() => navigate("/courses")} /></MainLayout>;
+  if (!resource.value) return <MainLayout><p role="status">Loading your lessons...</p></MainLayout>;
 
-  const lessons =
-    getLessonsByUnit(Number(unitId));
+  const { unit, course } = resource.value;
+  if (!isLearnerUnitUnlocked(course, unit.id, progress)) return <MainLayout><NotFoundState title="Unit locked" message="Complete the previous unit to unlock this one." actionLabel="Return to course" onAction={() => navigate(`/courses/${course.id}`)} /></MainLayout>;
+  const activityPositions = Object.fromEntries(unit.lessons.map((lesson) => [lesson.id, normalizeLessonState(loadLessonState(lesson.id), lesson.activityCount).currentActivity]));
+  const unitJourney = resolveLearnerUnitState(unit, progress);
+  const lessonJourneys = resolveSequentialLessonJourneys(unit, progress, activityPositions);
+  const recommended = resolveRecommendedLearnerStep([course], progress, activityPositions, { unitId: unit.id });
+  const recommendedJourney = recommended ? lessonJourneys.find((journey) => journey.lesson.id === recommended.lesson.id) : undefined;
 
-  const playableLessons =
-    getPlayableLessonsByUnit(
-      Number(unitId)
-    );
-
-  const playableLessonIds =
-    new Set(
-      playableLessons.map(
-        (lesson) => lesson.id
-      )
-    );
-
-  const progress = loadUserProgress();
-
-  if (!unit) {
-    return (
-      <MainLayout>
-        <NotFoundState
-          title="Unit not found"
-          message="This unit does not exist or is no longer available."
-          actionLabel="Browse Courses"
-          onAction={() => navigate("/courses")}
-        />
-      </MainLayout>
-    );
-  }
-
-  function getLessonStatus(
-    lessonId: number
-  ): LessonStatus {
-    if (
-      progress.lessonsCompleted.includes(
-        lessonId
-      )
-    ) {
-      return "Completed";
-    }
-
-    if (
-      progress.lessonsStarted.includes(
-        lessonId
-      )
-    ) {
-      return "In Progress";
-    }
-
-    return "Not Started";
-  }
-
-  return (
-
-    <MainLayout>
-
-      <h1 className="text-4xl font-bold">
-        {unit.title}
-      </h1>
-
-      <p className="mt-2 text-slate-600">
-        Continue your learning.
-      </p>
-
-      <div className="mt-8 grid gap-6">
-
-        {playableLessons.length === 0 && (
-          <Card title="Coming Soon">
-            <p>
-              Lessons for this unit are not available yet.
-            </p>
-          </Card>
-        )}
-
-        {lessons.map((lesson) => {
-          const isPlayable =
-            playableLessonIds.has(lesson.id);
-
-          if (!isPlayable) {
-            return (
-              <Card
-                key={lesson.id}
-                title={lesson.title}
-              >
-                <p>
-                  {lesson.description}
-                </p>
-
-                <p className="mt-5 inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-700">
-                  <span aria-hidden="true">○</span>
-                  Coming Soon
-                </p>
-              </Card>
-            );
-          }
-
-          const status =
-            getLessonStatus(lesson.id);
-
-          const action =
-            status === "Completed"
-              ? "Review"
-              : status === "In Progress"
-              ? "Continue"
-              : "Start";
-
-          return (
-            <Card
-              key={lesson.id}
-              title={lesson.title}
-            >
-
-              <p>
-                {lesson.description}
-              </p>
-
-              <div className="mt-5 flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <p
-                  className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-700"
-                >
-                  <span aria-hidden="true">
-                    {status === "Completed"
-                      ? "✓"
-                      : status === "In Progress"
-                      ? "▶"
-                      : "○"}
-                  </span>
-                  {status}
-                </p>
-
-                <button
-                  type="button"
-                  onClick={() =>
-                    navigate(
-                      `/lessons/${lesson.id}`
-                    )
-                  }
-                  className="rounded-lg bg-blue-600 px-5 py-2 text-white transition hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
-                >
-                  {action}
-                </button>
-              </div>
-
-            </Card>
-          );
-        })}
-
+  return <MainLayout>
+    <nav aria-label="Unit navigation"><Link to={`/courses/${course.id}`} className="inline-flex min-h-11 items-center font-semibold text-blue-700 hover:underline">&larr; {course.title}</Link></nav>
+    <header className="mt-3 max-w-4xl"><p className="text-sm font-semibold text-slate-500">{course.title}</p><h1 className="mt-1 break-words text-3xl font-bold text-slate-950 sm:text-4xl">{unit.title}</h1>{unit.description.trim() && <p className="mt-3 text-lg leading-7 text-slate-600">{unit.description}</p>}</header>
+    {unitJourney.state === "empty" ? <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-7"><h2 className="text-2xl font-bold text-slate-950">No lessons are available in this unit yet.</h2><p className="mt-2 text-slate-600">Return to the course to choose another unit.</p><Link to={`/courses/${course.id}`} className="mt-5 inline-flex min-h-11 items-center font-semibold text-blue-700 hover:underline">Return to course</Link></section> : <>
+      <section aria-labelledby="unit-progress-heading" className="mt-8 max-w-4xl"><p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Unit progress</p><h2 id="unit-progress-heading" className="mt-1 text-xl font-bold text-slate-950">{unitJourney.completedLessons} of {unitJourney.totalLessons} lessons completed</h2><div className="mt-3"><ProgressBar value={unitJourney.percent} label={`${unit.title} progress`} /></div>{unitJourney.state === "completed" && <p className="mt-3 font-semibold text-emerald-700">You completed every available lesson in this unit.</p>}</section>
+      <div className="mt-10 space-y-10">
+        {recommendedJourney && <section aria-labelledby="recommended-lesson-heading"><h2 id="recommended-lesson-heading" className="mb-4 text-xl font-bold text-slate-950">{unitJourney.state === "completed" ? "Review a lesson" : "Recommended next lesson"}</h2><LessonJourneyCard journey={recommendedJourney} recommended /></section>}
+        {lessonJourneys.length > 0 && <section aria-labelledby="all-lessons-heading"><h2 id="all-lessons-heading" className="text-xl font-bold text-slate-950">All lessons</h2><div className="mt-4 grid gap-5 md:grid-cols-2">{lessonJourneys.map((journey) => <LessonJourneyCard key={journey.lesson.id} journey={journey} recommended={false} />)}</div></section>}
       </div>
-
-    </MainLayout>
-
-  );
+    </>}
+  </MainLayout>;
 }
-
-export default LessonsPage;

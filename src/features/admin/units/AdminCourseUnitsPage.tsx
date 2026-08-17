@@ -7,6 +7,9 @@ import {
 } from "react";
 import {
   Link,
+  useLocation,
+  useNavigate,
+  useSearchParams,
   useParams,
 } from "react-router-dom";
 
@@ -15,34 +18,39 @@ import HierarchyItemForm, {
 } from "../components/HierarchyItemForm";
 import {
   getAdminCourse,
+  duplicateDraftCourse,
+  isMissingCoursePublicationRpcError,
+  publishAdminCourse,
   type AdminCourse,
 } from "../courses/adminCourseService";
 import { useAdminPermissions } from "../permissions/useAdminPermissions";
+import { ContentOperationDialog, PublicationStatusBadge, QuickActionsMenu, UnavailableOperationDialog } from "../content-operations";
+import { Alert, Button, ButtonLink, Card, ConfirmDeleteDialog, EmptyState, LoadingSkeleton, PageHeader, StatusBadge } from "../ui";
+import {
+  beginDeleteConfirmation,
+  cancelDeleteConfirmation,
+  completeDeleteConfirmation,
+  createDeleteConfirmationState,
+  failDeleteConfirmation,
+  openDeleteConfirmation,
+} from "../ui/deleteConfirmationState";
 import {
   createAdminUnit,
-  deleteDraftUnit,
+  removeAdminUnit,
   listAdminUnits,
   updateAdminUnit,
   type AdminUnit,
 } from "./adminUnitService";
+import { buildStudentPreviewUrl } from "../preview/previewNavigation";
+import { publicationFunctionErrorMessage } from "../lesson-studio/publicationErrors";
+import { canCreateDraftUnit, canEditDraftUnit } from "../hierarchyAuthoring";
+import { hasSiblingTitle, hierarchyTitleSaveError } from "../hierarchyTitleIntegrity";
+import { unitRemovalDescription } from "../removalPresentation";
 
 type FormState =
   | { mode: "closed" }
   | { mode: "create" }
   | { mode: "edit"; unit: AdminUnit };
-
-function getErrorMessage(error: unknown) {
-  if (
-    typeof error === "object" &&
-    error !== null &&
-    "message" in error &&
-    typeof error.message === "string"
-  ) {
-    return error.message;
-  }
-
-  return "Something went wrong. Please try again.";
-}
 
 function parseId(value: string | undefined) {
   const id = Number(value);
@@ -58,9 +66,15 @@ type CourseUnitsContentProps = {
 function CourseUnitsContent({
   courseId,
 }: CourseUnitsContentProps) {
-  const { canEditDrafts } =
+  const { canEditDrafts, canPublish, canViewAllCourses } =
     useAdminPermissions();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get("tab") === "curriculum" ? "curriculum" : "overview";
   const isActiveRef = useRef(true);
+  const saveInFlightRef = useRef(false);
+  const deleteInFlightRef = useRef(false);
   const [course, setCourse] =
     useState<AdminCourse | null>(null);
   const [units, setUnits] = useState<
@@ -72,10 +86,56 @@ function CourseUnitsContent({
     useState(false);
   const [deletingUnitId, setDeletingUnitId] =
     useState<number | null>(null);
+  const [duplicateUnit, setDuplicateUnit] = useState<AdminUnit | null>(null);
+  const [duplicateTitle, setDuplicateTitle] = useState("");
+  const [unavailableOperation, setUnavailableOperation] = useState<string | null>(null);
+  const [draggedUnitId, setDraggedUnitId] = useState<number | null>(null);
+  const [dropUnitId, setDropUnitId] = useState<number | null>(null);
+  const [reorderAnnouncement, setReorderAnnouncement] = useState("");
+  const [deleteConfirmation, setDeleteConfirmation] = useState(
+    createDeleteConfirmationState<AdminUnit>
+  );
   const [formState, setFormState] =
     useState<FormState>({ mode: "closed" });
   const [errorMessage, setErrorMessage] =
     useState<string | null>(null);
+  const [formErrorMessage, setFormErrorMessage] =
+    useState<string | null>(null);
+  const [workspaceActionMessage, setWorkspaceActionMessage] = useState<string | null>(null);
+  const [workspaceActionPending, setWorkspaceActionPending] = useState(false);
+
+  function selectTab(tab: "overview" | "curriculum") {
+    setSearchParams(tab === "overview" ? {} : { tab });
+  }
+
+  async function handleWorkspacePublish() {
+    if (!course || workspaceActionPending) return;
+    setWorkspaceActionPending(true);
+    setWorkspaceActionMessage(null);
+    try {
+      const result = await publishAdminCourse(course.id);
+      setWorkspaceActionMessage(result.ok ? "Course published successfully." : `Course cannot be published. ${result.errors.length} issue${result.errors.length === 1 ? "" : "s"} need attention.`);
+      if (result.ok) await loadHierarchy();
+    } catch (error) {
+      setWorkspaceActionMessage(isMissingCoursePublicationRpcError(error) ? "Course publishing is unavailable until the publication service is deployed." : await publicationFunctionErrorMessage(error));
+    } finally {
+      setWorkspaceActionPending(false);
+    }
+  }
+
+  async function handleWorkspaceDuplicate() {
+    if (!course || workspaceActionPending) return;
+    setWorkspaceActionPending(true);
+    setWorkspaceActionMessage(null);
+    try {
+      const duplicated = await duplicateDraftCourse(course.id);
+      navigate(`/admin/courses/${duplicated.id}`);
+    } catch {
+      setWorkspaceActionMessage("The course could not be duplicated. Try again.");
+    } finally {
+      setWorkspaceActionPending(false);
+    }
+  }
 
   const loadHierarchy = useCallback(async () => {
     setIsLoading(true);
@@ -94,9 +154,9 @@ function CourseUnitsContent({
         setCourse(loadedCourse);
         setUnits(loadedUnits);
       }
-    } catch (error) {
+    } catch {
       if (isActiveRef.current) {
-        setErrorMessage(getErrorMessage(error));
+        setErrorMessage("We couldn’t load this curriculum. Try again.");
       }
     } finally {
       if (isActiveRef.current) {
@@ -106,6 +166,7 @@ function CourseUnitsContent({
   }, [courseId]);
 
   useEffect(() => {
+    isActiveRef.current = true;
     let isActive = true;
 
     void Promise.all([
@@ -118,11 +179,9 @@ function CourseUnitsContent({
           setUnits(loadedUnits);
         }
       })
-      .catch((error: unknown) => {
+      .catch(() => {
         if (isActive) {
-          setErrorMessage(
-            getErrorMessage(error)
-          );
+          setErrorMessage("We couldn’t load this curriculum. Try again.");
         }
       })
       .finally(() => {
@@ -146,12 +205,20 @@ function CourseUnitsContent({
           ) + 1,
     [units]
   );
+  const canCreateUnit = canCreateDraftUnit(canEditDrafts, course?.status ?? null);
 
   async function handleSave(
     input: HierarchyItemInput
   ) {
+    if (formState.mode === "closed" || saveInFlightRef.current) return;
+    const editedUnitId = formState.mode === "edit" ? formState.unit.id : undefined;
+    if (hasSiblingTitle(units, input.title, editedUnitId)) {
+      setFormErrorMessage(`A Unit named '${input.title.trim()}' already exists in this Course.`);
+      return;
+    }
+    saveInFlightRef.current = true;
     setIsSaving(true);
-    setErrorMessage(null);
+    setFormErrorMessage(null);
 
     try {
       if (formState.mode === "edit") {
@@ -202,9 +269,10 @@ function CourseUnitsContent({
       }
     } catch (error) {
       if (isActiveRef.current) {
-        setErrorMessage(getErrorMessage(error));
+        setFormErrorMessage(hierarchyTitleSaveError(error, "Unit", input.title));
       }
     } finally {
+      saveInFlightRef.current = false;
       if (isActiveRef.current) {
         setIsSaving(false);
       }
@@ -212,31 +280,29 @@ function CourseUnitsContent({
   }
 
   async function handleDelete(unit: AdminUnit) {
-    if (
-      !window.confirm(
-        `Delete the draft unit "${unit.title}"? This also removes its draft descendants.`
-      )
-    ) {
-      return;
-    }
-
+    if (deleteInFlightRef.current) return;
+    deleteInFlightRef.current = true;
+    setDeleteConfirmation((current) => beginDeleteConfirmation(current));
     setDeletingUnitId(unit.id);
     setErrorMessage(null);
 
     try {
-      await deleteDraftUnit(unit.id, courseId);
+      await removeAdminUnit(unit.id, courseId);
       if (isActiveRef.current) {
         setUnits((current) =>
           current.filter(
             (item) => item.id !== unit.id
           )
         );
+        setDeleteConfirmation(completeDeleteConfirmation());
       }
-    } catch (error) {
+    } catch {
       if (isActiveRef.current) {
-        setErrorMessage(getErrorMessage(error));
+        setErrorMessage("The unit could not be deleted. It is still available. Try again.");
+        setDeleteConfirmation((current) => failDeleteConfirmation(current));
       }
     } finally {
+      deleteInFlightRef.current = false;
       if (isActiveRef.current) {
         setDeletingUnitId(null);
       }
@@ -245,100 +311,72 @@ function CourseUnitsContent({
 
   if (isLoading) {
     return (
-      <p
-        role="status"
-        className="py-16 text-center text-slate-500"
-      >
-        Loading course hierarchy…
-      </p>
+      <section className="mx-auto max-w-7xl" aria-busy="true">
+        <PageHeader
+          title="Loading curriculum"
+          description="Preparing the course and its units."
+          breadcrumbs={[{ label: "Courses", to: "/admin/courses" }, { label: "Loading curriculum" }]}
+          actions={<ButtonLink icon="arrow-left" variant="secondary" to="/admin/courses">Back to courses</ButtonLink>}
+        />
+        <div role="status" className="mt-8 space-y-5">
+          <LoadingSkeleton className="h-28" />
+          <LoadingSkeleton className="h-28" />
+          <span className="sr-only">Loading course curriculum…</span>
+        </div>
+      </section>
     );
   }
 
   return (
     <section className="mx-auto max-w-7xl">
-      <nav
-        aria-label="Breadcrumb"
-        className="flex flex-wrap items-center gap-2 text-sm text-slate-500"
-      >
-        <Link
-          to="/admin/courses"
-          className="font-medium text-blue-700 hover:underline"
-        >
-          Courses
-        </Link>
-        <span aria-hidden="true">/</span>
-        <span>{course?.title ?? "Course"}</span>
+      <PageHeader
+        eyebrow="Course Workspace"
+        title={`${course?.emoji || "📘"} ${course?.title ?? "Course"} curriculum`}
+        description={course?.description || "Manage this course and its learning content."}
+        breadcrumbs={[{ label: "Courses", to: "/admin/courses" }, { label: course?.title ?? "Course" }]}
+        meta={course ? <StatusBadge status={course.status} /> : undefined}
+        actions={<><ButtonLink icon="arrow-left" variant="secondary" to="/admin/courses">Back to courses</ButtonLink>{course?.status === "published" && <ButtonLink variant="secondary" to={buildStudentPreviewUrl({ courseId, target: "published", returnTo: `${location.pathname}${location.search}` })}>Preview Published</ButtonLink>}<ButtonLink variant="secondary" to={buildStudentPreviewUrl({ courseId, target: "draft", returnTo: `${location.pathname}${location.search}` })}>Preview Draft</ButtonLink>{activeTab !== "curriculum" && <ButtonLink variant="secondary" to="?tab=curriculum">Open curriculum</ButtonLink>}{canPublish && course?.status !== "archived" && <Button type="button" isLoading={workspaceActionPending} onClick={() => void handleWorkspacePublish()}>{course?.status === "published" ? "Publish updates" : "Publish Course"}</Button>}{canEditDrafts && course?.status === "draft" && <Button type="button" variant="secondary" isLoading={workspaceActionPending} onClick={() => void handleWorkspaceDuplicate()}>Duplicate Course</Button>}{activeTab === "curriculum" && canCreateUnit && <Button icon="plus" onClick={() => { setFormErrorMessage(null); setFormState({ mode: "create" }); }}>Create unit</Button>}</>}
+      />
+      {workspaceActionMessage && <div className="mt-5"><Alert tone={workspaceActionMessage.startsWith("Course published") ? "info" : "error"}>{workspaceActionMessage}</Alert></div>}
+      <nav aria-label="Course workspace" className="mt-6 flex gap-2 overflow-x-auto border-b border-slate-200">
+        <button type="button" onClick={() => selectTab("overview")} aria-current={activeTab === "overview" ? "page" : undefined} className={`admin-focus whitespace-nowrap border-b-2 px-4 py-3 text-sm font-semibold ${activeTab === "overview" ? "border-blue-600 text-blue-700" : "border-transparent text-slate-500 hover:text-slate-900"}`}>Overview</button>
+        <button type="button" onClick={() => selectTab("curriculum")} aria-current={activeTab === "curriculum" ? "page" : undefined} className={`admin-focus whitespace-nowrap border-b-2 px-4 py-3 text-sm font-semibold ${activeTab === "curriculum" ? "border-blue-600 text-blue-700" : "border-transparent text-slate-500 hover:text-slate-900"}`}>Curriculum</button>
       </nav>
-
-      <div className="mt-6 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-widest text-blue-600">
-            Course → Units
-          </p>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">
-            {course?.emoji} {course?.title ?? "Course"}
-          </h1>
-          <p className="mt-3 max-w-2xl text-slate-600">
-            {course?.description ||
-              "Manage the units in this course."}
-          </p>
+      {activeTab === "overview" && <div className="mt-8 space-y-6">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Card className="p-5"><p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Owner</p><p className="mt-2 font-semibold text-slate-900">{canViewAllCourses ? "Platform course" : "My course"}</p></Card>
+          <Card className="p-5"><p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Status</p><div className="mt-2"><StatusBadge status={course?.status ?? "draft"} /></div></Card>
+          <Card className="p-5"><p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Units</p><p className="mt-2 text-2xl font-bold text-slate-900">{units.length}</p></Card>
+          <Card className="p-5"><p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Last updated</p><p className="mt-2 font-semibold text-slate-900">{course ? new Date(course.updatedAt).toLocaleDateString() : "—"}</p></Card>
         </div>
-
-        {canEditDrafts &&
-        course?.status === "draft" ? (
-          <button
-            type="button"
-            onClick={() =>
-              setFormState({ mode: "create" })
-            }
-            className="rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white shadow-sm transition hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
-          >
-            Create unit
-          </button>
-        ) : (
-          <p className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-600">
-            {course?.status === "draft"
-              ? "View-only unit access"
-              : "Course is sealed; units are read only"}
-          </p>
-        )}
-      </div>
+        <Card className="p-6"><h2 className="text-lg font-bold text-slate-950">Course details</h2><dl className="mt-5 grid gap-4 sm:grid-cols-2"><div><dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Description</dt><dd className="mt-1 text-sm text-slate-700">{course?.description || "No description has been added yet."}</dd></div><div><dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Course address</dt><dd className="mt-1 break-all text-sm text-slate-700">{course?.slug || "—"}</dd></div></dl></Card>
+        <section><h2 className="text-lg font-bold text-slate-950">Future course areas</h2><div className="mt-4 grid gap-4 md:grid-cols-2"><Card className="p-5"><h3 className="font-semibold text-slate-900">Classes</h3><p className="mt-2 text-sm text-slate-600">This course can be assigned to classes once the Classroom module is available.</p></Card><Card className="p-5"><h3 className="font-semibold text-slate-900">Students</h3><p className="mt-2 text-sm text-slate-600">Student enrollment will appear here.</p></Card><Card className="p-5"><h3 className="font-semibold text-slate-900">Assignments</h3><p className="mt-2 text-sm text-slate-600">Assignments will become available after the Classroom module.</p></Card><Card className="p-5"><h3 className="font-semibold text-slate-900">Analytics</h3><p className="mt-2 text-sm text-slate-600">Course analytics will appear after students begin using this course.</p></Card></div></section>
+      </div>}
+      {activeTab === "curriculum" && <>
+      {!canEditDrafts && <div className="mt-5"><Alert>You can view this curriculum, but your role does not allow authoring draft units.</Alert></div>}
+      {canEditDrafts && course?.status === "published" && <div className="mt-5"><Alert><strong>Published course.</strong> Published units remain read-only. You can append new draft units; learners will not see them until you publish course updates.</Alert></div>}
 
       {errorMessage && (
-        <div
-          role="alert"
-          className="mt-6 flex flex-col gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 sm:flex-row sm:items-center sm:justify-between"
-        >
-          <span>{errorMessage}</span>
-          <button
-            type="button"
-            onClick={() => void loadHierarchy()}
-            className="font-semibold underline underline-offset-4"
-          >
-            Try again
-          </button>
-        </div>
+        <div className="mt-6"><Alert tone="error" action={<Button variant="secondary" onClick={() => void loadHierarchy()}>Try again</Button>}>{errorMessage}</Alert></div>
       )}
 
       <div className="mt-8 grid gap-4">
         {units.length === 0 ? (
-          <div className="rounded-2xl border border-slate-200 bg-white px-6 py-16 text-center shadow-sm">
-            <p className="text-lg font-semibold text-slate-900">
-              No units yet
-            </p>
-            <p className="mt-2 text-sm text-slate-500">
-              Add the first draft unit to this course.
-            </p>
-          </div>
+          <EmptyState title="No units yet" description={canCreateUnit ? "Create the first draft unit to begin shaping this curriculum." : "This course does not contain any units to view."} action={canCreateUnit ? <Button icon="plus" onClick={() => { setFormErrorMessage(null); setFormState({ mode: "create" }); }}>Create unit</Button> : undefined} />
         ) : (
           units.map((unit) => {
             const isDraft =
               unit.status === "draft";
 
             return (
-              <article
+              <Card
                 key={unit.id}
-                className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
+                draggable={canEditDraftUnit(canEditDrafts, unit.status)}
+                onDragStart={() => setDraggedUnitId(unit.id)}
+                onDragOver={(event) => { event.preventDefault(); setDropUnitId(unit.id); }}
+                onDragEnd={() => { setDraggedUnitId(null); setDropUnitId(null); }}
+                onDrop={(event) => { event.preventDefault(); if (draggedUnitId !== null && draggedUnitId !== unit.id) { setReorderAnnouncement("Unit order was not changed because persistent reordering is unavailable."); setUnavailableOperation("Reorder units"); } setDraggedUnitId(null); setDropUnitId(null); }}
+                className={`p-5 transition hover:border-blue-200 sm:p-6 ${dropUnitId === unit.id && draggedUnitId !== unit.id ? "border-t-4 border-t-blue-500" : ""}`}
               >
                 <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
                   <div>
@@ -349,16 +387,7 @@ function CourseUnitsContent({
                       <h2 className="text-xl font-bold text-slate-950">
                         {unit.title}
                       </h2>
-                      <span
-                        className={[
-                          "rounded-full px-2.5 py-1 text-xs font-semibold capitalize",
-                          isDraft
-                            ? "bg-amber-100 text-amber-800"
-                            : "bg-emerald-100 text-emerald-800",
-                        ].join(" ")}
-                      >
-                        {unit.status}
-                      </span>
+                      <PublicationStatusBadge status={unit.status} />
                     </div>
                     {unit.description && (
                       <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
@@ -368,51 +397,42 @@ function CourseUnitsContent({
                   </div>
 
                   <div className="flex flex-wrap gap-2">
-                    <Link
-                      to={`/admin/courses/${courseId}/units/${unit.id}`}
-                      className="rounded-lg border border-blue-200 px-3 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
-                    >
+                    <ButtonLink to={`/admin/courses/${courseId}/units/${unit.id}`}>
                       Manage lessons
-                    </Link>
-                    {isDraft &&
-                      canEditDrafts &&
-                      course?.status === "draft" && (
+                    </ButtonLink>
+                    {isDraft && canEditDraftUnit(canEditDrafts, unit.status) && (
                         <>
                           <button
                             type="button"
-                            onClick={() =>
+                            onClick={() => {
+                              setFormErrorMessage(null);
                               setFormState({
                                 mode: "edit",
                                 unit,
-                              })
-                            }
+                              });
+                            }}
                             className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
                           >
                             Edit
                           </button>
-                          <button
-                            type="button"
-                            disabled={
-                              deletingUnitId === unit.id
-                            }
-                            onClick={() =>
-                              void handleDelete(unit)
-                            }
-                            className="rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:cursor-not-allowed disabled:opacity-40"
-                          >
-                            {deletingUnitId === unit.id
-                              ? "Deleting…"
-                              : "Delete"}
-                          </button>
+                          <QuickActionsMenu label={`More actions for unit ${unit.title}`} actions={[
+                            { label: "Rename", onSelect: () => { setFormErrorMessage(null); setFormState({ mode: "edit", unit }); } },
+                            { label: "Duplicate", onSelect: () => { setDuplicateTitle(`${unit.title} copy`); setDuplicateUnit(unit); } },
+                            { label: "Move up", disabled: unit === units[0], explanation: "This unit is already first.", onSelect: () => setUnavailableOperation("Reorder units") },
+                            { label: "Move down", disabled: unit === units.at(-1), explanation: "This unit is already last.", onSelect: () => setUnavailableOperation("Reorder units") },
+                            { label: "Archive", disabled: true, explanation: "Archiving is planned for a future release.", onSelect: () => undefined },
+                          ]} />
                         </>
                       )}
+                    {canEditDrafts && <button type="button" disabled={deletingUnitId === unit.id} onClick={() => { setErrorMessage(null); setDeleteConfirmation(openDeleteConfirmation(unit)); }} className="rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:cursor-not-allowed disabled:opacity-40">{deletingUnitId === unit.id ? "Deleting…" : "Delete"}</button>}
                   </div>
                 </div>
-              </article>
+              </Card>
             );
           })
         )}
       </div>
+      <p className="sr-only" aria-live="polite">{reorderAnnouncement}</p>
 
       {formState.mode !== "closed" && (
         <HierarchyItemForm
@@ -424,14 +444,32 @@ function CourseUnitsContent({
           }
           nextPosition={nextPosition}
           isSaving={isSaving}
-          onCancel={() =>
-            setFormState({ mode: "closed" })
-          }
+          errorMessage={formErrorMessage}
+          onCancel={() => {
+            setFormErrorMessage(null);
+            setFormState({ mode: "closed" });
+          }}
           onSubmit={(input) =>
             void handleSave(input)
           }
+          appendPosition={formState.mode === "create"}
         />
       )}
+      <ConfirmDeleteDialog
+        isOpen={deleteConfirmation.target !== null}
+        title="Delete unit"
+        description={deleteConfirmation.target ? unitRemovalDescription(deleteConfirmation.target) : ""}
+        isDeleting={deleteConfirmation.pending}
+        errorMessage={deleteConfirmation.target ? errorMessage : null}
+        onCancel={() => setDeleteConfirmation((current) => cancelDeleteConfirmation(current))}
+        onConfirm={() => { if (deleteConfirmation.target) void handleDelete(deleteConfirmation.target); }}
+      />
+      <ContentOperationDialog open={duplicateUnit !== null} title="Duplicate unit" description="Review the source unit and choose a destination title." valid={duplicateTitle.trim().length > 0} onClose={() => setDuplicateUnit(null)} actionLabel="Duplicate unit">
+        {duplicateUnit && <div className="rounded-xl border border-slate-200 bg-slate-50 p-4"><p className="font-semibold text-slate-900">{duplicateUnit.title}</p><p className="mt-1 text-sm text-slate-600">Its lessons and draft content will be included.</p></div>}
+        <label className="block text-sm font-semibold text-slate-800">Destination title<input value={duplicateTitle} onChange={(event) => setDuplicateTitle(event.target.value)} className="admin-focus mt-2 min-h-11 w-full rounded-lg border border-slate-300 px-3" /></label>
+      </ContentOperationDialog>
+      <UnavailableOperationDialog open={unavailableOperation !== null} operation={unavailableOperation ?? "Operation"} onClose={() => setUnavailableOperation(null)} />
+      </>}
     </section>
   );
 }

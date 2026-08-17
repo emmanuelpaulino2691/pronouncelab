@@ -1,0 +1,27 @@
+import { describe, expect, it } from "vitest";
+import type { LearnerCourse } from "../../shared/content/contracts/learnerContent";
+import { buildCurrentCourseSummary, calculateLearnerDashboardProgress, getHomeWelcomeHeading, getMissionPresentation, hasCompletedEveryAvailableLesson, homeSectionOrder, learningJourneySecondaryAction, nextActionLabel, resolveNextLearnerAction } from "./learnerDashboard";
+
+const course = (id: string, lessonIds: string[], emptyFirst = false): LearnerCourse => ({
+  id, slug: id, title: `Course ${id}`, description: "", level: "A1", emoji: "Book", position: 0, unitCount: emptyFirst ? 2 : 1,
+  units: [
+    ...(emptyFirst ? [{ id: `${id}-empty`, courseId: id, title: "Empty", description: "", position: 0, lessonCount: 0, lessons: [] }] : []),
+    { id: `${id}-unit`, courseId: id, title: `Unit ${id}`, description: "", position: 1, lessonCount: lessonIds.length, lessons: lessonIds.map((lessonId, position) => ({ id: lessonId, unitId: `${id}-unit`, title: `Lesson ${lessonId}`, description: "", position, currentVersionId: lessonId, activityCount: 4, available: true })) },
+  ],
+} as unknown as LearnerCourse);
+const progress = (started: string[] = [], completed: string[] = [], activitiesCompleted: Array<{ lessonId: string; activities: number[] }> = []) => ({ lessonsStarted: started, lessonsCompleted: completed, activitiesCompleted });
+
+describe("next-action Home experience", () => {
+  it("uses a learner name only when one is available", () => { expect(getHomeWelcomeHeading("Emmanuel")).toBe("Welcome back, Emmanuel!"); expect(getHomeWelcomeHeading()).toBe("Welcome back!"); expect(getHomeWelcomeHeading("  ")).toBe("Welcome back!"); });
+  it("gives an unlocked resume mission highest priority and restores its activity", () => { const action = resolveNextLearnerAction([course("a", ["1", "2"])], progress(["2"], ["1"], [{ lessonId: "2", activities: [0] }]), { "2": 1 }); expect(action).toMatchObject({ kind: "continue", lesson: { id: "2" }, activityIndex: 1, href: "/lessons/2" }); });
+  it("does not let stale future progress bypass sequential locking", () => { expect(resolveNextLearnerAction([course("a", ["1", "2"])], progress(["2"]))).toMatchObject({ kind: "start", lesson: { id: "1" } }); });
+  it("ignores stale progress and recommends published content", () => expect(resolveNextLearnerAction([course("a", ["1"])], progress(["missing"]))).toMatchObject({ kind: "start", lesson: { id: "1" } }));
+  it("recommends the first incomplete lesson in the current course", () => expect(resolveNextLearnerAction([course("a", ["1", "2"])], progress(["1"], ["1"]))).toMatchObject({ kind: "start", lesson: { id: "2" } }));
+  it("skips empty units and chooses the first published lesson for a new learner", () => expect(resolveNextLearnerAction([course("a", ["1"], true)], progress())).toMatchObject({ unit: { title: "Unit a" }, lesson: { id: "1" } }));
+  it("returns no mission without usable published content", () => expect(resolveNextLearnerAction([course("a", [])], progress())).toBeNull());
+  it("uses the requested Start, Continue, and Review wording", () => { expect(nextActionLabel("start")).toBe("Start Learning"); expect(nextActionLabel("continue")).toBe("Continue Learning"); expect(nextActionLabel("review")).toBe("Review Lesson"); });
+  it("presents start, continue, review, and everything-completed mission states truthfully", () => { const base = resolveNextLearnerAction([course("a", ["1"])], progress())!; expect(getMissionPresentation(base, false, false).introduction).toBe("Your English journey starts here."); expect(getMissionPresentation({ ...base, kind: "start" }, true, false).introduction).toBe("Your next lesson is ready."); expect(getMissionPresentation({ ...base, kind: "continue" }, true, false).introduction).toBe("Continue where you left off."); expect(getMissionPresentation({ ...base, kind: "review" }, true, false).introduction).toBe("Strengthen what you learned."); expect(getMissionPresentation({ ...base, kind: "review" }, true, true)).toEqual({ introduction: "Every available lesson is complete.", heading: "Great work!" }); });
+  it("detects everything completed only when every usable lesson is complete", () => { const courses = [course("a", ["1", "2"])]; expect(hasCompletedEveryAvailableLesson(courses, progress([], ["1", "2"]))).toBe(true); expect(hasCompletedEveryAvailableLesson(courses, progress([], ["1"]))).toBe(false); expect(hasCompletedEveryAvailableLesson([], progress())).toBe(false); });
+  it("builds the learning journey and advances beyond a completed course", () => { const courses = [course("a", ["1", "2"]), course("b", ["3"])]; const stored = progress([], ["1", "2"]); const action = resolveNextLearnerAction(courses, stored)!; expect(buildCurrentCourseSummary(action, stored)).toMatchObject({ courseTitle: "Course b", unitTitle: "Unit b", completedLessons: 0, totalLessons: 1, percent: 0 }); expect(calculateLearnerDashboardProgress(courses, stored)).toEqual({ completedLessons: 2, totalLessons: 3, completedCourses: 1 }); });
+  it("keeps Browse Courses secondary to the responsive Home hierarchy", () => { expect(homeSectionOrder).toEqual(["welcome", "todays-mission", "learning-journey"]); expect(learningJourneySecondaryAction).toBe("browse-courses"); expect(homeSectionOrder).not.toContain("statistics"); expect(homeSectionOrder).not.toContain("recent-activity"); expect(homeSectionOrder).not.toContain("motivation"); });
+});

@@ -83,6 +83,7 @@ export async function listAdminLessons(
     .from("lessons")
     .select(lessonColumns)
     .eq("unit_id", unitId)
+    .neq("status", "archived")
     .order("position", { ascending: true });
 
   if (error) {
@@ -94,23 +95,44 @@ export async function listAdminLessons(
   );
 }
 
+export async function getAdminLesson(
+  lessonId: number,
+  expectedUnitId: number
+) {
+  const { data, error } = await requireSupabase()
+    .from("lessons")
+    .select(lessonColumns)
+    .eq("id", lessonId)
+    .eq("unit_id", expectedUnitId)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  if (!data) {
+    throw new Error(
+      "Lesson not found in the expected unit."
+    );
+  }
+
+  return toAdminLesson(
+    data as unknown as LessonRow
+  );
+}
+
 export async function createAdminLesson(
   unitId: number,
   input: HierarchyItemInput
 ) {
-  const userId = await getCurrentUserId();
-  const { data, error } = await requireSupabase()
-    .from("lessons")
-    .insert({
-      ...input,
-      unit_id: unitId,
-      status: "draft",
-      current_published_version_id: null,
-      created_by: userId,
-      updated_by: userId,
-    })
-    .select(lessonColumns)
-    .single();
+  const { data, error } = await requireSupabase().rpc(
+    "create_draft_lesson",
+    {
+      requested_unit_id: unitId,
+      requested_title: input.title,
+      requested_description: input.description,
+    }
+  );
 
   if (error) {
     throw error;
@@ -155,26 +177,35 @@ export async function updateAdminLesson(
   );
 }
 
-export async function deleteDraftLesson(
+export async function removeAdminLesson(
   lessonId: number,
   expectedUnitId: number
 ) {
-  const { data, error } = await requireSupabase()
-    .from("lessons")
-    .delete()
-    .eq("id", lessonId)
-    .eq("unit_id", expectedUnitId)
-    .eq("status", "draft")
-    .select("id")
-    .maybeSingle();
+  const { data, error } = await requireSupabase().rpc(
+    "remove_authoring_lesson",
+    {
+      requested_lesson_id: lessonId,
+      expected_unit_id: expectedUnitId,
+    }
+  );
 
   if (error) {
     throw error;
   }
 
-  if (!data) {
+  if (data !== lessonId) {
     throw new Error(
-      "Draft lesson not found in the expected unit, or it is no longer deletable."
+      "Lesson not found in the expected Unit, or it is no longer removable."
     );
   }
+}
+
+export async function duplicateDraftLesson(lessonId: number, expectedUnitId: number) {
+  const { data, error } = await requireSupabase().rpc(
+    "duplicate_draft_lesson",
+    { requested_lesson_id: lessonId, expected_unit_id: expectedUnitId }
+  );
+  if (error) throw error;
+  if (!data) throw new Error("The lesson could not be duplicated.");
+  return toAdminLesson(data as unknown as LessonRow);
 }

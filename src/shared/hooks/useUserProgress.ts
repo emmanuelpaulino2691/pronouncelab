@@ -1,17 +1,30 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 
 import {
   loadUserProgress,
   saveUserProgress,
 } from "../utils/progressStorage";
+import { loadServerLearnerProgress, recordServerActivityCompletion, recordServerLessonVisit } from "../progress/learnerProgressService";
+import { mergeLearnerProgress, pendingPublishedActivityIds } from "../progress/learnerProgressSync";
 
 export function useUserProgress() {
   const [progress, setProgress] = useState(
     loadUserProgress()
   );
 
+  useEffect(() => {
+    let active = true;
+    void loadServerLearnerProgress().then((server) => {
+      if (!active || !server) return;
+      const merged = mergeLearnerProgress(loadUserProgress(), server);
+      saveUserProgress(merged);
+      setProgress(merged);
+    });
+    return () => { active = false; };
+  }, []);
+
   const startLesson = useCallback(
-    (lessonId: number) => {
+    (lessonId: string) => {
       const latest = loadUserProgress();
 
       if (latest.lessonsStarted.includes(lessonId)) {
@@ -30,6 +43,7 @@ export function useUserProgress() {
 
       saveUserProgress(updated);
       setProgress(updated);
+      void recordServerLessonVisit(lessonId);
 
       return true;
     },
@@ -37,7 +51,7 @@ export function useUserProgress() {
   );
 
   const completeLesson = useCallback(
-    (lessonId: number) => {
+    (lessonId: string) => {
       const latest = loadUserProgress();
 
       if (latest.lessonsCompleted.includes(lessonId)) {
@@ -64,7 +78,7 @@ export function useUserProgress() {
 
   const completeActivity = useCallback(
     (
-      lessonId: number,
+      lessonId: string,
       activityIndex: number
     ) => {
       const latest = loadUserProgress();
@@ -123,10 +137,54 @@ export function useUserProgress() {
     []
   );
 
+  const syncLesson = useCallback(async (lessonId: string, activities: readonly { id: string }[],currentActivityId?:string) => {
+    const local = loadUserProgress();
+    const server = await loadServerLearnerProgress();
+    if (!server) return false;
+    await recordServerLessonVisit(lessonId, currentActivityId??activities[0]?.id);
+    const pending = pendingPublishedActivityIds(local, lessonId, activities, server);
+    const results = await Promise.all(pending.map(recordServerActivityCompletion));
+    const refreshed = await loadServerLearnerProgress();
+    if (refreshed) {
+      const merged = mergeLearnerProgress(loadUserProgress(), refreshed);
+      saveUserProgress(merged);
+      setProgress(merged);
+    }
+    return results.every(Boolean);
+  }, []);
+
+  const syncActivity = useCallback((activityId: string) => {
+    void recordServerActivityCompletion(activityId).then(async (saved) => {
+      if (!saved) return;
+      const server = await loadServerLearnerProgress();
+      if (!server) return;
+      const merged = mergeLearnerProgress(loadUserProgress(), server);
+      saveUserProgress(merged);
+      setProgress(merged);
+    });
+  }, []);
+
+  const visitActivity=useCallback((lessonId:string,activityId:string)=>{void recordServerLessonVisit(lessonId,activityId)},[]);
+
+  const resetLessonProgress = useCallback((lessonId: string) => {
+    const latest = loadUserProgress();
+    const updated = {
+      lessonsStarted: latest.lessonsStarted.filter((id) => id !== lessonId),
+      lessonsCompleted: latest.lessonsCompleted.filter((id) => id !== lessonId),
+      activitiesCompleted: latest.activitiesCompleted.filter((item) => item.lessonId !== lessonId),
+    };
+    saveUserProgress(updated);
+    setProgress(updated);
+  }, []);
+
   return {
     progress,
     startLesson,
     completeLesson,
     completeActivity,
+    syncActivity,
+    syncLesson,
+    visitActivity,
+    resetLessonProgress,
   };
 }
