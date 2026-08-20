@@ -326,6 +326,17 @@ clock transitions in browser tests. Reset local Supabase and run the focused
 notification pgTAP test when changing its migration. Staff Preview must not
 fabricate a learner inbox.
 
+Class announcement checks should use separate Teacher and Learner identities.
+The follow-up contract is covered by `039_class_announcement_followup.sql`:
+meaningful edits advance `revision`, reads store `read_revision`, withdrawn
+rows are omitted from normal lists, and enrollment backfill is capped at 20
+active announcements published within 90 days. Re-running the same enrollment
+or revision must not duplicate event-keyed notifications. Withdrawal tests
+must assert both learner feed and notification projection are empty, while
+internal announcement and notification rows remain retained.
+Validate publish/edit/withdraw ownership, active enrollment access, durable
+read state, withdrawn notification targets, and notification deduplication.
+
 Notification UI checks should cover Remove, Clear read, unread badge updates,
 and the 90-day read-retention rule. These operations are soft-dismissals and do
 not alter Assignment or learner progress data.

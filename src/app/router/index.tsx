@@ -8,6 +8,8 @@ const AdminRoute = lazy(routeModuleLoaders.adminRoute);
 const DashboardPage = lazy(routeModuleLoaders.dashboard);
 const ProgressPage = lazy(routeModuleLoaders.progress);
 const NotificationsPage = lazy(routeModuleLoaders.notifications);
+const ClassAnnouncementsPage = lazy(routeModuleLoaders.classAnnouncements);
+const AdminClassAnnouncementsRoute = lazy(routeModuleLoaders.adminClassAnnouncements);
 const CoursesPage = lazy(routeModuleLoaders.courses);
 const SharedCoursePage = lazy(routeModuleLoaders.sharedCourse);
 const UnitsPage = lazy(routeModuleLoaders.units);
@@ -93,6 +95,10 @@ export const router = createBrowserRouter([
             element: <LazyRoute><ClassWorkspaceLayout /></LazyRoute>,
           },
           {
+            path: "classes/:classId/announcements",
+            element: <LazyRoute><AdminClassAnnouncementsRoute /></LazyRoute>,
+          },
+          {
             path: "preview/courses/:courseId",
             element: <LazyRoute><StudentPreviewCoursePage /></LazyRoute>,
           },
@@ -127,6 +133,10 @@ export const router = createBrowserRouter([
   {
     path: "/classes",
     element: <LazyRoute><LearnerClassesPage /></LazyRoute>,
+  },
+  {
+    path: "/classes/:classId/announcements",
+    element: <LazyRoute><ClassAnnouncementsPage /></LazyRoute>,
   },
   {
     path: "/courses",

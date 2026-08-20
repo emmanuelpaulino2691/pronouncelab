@@ -470,3 +470,10 @@ direct messages remain future work.
 
 Notification retention now supports individual Remove, Clear read, and
 automatic hiding of read items older than 90 days without deleting event rows.
+
+## Sprint 53C Class announcements
+
+Implemented Class-scoped Teacher announcements with revision-aware learner read
+state, current-revision read counts, deduplicated New/Updated system
+notifications, safe withdrawn history, and bounded late-enrollment backfill. Direct messaging,
+replies, attachments, and scheduling remain future work.

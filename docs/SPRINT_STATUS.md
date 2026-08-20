@@ -644,6 +644,18 @@ Notification Center and authenticated Header unread indicator; read state is
 owned by the learner through scoped RPCs. `pg_cron` runs the processor every 15
 minutes. No email, push, chat, or remote operation was performed.
 
+## Sprint 53C — Class announcements
+
+Implemented locally. Teachers can publish, edit, and withdraw plain-text
+announcements for owned Classes. Meaningful edits advance a stable announcement
+revision, notify active learners with Announcement updated events, and make
+older reads stale for current-revision counts. Learners receive persistent New
+announcement notifications, including bounded late-enrollment backfill, and can
+read Class-scoped announcement history with durable per-revision read state.
+Withdrawn rows disappear from normal Teacher/learner views while notification
+history remains safe. Announcement content/read state remains separate from
+system notifications, Assignment progress, and future direct messaging.
+
 Notification cleanup is included: individual Remove and Clear read use
 soft-dismissal, and the normal inbox hides read notifications older than 90
 days. Event rows remain retained so notification processor deduplication cannot

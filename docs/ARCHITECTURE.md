@@ -367,6 +367,17 @@ timestamp for deterministic tests. Learner reads and read-state mutations are
 scoped to `auth.uid()`; notification actions never bypass Release
 authorization. Class announcements and direct messages remain future domains.
 
+Class announcements use `class_announcements` plus per-learner
+`class_announcement_reads`. A monotonic announcement revision and
+`read_revision` make edits visible and keep current-revision read counts
+truthful. The notification inbox carries deduplicated `new_announcement` and
+`announcement_updated` delivery references; its listing resolves current
+announcement presentation and excludes every event whose announcement is
+withdrawn. Withdrawal is a learner-visible deletion even though backend rows
+remain for integrity and deduplication.
+Teacher mutations, learner reads, and late-enrollment backfill use trusted RPCs
+bounded by Class ownership/enrollment.
+
 Dismissal is represented by `dismissed_at`; the inbox excludes dismissed rows
 and read rows older than 90 days. The underlying event row remains available to
 the deduplication constraint.
