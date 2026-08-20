@@ -180,6 +180,19 @@ from Class announcements, direct messages, and Course Library recommendations.
 A due date never revokes access, and notification history survives schedule or
 Release updates.
 
+## Class announcements
+
+Teachers can publish plain-text announcements to an entire Class. Learners see
+persistent Class-scoped history and receive a lightweight New announcement
+system notification. Meaningful edits advance a visible revision, generate an
+Announcement updated notification, and make the latest revision unread again
+for learners who only read an older revision. Removed announcements are
+learner-visible deletions: they leave normal Teacher/learner views,
+Notification Center, previews, unread counts, and backfill. Safe notification
+history remains internal only.
+Learners enrolling after publication receive up to 20 active announcements
+from the last 90 days, with event-key deduplication.
+
 Learners can remove individual notifications or clear read notifications. Read
 items older than 90 days are hidden automatically; unread items remain visible.
 This cleanup affects only the notification inbox, never Assignment access or

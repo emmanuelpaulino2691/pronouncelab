@@ -388,6 +388,18 @@ executable by authenticated learners. `pg_cron` invokes the processor every 15
 minutes; existing assignment, Release, and progress authorization remains
 authoritative.
 
+Migration `202608220001_class_announcements.sql` adds Class-scoped announcement
+content and learner read rows, plus owner/enrollment-checked RPCs for publish,
+edit, withdraw, list, and read operations. Each announcement has a monotonic
+`revision`; reads store `read_revision`, so current-revision counts and unread
+state remain truthful after edits. Publication and meaningful edits create
+deduplicated `new_announcement` or `announcement_updated` rows. Enrollment
+backfill delivers at most 20 active announcements from the last 90 days.
+Learner notification projection joins the announcement and excludes every
+announcement-linked row after withdrawal; it never returns a sanitized
+replacement or retained title/body/metadata. Internal notification rows remain
+for event-key deduplication and audit.
+
 `202608210002_notification_dismissal_retention.sql` adds `dismissed_at` and
 learner-scoped `dismiss_notification`/`clear_read_notifications` RPCs. The
 listing RPC excludes dismissed rows and read rows older than 90 days while

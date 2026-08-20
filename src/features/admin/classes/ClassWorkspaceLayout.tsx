@@ -80,7 +80,7 @@ export function ClassWorkspaceLayout() {
   }
 
   return <section className="mx-auto max-w-6xl space-y-6">
-    <PageHeader eyebrow="Teacher Workspace" title={item.name} breadcrumbs={[{ label:"My Classes",to:"/admin/classes" },{ label:item.name }]} actions={<Link to="/admin/classes" className="font-semibold text-blue-700">Back</Link>} />
+    <PageHeader eyebrow="Teacher Workspace" title={item.name} breadcrumbs={[{ label:"My Classes",to:"/admin/classes" },{ label:item.name }]} actions={<div className="flex gap-3"><Link to={`/admin/classes/${id}/announcements`} className="font-semibold text-blue-700">Announcements</Link><Link to="/admin/classes" className="font-semibold text-blue-700">Back</Link></div>} />
     {message && <p role="status" className="rounded-xl bg-blue-50 px-4 py-3 text-sm font-medium text-blue-900">{message}</p>}
 
     <Card className="space-y-4 p-6">

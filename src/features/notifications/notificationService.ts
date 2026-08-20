@@ -1,6 +1,6 @@
 import { supabase } from "../../shared/lib/supabaseClient";
 
-export type LearnerNotification = { id:number; type:"new_assignment"|"assignment_available"|"due_soon"|"assignment_late"; classId:number; assignmentId:number; releaseId:number; title:string; body:string; metadata:Record<string,unknown>; createdAt:string; readAt:string|null };
+export type LearnerNotification = { id:number; type:"new_assignment"|"assignment_available"|"due_soon"|"assignment_late"|"new_announcement"|"announcement_updated"; classId:number; assignmentId:number|null; releaseId:number|null; announcementId:number|null; title:string; body:string; metadata:Record<string,unknown>; createdAt:string; readAt:string|null };
 function client(){if(!supabase)throw new Error("Notifications are unavailable.");return supabase}
 function fail(error:{message:string}|null){if(error)throw new Error("Notifications could not be loaded.")}
 export async function listMyNotifications(){const{data,error}=await client().rpc("get_my_notifications",{requested_limit:100});fail(error);return(data??[]) as unknown as LearnerNotification[]}
